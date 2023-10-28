@@ -53,7 +53,7 @@ void TtaskHandler::dispatchEvent(Tevent* _ev){
 void TtaskHandler::calcTime(){
     #if MARKI_DEBUG_PLATFORM == 1
     #else
-        FysTime = millis();
+        FsysTime = millis();
     #endif
 }
 
