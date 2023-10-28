@@ -52,8 +52,7 @@ class TstructStack{
             TstackItem* si = first();
             debug::log("create descr -> stackItem %d",si);
             if (si){
-                if (si->inSds){
-                    debug::log("create descr -> TmenuHandle %d",si->mh);
+                if (si->inSds && si->mh){
                     si->mh->addDescr(_d);
                 }
                 else{
