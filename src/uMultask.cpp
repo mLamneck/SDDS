@@ -8,7 +8,10 @@
 TtaskHandler
 *************************************************************************************/
 
-TtaskHandler taskHandler;
+TtaskHandler& taskHandler(){
+    static TtaskHandler taskhandler;
+    return taskhandler;
+}
 
 void TtaskHandler::signalEvent(Tevent* _ev){
     FprocQ.push_first(_ev);
@@ -47,47 +50,52 @@ void TtaskHandler::dispatchEvent(Tevent* _ev){
     FcurrTask = nullptr;
 }
 
-bool TtaskHandler::_handleEvents(){
-    bool evHandled = false;
-    do{
-        evHandled = false;
+void TtaskHandler::calcTime(){
+    #if MARKI_DEBUG_PLATFORM == 1
+    #else
+        FysTime = millis();
+    #endif
+}
 
-        auto ev = FtimerQ.first();
-        while (ev){
-            TsystemTime delTime = ev->deliveryTime();
-            if (delTime > sysTime()){ break; }
+bool TtaskHandler::_handleEvent(){
+    calcTime();
+    auto ev = FtimerQ.first();
+    if (ev){
+        TsystemTime delTime = ev->deliveryTime();
+        if (delTime >= sysTime()){
             FtimerQ.pop();
             dispatchEvent(ev);
-            ev = FtimerQ.first();
-            evHandled = true;
+            return true;
         }
+    }
 
-        ev = FprocQ.pop();
-        while (ev){
-            dispatchEvent(ev);
-            ev = FprocQ.pop();
-            evHandled = true;
-        }
-
-        #if defined(__MINGW64__)
-        ev = FtimerQ.first();
-        if (ev){
-            TsystemTime now = sysTime();
-            TsystemTime waitTime = ev->deliveryTime() - now;
-            if (waitTime > 0){
-                Sleep(waitTime);
-                FsysTime += waitTime;
-            }
-        }
-        #endif
-
-    }while (!evHandled);
+    ev = FprocQ.pop();
+    if (ev){
+        dispatchEvent(ev);
+        return true;
+    }
 
     return false;
 };
 
-bool TtaskHandler::handleEvents(){
-    return taskHandler._handleEvents();
+void TtaskHandler::_handleEvents(){
+    while (_handleEvent()){};
+    #if MARKI_DEBUG_PLATFORM == 1
+    auto ev = FtimerQ.first();
+    if (ev){
+        TsystemTime now = sysTime();
+        TsystemTime waitTime = ev->deliveryTime() - now;
+        if (waitTime > 0){
+            Sleep(waitTime);
+            FsysTime += waitTime;
+        }
+    }
+    #endif
+}
+
+
+void TtaskHandler::handleEvents(){
+    taskHandler()._handleEvents();
 };
 
 
@@ -100,15 +108,15 @@ Tevent::Tevent(Tthread* _owner){
     Fowner = _owner;
 }
 void Tevent::signal(){
-    taskHandler.signalEvent(this);
+    taskHandler().signalEvent(this);
 }
 
 void Tevent::setTimeEvent(TsystemTime _relTime){
-    taskHandler.setTimeEvent(this, _relTime);
+    taskHandler().setTimeEvent(this, _relTime);
 }
 
 void Tevent::reclaim(){
-    taskHandler.reclaimEvent(this);
+    taskHandler().reclaimEvent(this);
 }
 
 
@@ -117,9 +125,9 @@ Tthread
 *************************************************************************************/
 
 Tthread::Tthread() : Tevent(this){
-    taskHandler.FprocQ.push_first(this);
+    taskHandler().FprocQ.push_first(this);
 }
 
 Tthread::Tthread(const char* _name) : Tevent(this, _name){
-    taskHandler.FprocQ.push_first(this);
+    taskHandler().FprocQ.push_first(this);
 };

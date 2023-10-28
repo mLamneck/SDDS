@@ -4,7 +4,7 @@
 #define UPLATFORM_H
 
 #if defined(WIN32)      //#if defined(__MINGW64__)
-    #define MARKI_DEBUG_PLATFORM
+    #define MARKI_DEBUG_PLATFORM 1
 
     #include <stdarg.h>     /* va_list, va_start, va_arg, va_end */
     #include <string>

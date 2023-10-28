@@ -1,6 +1,6 @@
 #include "uPlatform.h"
 
-#if defined(__MINGW64__)
+#if MARKI_DEBUG_PLATFORM == 1
 
 void debug::log(const char* _fmt...)
 {
@@ -19,7 +19,7 @@ dtypes::TsystemTime _millis(){
 
 dtypes::TsystemTime startTime = _millis();
 
-dtypes::TsystemTime millis(){ 
+dtypes::TsystemTime millis(){
     return _millis() - startTime;
 }
 

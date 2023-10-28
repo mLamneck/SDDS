@@ -109,10 +109,12 @@ class TtaskHandler{
         void setTimeEvent(Tevent* _ev, TsystemTime _relTime);
         void reclaimEvent(Tevent* _ev);
 
-        inline void dispatchEvent(Tevent* _ev);
-        inline bool _handleEvents();
+        void dispatchEvent(Tevent* _ev);
+        void calcTime();
+        bool _handleEvent();
+        void _handleEvents();
     public:
-        static bool handleEvents();
+        static void handleEvents();
 };
 
 
