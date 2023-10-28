@@ -1,0 +1,71 @@
+object Form1: TForm1
+  Left = 539
+  Height = 612
+  Top = 138
+  Width = 722
+  Caption = 'C++ Spooky Macro Generator'
+  ClientHeight = 612
+  ClientWidth = 722
+  OnCreate = FormCreate
+  LCLVersion = '2.2.6.0'
+  object bGenerate: TButton
+    Left = 24
+    Height = 25
+    Top = 104
+    Width = 684
+    Anchors = [akTop, akLeft, akRight]
+    Caption = 'generate'
+    OnClick = bGenerateClick
+    TabOrder = 0
+  end
+  object GroupBox1: TGroupBox
+    Left = 24
+    Height = 65
+    Top = 24
+    Width = 185
+    Caption = 'N '
+    ClientHeight = 45
+    ClientWidth = 181
+    TabOrder = 1
+    object eMaxParams: TEdit
+      Left = 10
+      Height = 23
+      Top = 10
+      Width = 160
+      Anchors = [akTop, akLeft, akRight]
+      NumbersOnly = True
+      TabOrder = 0
+      Text = '5'
+      TextHint = 'Number of possible parameters FOR EACH'
+    end
+  end
+  object GroupBox2: TGroupBox
+    Left = 232
+    Height = 65
+    Top = 24
+    Width = 476
+    Anchors = [akTop, akLeft, akRight]
+    Caption = 'Filename'
+    ClientHeight = 45
+    ClientWidth = 472
+    TabOrder = 2
+    object eFilename: TEdit
+      Left = 10
+      Height = 23
+      Top = 10
+      Width = 451
+      Anchors = [akTop, akLeft, akRight]
+      TabOrder = 0
+      Text = 'c:\temp\macros.h'
+      TextHint = 'Number of possible parameters FOR EACH'
+    end
+  end
+  object lbResult: TMemo
+    Left = 24
+    Height = 450
+    Top = 144
+    Width = 684
+    Anchors = [akTop, akLeft, akRight, akBottom]
+    TabOrder = 3
+  end
+end
