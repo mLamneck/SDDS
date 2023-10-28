@@ -62,7 +62,7 @@ bool TtaskHandler::_handleEvent(){
     auto ev = FtimerQ.first();
     if (ev){
         TsystemTime delTime = ev->deliveryTime();
-        if (delTime >= sysTime()){
+        if (sysTime() >= delTime){
             FtimerQ.pop();
             dispatchEvent(ev);
             return true;
