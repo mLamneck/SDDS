@@ -80,21 +80,11 @@ TfinishMenuDefinition::TfinishMenuDefinition(){
     structStack.leaveSds();
 }
 
-TmenuHandleAuto::TmenuHandleAuto(){
-    Fvalue = this;
-    structStack.setLastCreateStruct(this);
-}
-
-
-
-
 
 
 TmenuHandle::TmenuHandle(){
-    debug::log("creating TmenuHandle...");
-    //Fvalue = this;
-    structStack.setLastCreateStruct(nullptr);
-    //__lastCreatedMenu = nullptr;
+    Fvalue = this;
+    structStack.setLastCreateStruct(this);
 };
 
 void Tdescr::signalEvents(){
@@ -113,7 +103,7 @@ void TmenuHandle::print(){
     auto it = iterator();
     while (it.hasNext()){
         Tdescr* descr = it.next();
-        if (descr->typeId() == TYPE_STRUCT){
+        if (descr->isStruct()){
 
             Tstruct* s = static_cast<Tstruct*>(descr);
             debug::log("-> %s",descr->name());

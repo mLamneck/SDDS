@@ -16,20 +16,6 @@
 
 
 /************************************************************************************
-consts for Tdescr type and option
-*************************************************************************************/
-
-#define OPT_NO          0x00
-#define OPT_fREADONLY   0x01
-#define OPT_fSAVEVAL    0x80
-
-#define TYPE_INT        0x01
-#define TYPE_FLOAT      0x02
-#define TYPE_STR        0x03
-#define TYPE_STRUCT     0x42
-
-
-/************************************************************************************
 macro expansion
 *************************************************************************************/
 
@@ -65,6 +51,22 @@ typedef uint8_t Toption;
 #else
     typedef std::function<void(Tdescr* p)> Tcallback;
 #endif
+
+
+/************************************************************************************
+consts for Tdescr type and option
+*************************************************************************************/
+
+namespace sdds{
+    namespace opt{
+        constexpr Toption nothing   = 0;
+        constexpr Toption readonly  = 0x01;
+        constexpr Toption saveval   = 0x80;
+    }
+    namespace typeIds{
+        constexpr Ttype_id STRUCT   = 0x42;
+    }
+}
 
 
 /************************************************************************************
@@ -111,11 +113,9 @@ Tdescr - abstract class for all types
 
 class Tdescr : public TlinkedListElement{
     private:
-        Toption Foption = 0;
         TmenuHandle* Fparent = nullptr;
 
     protected:
-        const char* Fname = nullptr;
         void signalEvents();
     public:
         constexpr static bool is_struct = false;
@@ -125,11 +125,11 @@ class Tdescr : public TlinkedListElement{
 
         //providing type information
         virtual Ttype_id typeId() = 0;
-        virtual const char* name(){return Fname; };
-        inline Toption option(){return Foption; };
+        virtual const char* name(){return ""; };
+        inline Toption option(){return 0; };
 
         virtual bool isEnum() { return false; };
-        inline bool isStruct() {return (typeId()==TYPE_STRUCT); };
+        inline bool isStruct() {return (typeId()==sdds::typeIds::STRUCT); };
 
         //interface for generic handling
         virtual bool setValue(const char* _str) = 0;
@@ -305,15 +305,38 @@ typedef TdescrTemplate<dtypes::int32,0x14> Tint32;
 typedef TdescrTemplate<dtypes::float32,0x24> Tfloat32;
 
 //composed types
-typedef TdescrTemplate<TmenuHandle*,TYPE_STRUCT> Tstruct;
+typedef TdescrTemplate<TmenuHandle*,sdds::typeIds::STRUCT> Tstruct;
 
-#define sdds_expandOption(_o)|_o
-#define sdds_opt(...) 0 SP_FOR_EACH_PARAM_CALL_MACRO_WITH_PARAM(sdds_expandOption,__VA_ARGS__)
+namespace sdds{
+    namespace types{
+        typedef Tuint8 Tuint8;
+        typedef Tuint16 Tuint16;
+        typedef Tuint32 Tuint32;
 
-/**
- * It's no problem to redefine __firstVar/__lastVar in a derived class
- */
-#define sdds_struct(...) TstartMenuDefinition __firstVar; __VA_ARGS__ TfinishMenuDefinition __lastVar;
+        typedef Tint8 Tint8;
+        typedef Tint16 Tint16;
+        typedef Tint32 Tint32;
+
+        typedef Tfloat32 Tfloat32;
+    }
+}
+
+
+/************************************************************************************
+macros for menu definition... Example below
+
+class TuserStruct : public TmenuHandle{
+  public:
+    sdds_struct(
+      sdds_var(Tuint8, val1, sdds_joinOpt(sdds::opt::readonly), 0);       //with option and default value
+      sdds_var(Tuint8, val2, sdds_joinOpt(sdds::opt::saveval);            //with option
+      sdds_var(Tuint8, val3);
+    )
+} userStruct;
+
+*************************************************************************************/
+
+#define __sdds_expandOption(_o)|_o
 
 /**
  * The purpose of the typedef in line 1 is only to get rid of the confusing
@@ -321,7 +344,7 @@ typedef TdescrTemplate<TmenuHandle*,TYPE_STRUCT> Tstruct;
  * typedef, it shows the correct line and says _class does not name a type and
  * usually suggests the right one... this is what we want!
 */
-#define declare(_class, _name, _option, _value) \
+#define __sdds_declareField(_class, _name, _option, _value) \
     typedef _class _class##_##_name##_type;\
     class _class##_##_name : public _class{\
         public:\
@@ -340,15 +363,27 @@ typedef TdescrTemplate<TmenuHandle*,TYPE_STRUCT> Tstruct;
             }\
     } _name;
 
-#define declare_var(...) declare(__VA_ARGS__)
+/**
+ * implement variable number of arguments for sdds_var
+ */
+#define __sdds_declareField_param1(_class) static_assert(false,"Need At Least 2 Parameters" );     //throw error for 1 and 0 parameters to sdds_var
+#define __sdds_declareField_param2(_class,_var) __sdds_declareField(_class,_var,0,0);
+#define __sdds_declareField_param3(_class,_var,_opt) __sdds_declareField(_class,_var,0,0)
+#define __sdds_declareField_param4(_class,_var,_opt,_value) __sdds_declareField(_class,_var,_opt,_value);
+#define __sdds_get5thArg(_1,_2,_3,_4,_N,...) _N
+#define __sdds_getMacro(...) __sdds_get5thArg(__VA_ARGS__,__sdds_declareField_param4,__sdds_declareField_param3,__sdds_declareField_param2,__sdds_declareField_param1)
+
+/**
+ * to be used outside of this unit
+ */
+#define sdds_struct(...) TstartMenuDefinition __firstVar; __VA_ARGS__ TfinishMenuDefinition __lastVar;
+#define sdds_joinOpt(...) 0 SP_FOR_EACH_PARAM_CALL_MACRO_WITH_PARAM(__sdds_expandOption,__VA_ARGS__)
+#define sdds_var(...) __sdds_getMacro(__VA_ARGS__)(__VA_ARGS__)
 
 
 /************************************************************************************
 TmenuHandle - base class to be used to declare a structure with descriptive elements
 *************************************************************************************/
-
-#define __expandPublish(_p) _publish(_p);
-#define publish(...) SP_FOR_EACH_PARAM_CALL_MACRO_WITH_PARAM(__expandPublish,__VA_ARGS__)
 
 class TstartMenuDefinition{
     public:
@@ -374,56 +409,6 @@ class TmenuHandle : public Tstruct{
 
         TobjectEventList* events() { return &FobjectEvents; }
 
-        //class T can be either a instance of Tdescr or a child of TmenuHandle
-        template <class T>
-        void _publish(T& _var){
-            if constexpr (T::is_struct){
-                Tstruct* s = &_var.s;
-                addDescr(s);
-                s->Fvalue = &_var;
-            }
-            else{
-                addDescr(&_var);
-            };
-        }
-
-        void addDescr(TmenuHandle* _s, const char* _name){
-            Tstruct* s = new Tstruct();
-            addDescr(s,_name,OPT_NO,_s);
-        }
-
-        //descr(val,"alias",OPT_fREADONLY)
-        void addDescr(Tdescr* _descr, const char* _name, const char* _alias, Toption _opt){
-            addDescr(_descr,_alias,_opt);
-        }
-
-        //descr(val,"alias",OPT_fREADONLY,1.9)
-        template<class descrType, class valType>
-        void addDescr(descrType* _descr, const char* _name, const char* _alias, Toption _opt, valType _value){
-            addDescr(_descr,_name,_alias,_opt);
-            _descr->Fvalue = _value;
-        }
-
-        //descr(val,OPT_fREADONLY,1.9)
-        template<class descrType, class valType>
-        void addDescr(descrType* _descr, const char* _name, Toption _opt, valType _value){
-            addDescr(_descr,_name,_opt);
-            _descr->Fvalue = _value;
-        }
-
-        //descr(val)
-        void addDescr(Tdescr* _descr, const char* _name){
-            addDescr(_descr, _name, OPT_NO);
-        }
-
-        //descr(val,OPT_fSAVEVAL)
-        //called by all overloaded constructors
-        void addDescr(Tdescr* _descr, const char* _name, Toption _opt){
-            _descr->Fname = _name;
-            _descr->Foption = _opt;
-            addDescr(_descr);
-        }
-
         //called by all overloaded constructors through addDescr(_descr,_name,_opt) anyway
         void addDescr(Tdescr* _descr){
             _descr->Fparent = this;
@@ -447,10 +432,6 @@ class TmenuHandle : public Tstruct{
         }
 };
 
-class TmenuHandleAuto : public TmenuHandle{
-    public:
-    TmenuHandleAuto();
-};
 
 /************************************************************************************
 Ttimer
