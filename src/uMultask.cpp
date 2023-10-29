@@ -42,10 +42,14 @@ void TtaskHandler::reclaimEvent(Tevent* _ev){
 void TtaskHandler::dispatchEvent(Tevent* _ev){
     FcurrTask = _ev->Fowner;
     if (_ev->Fcallback){
+        _ev->beforeDispatch();
         _ev->Fcallback(_ev);
+        _ev->afterDispatch();
     }
     else if (_ev->Fowner){
+        _ev->beforeDispatch();
         _ev->Fowner->execute(_ev);
+        _ev->afterDispatch();
     }
     FcurrTask = nullptr;
 }

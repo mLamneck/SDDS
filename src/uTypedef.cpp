@@ -90,7 +90,53 @@ TmenuHandle::TmenuHandle(){
 void Tdescr::signalEvents(){
     Fcallbacks.emit(this);
     if (Fparent){
-        Fparent->events()->signal();
+        Fparent->signalEvents(this);
+    }
+}
+
+
+/************************************************************************************
+TobjectEvent
+*************************************************************************************/
+
+void __TobjectEvent::afterDispatch(){
+    auto ctx = context();
+    if (ctx){
+        static_cast<TobjectEvent*>(ctx)->afterDispatch();
+    }
+}
+
+void TobjectEvent::afterDispatch(){
+    Ffirst = TrangeItem_max;
+    Flast = 0;
+}
+
+Tevent* TobjectEvent::event(){
+    return &Fevent;
+}
+
+void TobjectEvent::signal(TrangeItem _first, TrangeItem _last){
+    if (_first < Ffirst){
+        Ffirst = _first;
+    }
+    if (_last > Flast){
+        Flast = _last;
+    }
+    event()->signal();
+}
+
+
+TobjectEvent::TobjectEvent(Tthread* _owner, const char* _name) : Fevent(_owner){
+    afterDispatch();
+    Fname = _name;
+    Fevent.setContext(this);
+}
+
+void TobjectEventList::signal(TrangeItem _first){
+    TrangeItem last = _first;
+    for (auto it = iterator(); it.hasNext(); ){
+        auto ev = it.next();
+        ev->signal(_first,_first);
     }
 }
 
@@ -135,3 +181,4 @@ void handleTimerEvent(Tevent* _timerEv){
     //((Ttimer1*)_timerEv)->onTimerElapsed();
     static_cast<Ttimer*>(_timerEv)->onTimerElapsed();
 }
+

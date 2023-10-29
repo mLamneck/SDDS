@@ -29,6 +29,9 @@ class Tevent : public TlinkedListElement{
         TsystemTime FdeliveryTime;
         TeventProc Fcallback = nullptr;
         void* Fcontext;
+    protected:
+        virtual void beforeDispatch(){};
+        virtual void afterDispatch(){};
     public:
         #if MULTASK_DEBUG
         const char* Fname;

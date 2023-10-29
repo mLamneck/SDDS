@@ -32,11 +32,25 @@ bool _TlinkedList::remove(_TlinkedList::T* _element){
             prev->Fnext = el->next();
             el->setUnlinked();
             return true;
-        } 
+        }
     }
     return false;
 }
 
 _TlinkedListIterator _TlinkedList::iterator(){
     return _TlinkedListIterator(this);
+}
+
+_TlinkedListIterator _TlinkedList::iterator(int _firstIdx){
+    return _TlinkedListIterator(this,_firstIdx);
+}
+
+int _TlinkedList::indexOf(_TlinkedList::T* _element)
+{
+    int idx = 0;
+    for (auto it = iterator(); it.hasNext(); ){
+        if (it.next() == _element){ return idx; }
+        idx++;
+    }
+    return -1;
 }

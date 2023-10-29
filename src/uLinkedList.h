@@ -41,6 +41,7 @@ class _TlinkedList : public _TlinkedListElement{
         T* first() { return Fnext; }
 
         _TlinkedListIterator iterator();
+        _TlinkedListIterator iterator(int _firstIdx);
 
         T* pop(){
             T* result = first();
@@ -50,7 +51,7 @@ class _TlinkedList : public _TlinkedListElement{
             }
             return result;
         }
-        
+
         void push_first(T* _element){
             if (_element->linked()) return;
             _element->Fnext = first();
@@ -60,6 +61,9 @@ class _TlinkedList : public _TlinkedListElement{
         void push_back(T* _element);
 
         bool remove(T* _element);
+
+        int  indexOf(T* _element);
+        bool hasElements() { return first() != nullptr; }
 };
 
 
@@ -77,13 +81,16 @@ class _TlinkedListIterator{
             Fcurr = _list;
             Fprev = nullptr;
         }
+        _TlinkedListIterator(T* _list, int _startIdx) : _TlinkedListIterator(_list){
+            while (_startIdx-- > 0 && hasNext()) next();
+        }
 
         inline bool hasNext(){
             bool _hasNext = (Fcurr->next() != nullptr);
             if (!_hasNext){ Fprev = Fcurr; }
             return _hasNext;
         }
-        
+
         // this is not neccessarily the previous element, but could also be the list itself.
         // or the last element in the list.
         T* prev() { return Fprev; };
@@ -111,7 +118,7 @@ template<class elementType> class TlinkedListIterator: public _TlinkedListIterat
     public:
         using _TlinkedListIterator::_TlinkedListIterator;
         elementType* next() { return static_cast<elementType*>(_TlinkedListIterator::next()); }
-        
+
         //this doesn't work because there's not way to detect if prev points to the list itself
         //elementType* prev() { return (Fcurr==Fprev)?nullptr:static_cast<elementType*>(Fprev); }
 };
@@ -124,6 +131,7 @@ TlinkedList - with type specification
 template<class elementType> class TlinkedList : public _TlinkedList{
     public:
         TlinkedListIterator<elementType> iterator() { return TlinkedListIterator<elementType>(this); }
+        TlinkedListIterator<elementType> iterator(int _firstIdx) { return TlinkedListIterator<elementType>(this,_firstIdx); }
         elementType* first() { return (elementType*)_TlinkedList::first(); };
         elementType* pop() { return (elementType*)_TlinkedList::pop(); }
         void push_back(elementType* _element){ _TlinkedList::push_back(_element); };

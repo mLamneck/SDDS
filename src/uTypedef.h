@@ -5,7 +5,6 @@
 #include "uMultask.h"
 #include "uLinkedList.h"
 #include "uStrings.h"
-#include "uObjectEvents.h"
 #include "uEnumMacros.h"
 
 #ifdef __AVR__
@@ -336,6 +335,16 @@ class TuserStruct : public TmenuHandle{
 
 *************************************************************************************/
 
+class TstartMenuDefinition{
+    public:
+    TstartMenuDefinition();
+};
+
+class TfinishMenuDefinition{
+    public:
+    TfinishMenuDefinition();
+};
+
 #define __sdds_expandOption(_o)|_o
 
 /**
@@ -382,18 +391,59 @@ class TuserStruct : public TmenuHandle{
 
 
 /************************************************************************************
-TmenuHandle - base class to be used to declare a structure with descriptive elements
+TobjectEvent
 *************************************************************************************/
 
-class TstartMenuDefinition{
-    public:
-    TstartMenuDefinition();
+class TobjectEvent;
+class TobjectEventList;
+
+class __TobjectEvent : public Tevent{
+    void afterDispatch() override;
+public:
+    using Tevent::Tevent;
 };
 
-class TfinishMenuDefinition{
+typedef dtypes::uint8 TrangeItem;
+constexpr dtypes::uint8 TrangeItem_max = 255;
+
+class TobjectEvent : public TlinkedListElement{
+    friend class __TobjectEvent;
+    friend class TobjectEventList;
+    private:
+        __TobjectEvent Fevent;
+        const char* Fname;
+        TrangeItem Ffirst;
+        TrangeItem Flast;
     public:
-    TfinishMenuDefinition();
+        TmenuHandle* Fstruct;
+        char Ftag;
+
+        void afterDispatch();
+
+        TrangeItem first() { return Ffirst; }
+        TrangeItem last() { return Flast; }
+        Tevent* event();
+        void signal(TrangeItem _first = 0, TrangeItem _last = TrangeItem_max);
+
+        TobjectEvent(Tthread* _owner, const char* _name);
 };
+
+
+
+class TobjectEventList : public TlinkedList<TobjectEvent>{
+    public:
+        void signal(){
+            for (auto it = iterator(); it.hasNext(); ){
+                it.next()->event()->signal();
+            }
+        }
+        void signal(TrangeItem _first);
+};
+
+
+/************************************************************************************
+TmenuHandle - base class to be used to declare a structure with descriptive elements
+*************************************************************************************/
 
 /**
  */
@@ -406,8 +456,18 @@ class TmenuHandle : public Tstruct{
         TmenuHandle();
 
         TlinkedListIterator<Tdescr> iterator() { return FmenuItems.iterator(); }
+        TlinkedListIterator<Tdescr> iterator(TrangeItem _first) { return FmenuItems.iterator(_first); }
 
         TobjectEventList* events() { return &FobjectEvents; }
+
+        void signalEvents(Tdescr* _sender){
+            if (events()->hasElements()){
+                int idx = FmenuItems.indexOf(_sender);
+                if (idx > -1){
+                    events()->signal(idx);
+                }
+            }
+        }
 
         //called by all overloaded constructors through addDescr(_descr,_name,_opt) anyway
         void addDescr(Tdescr* _descr){

@@ -156,7 +156,7 @@ class _TplainCommHandler : public Tthread{
         oe->Fstruct = mh;
         oe->Ftag = port;
         mh->events()->push_first(oe);
-        oe->event()->signal();
+        oe->signal();
     }
 
     void handleCommand(Tcmd _cmd, TstringRef& _msg){
@@ -212,11 +212,16 @@ class _TplainCommHandler : public Tthread{
 
         if (!isTaskEvent(_ev)){
             TobjectEvent* oe= static_cast<TobjectEvent*>(_ev->context());
+            auto first = oe->first();
+            auto last = oe->last();
+
             Fstream->write("l ");
             Fstream->write(oe->Ftag);
             Fstream->write(" ");
-            auto it = oe->Fstruct->iterator();
-            while (it.hasNext()){
+            Fstream->write(first);
+            Fstream->write(" ");
+            auto it = oe->Fstruct->iterator(first);
+            while (first++ <= last && it.hasNext()){
                 Tdescr* d = it.next();
                 Fstream->write(d->to_string());
                 Fstream->write(',');
