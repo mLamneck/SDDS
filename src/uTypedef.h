@@ -239,8 +239,9 @@ template <typename ValType, Ttype_id _type_id=0x01> class TenumTemplate: public 
         ValType Fvalue;
     public:
         friend class TmenuHandle;
-        typedef ValType dtype;
-        typedef typename ValType::e e;
+
+        typedef ValType enumClass;
+        typedef typename ValType::e dtype;
 
         /* override copy constructor to avoid a deep copy of the object
          * including callbacks and events
@@ -269,8 +270,9 @@ template <typename ValType, Ttype_id _type_id=0x01> class TenumTemplate: public 
         inline ValType value(){ return Fvalue; }
 
         // behave like a plain class enum
-        operator e() const{ return Fvalue.Fvalue; }
-        void operator=(e _value){
+        operator dtype() const{ return Fvalue.Fvalue; }
+
+        void operator=(dtype _value){
             Fvalue=_value;
             signalEvents();
         }
@@ -283,7 +285,7 @@ template <typename ValType, Ttype_id _type_id=0x01> class TenumTemplate: public 
     ENUM_CLASS(ENUM_UNIQUE_NAME(),__VA_ARGS__);\
     typedef TenumTemplate<ENUM_UNIQUE_NAME()>
 
-#define ENUMS(_enum) _enum::dtype::e
+#define ENUMS(_enum) _enum::dtype
 
 
 /************************************************************************************
