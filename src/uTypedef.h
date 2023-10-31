@@ -118,6 +118,7 @@ class Tdescr : public TlinkedListElement{
         void signalEvents();
     public:
         constexpr static bool is_struct = false;
+        constexpr static bool is_enum = false;
         Tdescr(int id);
         Tcallbacks Fcallbacks;
         friend class TmenuHandle;
@@ -179,6 +180,7 @@ template <class ValType, Ttype_id _type_id> class TdescrTemplate: public Tdescr{
         ValType Fvalue;
     public:
         constexpr static bool is_struct = (_type_id==0x42);
+
         friend class TmenuHandle;
         typedef ValType dtype;
 
@@ -355,32 +357,41 @@ class TfinishMenuDefinition{
  * typedef, it shows the correct line and says _class does not name a type and
  * usually suggests the right one... this is what we want!
 */
-#define __sdds_declareField(_class, _name, _option, _value) \
+#define __sdds_declareField(_class, _name, _option, _value, _operatorEq, _constructorAssign) \
     typedef _class _class##_##_name##_type;\
     class _class##_##_name : public _class{\
         public:\
             _class##_##_name(){\
                 if constexpr (!_class##_##_name::is_struct){\
-                    Fvalue = _value;\
+                    _constructorAssign(_value)\
                 }\
             }\
             Toption option() { return _option; }\
             const char* name() override { return #_name; }\
             void operator=(_class::dtype _v){\
                 if constexpr (!_class##_##_name::is_struct){\
-                    Fvalue = _v;\
-                    signalEvents();\
+                    _operatorEq(_v)\
                 }\
             }\
     } _name;
 
 /**
+ * macros to change operator= and constructor based on the number of arguments given
+ */
+#define __sdds_constructorAssignValue(_value) Fvalue = _value;
+#define __sdds_constructorEmpty(_value)
+#define __sdds_operatorEqEmpty(_v)
+#define __sdds_operatorEq(_v)\
+    Fvalue = _v;\
+    signalEvents();\
+
+/**
  * implement variable number of arguments for sdds_var
  */
 #define __sdds_declareField_param1(_class) static_assert(false,"Need At Least 2 Parameters" );     //throw error for 1 and 0 parameters to sdds_var
-#define __sdds_declareField_param2(_class,_var) __sdds_declareField(_class,_var,0,0);
-#define __sdds_declareField_param3(_class,_var,_opt) __sdds_declareField(_class,_var,0,0)
-#define __sdds_declareField_param4(_class,_var,_opt,_value) __sdds_declareField(_class,_var,_opt,_value);
+#define __sdds_declareField_param2(_class,_var) __sdds_declareField(_class,_var,0,0,__sdds_operatorEqEmpty,__sdds_constructorEmpty);
+#define __sdds_declareField_param3(_class,_var,_opt) __sdds_declareField(_class,_var,0,0,__sdds_operatorEqEmpty,__sdds_constructorEmpty)
+#define __sdds_declareField_param4(_class,_var,_opt,_value) __sdds_declareField(_class,_var,_opt,_value,__sdds_operatorEq,__sdds_constructorAssignValue);
 #define __sdds_get5thArg(_1,_2,_3,_4,_N,...) _N
 #define __sdds_getMacro(...) __sdds_get5thArg(__VA_ARGS__,__sdds_declareField_param4,__sdds_declareField_param3,__sdds_declareField_param2,__sdds_declareField_param1)
 
