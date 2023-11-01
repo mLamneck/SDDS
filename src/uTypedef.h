@@ -117,8 +117,6 @@ class Tdescr : public TlinkedListElement{
     protected:
         void signalEvents();
     public:
-        constexpr static bool is_struct = false;
-        constexpr static bool is_enum = false;
         Tdescr(int id);
         Tcallbacks Fcallbacks;
         friend class TmenuHandle;
@@ -240,6 +238,7 @@ template <typename ValType, Ttype_id _type_id=0x01> class TenumTemplate: public 
     protected:
         ValType Fvalue;
     public:
+        constexpr static bool is_struct = false;
         friend class TmenuHandle;
 
         typedef ValType enumClass;
