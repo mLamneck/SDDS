@@ -37,11 +37,35 @@ class TstringRef{
         inline bool hasNext(){ return (*Frun != '\0'); }
         inline char curr() { return *Frun; }
         inline char next() { return hasNext()? *Frun++ : '\0'; }
-        void offset(int _ofs){ 
+        void offset(int _ofs){
             if (_ofs < 0){
                 Frun = (Frun + _ofs)>=Fstr? (Frun + _ofs) : Fstr;
             }
         }
+
+        bool parseValue(dtypes::uint32& _out){
+            bool res = false;
+            dtypes::uint32 val = 0;
+            while (hasNext()){
+                dtypes::uint8 c = next();
+                if (c==' ' || c == '\t') break;
+                c -= 0x30;
+                if (c > 9) return false;
+                val = val*10 + c;
+                res = true;
+            }
+            _out = val;
+            return res;
+        }
+
+        bool parseValue(dtypes::uint8& _out){
+            dtypes::uint32 outVal;
+            if (!parseValue(outVal)) return false;
+            if (outVal > 255) return false;
+            _out = outVal;
+            return true;
+        }
+
         inline bool operator==(const char* _str){
             return string_cmp(*this,_str);
         }
@@ -54,11 +78,11 @@ class TsubStringRef : public TstringRef{
         TsubStringRef(const char* _str, const char* _end) : TstringRef(_str){
             Fend = (_end > _str)?_end:_str;
         }
-        inline bool hasNext(){ 
+        inline bool hasNext(){
             return (TstringRef::hasNext() && Frun < Fend);
         }
         inline char next(){ return hasNext()? *Frun++ : '\0'; }
-        
+
         void copy(char* _dest);
 
         inline bool operator==(const char* _str){

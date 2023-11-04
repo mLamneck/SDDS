@@ -133,7 +133,6 @@ TobjectEvent::TobjectEvent(Tthread* _owner, const char* _name) : Fevent(_owner){
 }
 
 void TobjectEventList::signal(TrangeItem _first){
-    TrangeItem last = _first;
     for (auto it = iterator(); it.hasNext(); ){
         auto ev = it.next();
         ev->signal(_first,_first);

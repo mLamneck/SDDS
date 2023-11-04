@@ -424,10 +424,11 @@ class TobjectEvent : public TlinkedListElement{
         TrangeItem Flast;
     public:
         TmenuHandle* Fstruct;
-        char Ftag;
+        dtypes::uint8 Ftag;
 
         void afterDispatch();
 
+        TmenuHandle* menuHandle() { return Fstruct; }
         TrangeItem first() { return Ffirst; }
         TrangeItem last() { return Flast; }
         Tevent* event();

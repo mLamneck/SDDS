@@ -81,12 +81,31 @@ class TjsonSerializer{
     }
 };
 
+class Tconnection : public TlinkedListElement{
+    public:
+        ~Tconnection(){
+            FobjEvent.menuHandle()->events()->remove(&FobjEvent);
+            FobjEvent.event()->reclaim();
+        };
+        TobjectEvent FobjEvent;
+        Tconnection(Tthread* _owner) : FobjEvent(_owner,""){}
+        TmenuHandle* menuHandle() { return FobjEvent.menuHandle(); }
+};
+
 class _TplainCommHandler : public Tthread{
+
+
   typedef dtypes::int8 Tcmd;
 
   private:
     TmenuHandle* Froot;
     Tstream* Fstream;
+    TlinkedList<Tconnection> Fconnections;
+
+    //returned by locatePath
+    TmenuHandle* Fmh;
+    Tconnection* Fconn;
+    dtypes::uint8 Fport;
   public:
     _TplainCommHandler(TmenuHandle& _root, Tstream* _stream){
       Froot = &_root;
@@ -109,54 +128,81 @@ class _TplainCommHandler : public Tthread{
         //debug::log(Fstream1.Fbuffer.c_str());
     }
 
-    void linkPath(TstringRef& _msg){
-        //port not specified???
-        char port = _msg.next();
-        char blank = _msg.next();
-        if (port == '\0' || blank != ' '){
-            send("E L");
-            return;
+    bool locatePath(TstringRef& _msg){
+        Fconn = nullptr;
+        Fmh = nullptr;
+
+        if (!_msg.parseValue(Fport)){
+            send("E 1");
+            return false;
         }
 
-        TmenuHandle* mh = Froot;
-
+        Fmh = Froot;
         //locate path necessary???
         if (_msg.hasNext()){
             //path not found???
             Tlocator l(Froot);
             if (!l.locate(_msg)){
-                send("E L");
-                return;
+                send("E 2");
+                return false;
             }
 
             //path doesn't point to a struct???
             if (!l.result()->isStruct()){
-                send("E L");
-                return;
+                send("E 3");
+                return false;
             }
 
             //structs = nullptr????
-            mh = static_cast<Tstruct*>(l.result())->value();
-            if (!mh){
-                send("E L");
-                return;
+            Fmh = static_cast<Tstruct*>(l.result())->value();
+            if (!Fmh){
+                send("E 4");
+                return false;
             }
         }
 
-        //struct already linked by this thread???
-        for (auto it = mh->events()->iterator(); it.hasNext(); ){
-            auto oe = it.next();
-            if (oe->Fstruct == mh && oe->event()->owner() == this){
-                send("E L");
-                return;
+        //find port
+        for (auto it = Fconnections.iterator(); it.hasNext(); ){
+            auto lconn = it.next();
+            if (lconn->FobjEvent.Ftag == Fport){
+                Fconn = lconn;
+                TmenuHandle* lmh = Fconn->menuHandle();
+                lmh->events()->remove(&Fconn->FobjEvent);
+                Fconn->FobjEvent.event()->reclaim();
+                break;
             }
         }
-        TobjectEvent* oe = new TobjectEvent(this,"hello");
-        oe->Fstruct = mh;
-        oe->Ftag = port;
-        mh->events()->push_first(oe);
-        oe->signal();
+        return true;
     }
+
+    void linkPath(TstringRef& _msg){
+        if (!locatePath(_msg)) return;
+
+        //if connection for recycling found...
+        Tconnection* conn = Fconn;
+        if (!conn){
+            conn = new Tconnection(this);
+            Fconnections.push_first(conn);
+        }
+        conn->FobjEvent.Fstruct = Fmh;
+        conn->FobjEvent.Ftag = Fport;
+        Fmh->events()->push_first(&conn->FobjEvent);
+        conn->FobjEvent.signal();
+    }
+
+    void unlinkPath(TstringRef& _msg){
+        if (!locatePath(_msg)) return;
+        if (!Fconn){
+            send("E 5");
+            return;
+        }
+        Fconnections.remove(Fconn);
+        delete Fconn;
+        Fstream->write("u ");
+        Fstream->write(Fport);
+        Fstream->flush();
+    }
+
 
     void handleCommand(Tcmd _cmd, TstringRef& _msg){
       switch (_cmd)
@@ -169,11 +215,14 @@ class _TplainCommHandler : public Tthread{
         linkPath(_msg);
         break;
 
+      case 'U':
+        unlinkPath(_msg);
+        break;
+
       default:
         send("E C");
         break;
       }
-
     }
 
     void handleReadWrite(TstringRef& msg){

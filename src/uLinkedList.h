@@ -107,6 +107,11 @@ class _TlinkedListIterator{
             _newElement->Fnext = Fprev->next();
             Fprev->Fnext = _newElement;
         }
+
+        void removeCurr(){
+            Fprev->Fnext = Fcurr->Fnext;
+            Fcurr->setUnlinked();
+        }
 };
 
 
