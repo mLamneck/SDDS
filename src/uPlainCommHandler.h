@@ -92,7 +92,7 @@ class Tconnection : public TlinkedListElement{
         TmenuHandle* menuHandle() { return FobjEvent.menuHandle(); }
 };
 
-class _TplainCommHandler : public Tthread{
+class TplainCommHandler : public Tthread{
 
 
   typedef dtypes::int8 Tcmd;
@@ -107,11 +107,11 @@ class _TplainCommHandler : public Tthread{
     Tconnection* Fconn;
     dtypes::uint8 Fport;
   public:
-    _TplainCommHandler(TmenuHandle& _root, Tstream* _stream){
+    TplainCommHandler(TmenuHandle& _root, Tstream* _stream){
       Froot = &_root;
       Fstream = _stream;
     }
-    _TplainCommHandler(TmenuHandle& _root, Tstream& _stream){
+    TplainCommHandler(TmenuHandle& _root, Tstream& _stream){
       Froot = &_root;
       Fstream = &_stream;
     }
@@ -279,44 +279,6 @@ class _TplainCommHandler : public Tthread{
 
     }
 
-};
-
-template <class InterfaceType, typename StringClass=dtypes::string>
-class TplainCommHandlerTemplate : public Tthread{
-  private:
-    InterfaceType* Finterface;
-    TmenuHandle* Froot;
-    StringClass Fbuffer;
-  public:
-    TplainCommHandlerTemplate(InterfaceType& _stream, TmenuHandle& _root){
-      Finterface = &_stream;
-      Froot = &_root;
-    }
-
-    void handleMessage(const char* _msg){
-      TstringRef msg(_msg);
-      Tlocator l(Froot);
-      if (l.locate(msg)){
-          if (msg.hasNext()){
-              l.result()->setValue(msg.pCurr());
-          }
-          else{
-              Finterface->print(l.result()->name());
-              Finterface->print(" = ");
-              Finterface->println(l.result()->to_string().c_str());
-          }
-      };
-    }
-
-    void run(){
-      while (Finterface->available()>0){
-        char c = Finterface->read();
-        if (c == '\n'){
-          handleMessage(Fbuffer.c_str());
-          Fbuffer = "";
-        } else Fbuffer+=c;
-      };
-    }
 };
 
 #endif
