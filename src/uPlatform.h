@@ -1,4 +1,5 @@
-#pragma pack (push, 1)
+//never comment this in in production, as it leats to terrible exceptions especially on esp!!!
+//#pragma pack (push, 1)
 
 #ifndef UPLATFORM_H
 #define UPLATFORM_H
