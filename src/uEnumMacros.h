@@ -14,7 +14,7 @@
 #define ENUM_STRS_NAME(_name) _name##ENUM_STRS
 
 #define ENUM_CLASS(_name,...)\
-constexpr static const char* ENUM_STRS_NAME(_name)[] = {SP_FOR_EACH_PARAM_CALL_MACRO_WITH_PARAM(ENUM_STR,__VA_ARGS__)"_"};    \
+constexpr static const char* ENUM_STRS_NAME(_name)[] = {SP_FOR_EACH_PARAM_CALL_MACRO_WITH_PARAM(ENUM_STR,__VA_ARGS__)};    \
 class _name{                \
     public: \
         constexpr static const uint8_t COUNT = SP_COUNT_VARARGS(__VA_ARGS__);                                          \
