@@ -254,7 +254,7 @@ template <typename ValType, Ttype_id _type_id=0x01> class TenumTemplate: public 
 
         Ttype_id typeId() override {return _type_id; };
         int enumCnt() override { return ValType::COUNT; };
-        const char* getEnum(int _idx) override { return ValType::ENUM_STRS[_idx]; };
+        const char* getEnum(int _idx) override { return Fvalue.getEnum(_idx); }
 
         bool setValue(const char* _str) override {
             if (Fvalue.strToVal(_str)){
