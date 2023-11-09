@@ -158,16 +158,32 @@ class Tdescr : public TlinkedListElement{
         static TrawString _valToStr(TrawString _val){return _val; }
         static TrawString _valToStr(TmenuHandle* _val){ return ""; };
 
-        //covert string to internal values
-        static bool _strToValue(const char* _str, int& _value){return Tdescr::_strToNumber<int>(_str,_value);}
-        static bool _strToValue(const char* _str, double& _value){return Tdescr::_strToNumber<double>(_str,_value);}
-        static bool _strToValue(const char* _str, dtypes::float32& _value){return Tdescr::_strToNumber<dtypes::float32>(_str,_value);}
+        //********* covert string to internal values ***************
+
+        //unsigned int
         static bool _strToValue(const char* _str, dtypes::uint8& _value){return Tdescr::_strToNumber<dtypes::uint8>(_str,_value);}
+        static bool _strToValue(const char* _str, dtypes::uint16& _value){return Tdescr::_strToNumber<dtypes::uint16>(_str,_value);}
+        static bool _strToValue(const char* _str, dtypes::uint32& _value){return Tdescr::_strToNumber<dtypes::uint32>(_str,_value);}
+
+        //signed int
+        static bool _strToValue(const char* _str, dtypes::int8& _value){return Tdescr::_strToNumber<dtypes::int8>(_str,_value);}
+        static bool _strToValue(const char* _str, dtypes::int16& _value){return Tdescr::_strToNumber<dtypes::int16>(_str,_value);}
+        static bool _strToValue(const char* _str, dtypes::int32& _value){return Tdescr::_strToNumber<dtypes::int32>(_str,_value);}
+
+        //floating point
+        static bool _strToValue(const char* _str, dtypes::float32& _value){return Tdescr::_strToNumber<dtypes::float32>(_str,_value);}
+
         static bool _strToValue(const char* _str, TmenuHandle*& _value){return true;}
-        template <typename T> static bool _strToValue(const char* _str, T& _value){return true;}
+
+        //********* covert string to internal values ***************
 };
 
 
+/*
+        static bool _strToValue(const char* _str, dtypes::uint16& _value){return Tdescr::_strToNumber<dtypes::uint16>(_str,_value);}
+        static bool _strToValue(const char* _str, dtypes::uint32& _value){return Tdescr::_strToNumber<dtypes::uint32>(_str,_value);}
+
+*/
 /************************************************************************************
 template for the actual descriptive types
 *************************************************************************************/

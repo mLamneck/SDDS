@@ -11,6 +11,9 @@
     #include <string>
     #include <sys/time.h>
 
+    constexpr int LED_BUILTIN = 1;
+    void digitalWrite(int pin, int out);
+
     namespace dtypes{
         typedef std::string string;
         typedef int64_t TsystemTime;

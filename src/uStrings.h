@@ -34,7 +34,7 @@ class TstringRef{
     public:
         inline const char* pCurr(){ return Frun; }
         inline void initIterate(){ Frun = Fstr; }
-        inline bool hasNext(){ return (*Frun != '\0'); }
+        inline bool hasNext(){ return (*Frun != '\0') && (*Frun != '\n'); }
         inline char curr() { return *Frun; }
         inline char next() { return hasNext()? *Frun++ : '\0'; }
         void offset(int _ofs){

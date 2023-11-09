@@ -2,6 +2,8 @@
 
 #if MARKI_DEBUG_PLATFORM == 1
 
+void digitalWrite(int pin, int out){};
+
 void debug::log(const char* _fmt...)
 {
     va_list argptr;
