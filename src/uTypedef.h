@@ -401,7 +401,7 @@ class TfinishMenuDefinition{
  */
 #define __sdds_declareField_param1(_class) static_assert(false,"Need At Least 2 Parameters" );     //throw error for 1 and 0 parameters to sdds_var
 #define __sdds_declareField_param2(_class,_var) __sdds_declareField(_class,_var,0,0,__sdds_constructorEmpty);
-#define __sdds_declareField_param3(_class,_var,_opt) __sdds_declareField(_class,_var,0,0,__sdds_constructorEmpty)
+#define __sdds_declareField_param3(_class,_var,_opt) __sdds_declareField(_class,_var,_opt,0,__sdds_constructorEmpty)
 #define __sdds_declareField_param4(_class,_var,_opt,_value) __sdds_declareField(_class,_var,_opt,_value,__sdds_constructorAssignValue);
 #define __sdds_get5thArg(_1,_2,_3,_4,_N,...) _N
 #define __sdds_getMacro(...) __sdds_get5thArg(__VA_ARGS__,__sdds_declareField_param4,__sdds_declareField_param3,__sdds_declareField_param2,__sdds_declareField_param1)
