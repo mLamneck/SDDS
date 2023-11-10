@@ -124,7 +124,7 @@ class Tdescr : public TlinkedListElement{
         //providing type information
         virtual Ttype_id typeId() = 0;
         virtual const char* name(){return ""; };
-        inline Toption option(){return 0; };
+        virtual Toption option(){return 0; };
 
         virtual bool isEnum() { return false; };
         inline bool isStruct() {return (typeId()==sdds::typeIds::STRUCT); };
@@ -380,7 +380,7 @@ class TfinishMenuDefinition{
                     _constructorAssign(_value)\
                 }\
             }\
-            Toption option() { return _option; }\
+            Toption option() override { return _option; }\
             const char* name() override { return #_name; }\
             void operator=(_class::dtype _v){\
                 if constexpr (!_class##_##_name::is_struct){\
