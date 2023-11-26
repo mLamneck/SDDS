@@ -143,6 +143,9 @@ class Tdescr : public TlinkedListElement{
         static bool _strToDouble(const char* _str, double& _res){
             char * pEnd = NULL;
             _res = strtod(_str, &pEnd);
+            if (*pEnd){
+                return isspace(*pEnd);
+            }
             return !(*pEnd);
         }
         template<typename ValType> static bool _strToNumber(const char* _str, ValType& _val){

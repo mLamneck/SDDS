@@ -242,18 +242,29 @@ class TplainCommHandler : public Tthread{
       };
     }
 
-    void handleMessage(const char* _msg){
-      TstringRef msg(_msg);
+    void handleMessage(TstringRef& msg){
+        char cmd = msg.next();
+        if (!msg.hasNext()) handleCommand(cmd,msg);
+        else{
+            char blank = msg.next();
+            if (blank == ' '){
+                handleCommand(cmd,msg);
+            }
+            else{
+                msg.offset(-2);
+                handleReadWrite(msg);
+            }
+        }
+    }
 
-      char cmd = msg.next();
-      char blank = msg.next();
-      if (blank == ' '){
-        handleCommand(cmd,msg);
-      }
-      else{
-        msg.offset(-2);
-        handleReadWrite(msg);
-      }
+    void handleMessage(const char* _msg){
+        TstringRef msg(_msg);
+        handleMessage(msg);
+    }
+
+    void handleMessage(char* _msg, int _length){
+        while (_length > 0 && isspace(_msg[_length-1])) _msg[--_length] = '\0';
+        handleMessage(_msg);
     }
 
     void execute(Tevent* _ev) override{

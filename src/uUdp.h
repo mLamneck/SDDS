@@ -80,9 +80,8 @@ class Tudp : public TstringStream{
         }
 
 
-        const char* data(){ return &Fbuffer[0]; }
-
-        int length(){ return Flength; }
+        char* data(){ return &Fbuffer[0]; }
+        const int length() { return Flength; }
 
         bool receive(){
             //memset(&Fbuffer[0],'\0',sizeof(Fbuffer));

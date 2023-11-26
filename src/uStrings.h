@@ -78,6 +78,9 @@ class TsubStringRef : public TstringRef{
         TsubStringRef(const char* _str, const char* _end) : TstringRef(_str){
             Fend = (_end > _str)?_end:_str;
         }
+        TsubStringRef(const char* _str, const int _length) : TstringRef(_str){
+            Fend = _str + (_length > 0? _length-1 : 0);
+        }
         inline bool hasNext(){
             return (TstringRef::hasNext() && Frun < Fend);
         }
