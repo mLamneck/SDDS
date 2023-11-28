@@ -62,9 +62,14 @@ namespace sdds{
         constexpr Toption nothing   = 0;
         constexpr Toption readonly  = 0x01;
         constexpr Toption saveval   = 0x80;
+
+        constexpr Toption timerel   = 0x02;
+
+        constexpr Toption mask_show = 0x0E;
     }
     namespace typeIds{
         constexpr Ttype_id STRUCT   = 0x42;
+        constexpr Ttype_id TIME     = 0x06;
     }
 }
 
@@ -126,14 +131,15 @@ class Tdescr : public TlinkedListElement{
         virtual Ttype_id typeId() = 0;
         virtual const char* name(){return ""; };
         virtual Toption option(){return 0; };
+        Toption showOption(){ return (option() & sdds::opt::mask_show); }
 
         virtual bool isEnum() { return false; };
         inline bool isStruct() {return (typeId()==sdds::typeIds::STRUCT); };
+        inline bool needQuotes() {return (typeId()==sdds::typeIds::TIME); };
 
         //interface for generic handling
         virtual bool setValue(const char* _str) = 0;
         virtual TrawString to_string(){ return ""; }
-
 
 
         /************************************************************************************
@@ -158,9 +164,13 @@ class Tdescr : public TlinkedListElement{
 
         //convert internal values to string
         template <typename valType>
-        static TrawString _valToStr(valType _val){return strConv::to_string(_val); }
-        static TrawString _valToStr(TrawString _val){return _val; }
-        static TrawString _valToStr(TmenuHandle* _val){ return ""; };
+        TrawString _valToStr(valType _val){return strConv::to_string(_val); }
+        TrawString _valToStr(TdateTime _val){
+            if (showOption() == sdds::opt::timerel) return timeToString(_val,"%H:%M:%S");
+            return timeToString(_val);
+        }
+        TrawString _valToStr(TrawString _val){return _val; }
+        TrawString _valToStr(TmenuHandle* _val){ return ""; };
 
         //********* covert string to internal values ***************
 
@@ -176,6 +186,14 @@ class Tdescr : public TlinkedListElement{
 
         //floating point
         static bool _strToValue(const char* _str, dtypes::float32& _value){return Tdescr::_strToNumber<dtypes::float32>(_str,_value);}
+
+        //DateTime
+        static bool _strToValue(const char* _str, dtypes::TdateTime& _value){
+            TdateTimeParser p(_str);
+            bool res = p.parse();
+            if (res) _value=p.Fresult;
+            return res;
+        ;}
 
         static bool _strToValue(const char* _str, TmenuHandle*& _value){return true;}
 
@@ -197,8 +215,6 @@ template <class ValType, Ttype_id _type_id> class TdescrTemplate: public Tdescr{
     protected:
         ValType Fvalue;
     public:
-        constexpr static bool is_struct = (_type_id==0x42);
-
         friend class TmenuHandle;
         typedef ValType dtype;
 
@@ -213,15 +229,11 @@ template <class ValType, Ttype_id _type_id> class TdescrTemplate: public Tdescr{
         Ttype_id typeId() override {return _type_id; };
 
         bool setValue(const char* _str) override {
-            if constexpr (is_struct){
+            if (_strToValue(_str,Fvalue)){
+                signalEvents();
                 return true;
-            }else{
-                if (_strToValue(_str,Fvalue)){
-                    signalEvents();
-                    return true;
-                }
-                return false;
             }
+            return false;
         }
 
         TrawString to_string() override { return Tdescr::_valToStr(Fvalue); };
@@ -258,7 +270,6 @@ template <typename ValType, Ttype_id _type_id=0x01> class TenumTemplate: public 
     protected:
         ValType Fvalue;
     public:
-        constexpr static bool is_struct = false;
         friend class TmenuHandle;
 
         typedef ValType enumClass;
@@ -315,6 +326,7 @@ finally instantiate real datatypes to be used outside of this unit
 typedef TdescrTemplate<dtypes::uint8,0x01> Tuint8;
 typedef TdescrTemplate<dtypes::uint16,0x02> Tuint16;
 typedef TdescrTemplate<dtypes::uint32,0x04> Tuint32;
+typedef TdescrTemplate<dtypes::TdateTime,sdds::typeIds::TIME> Ttime;
 
 //signed integers
 typedef TdescrTemplate<dtypes::int8,0x11> Tint8;
@@ -380,17 +392,13 @@ class TfinishMenuDefinition{
         public:\
             using Tdescr::signalEvents;\
             _class##_##_name(){\
-                if constexpr (!_class##_##_name::is_struct){\
-                    _constructorAssign(_value)\
-                }\
+                _constructorAssign(_value)\
             }\
             Toption option() override { return _option; }\
             const char* name() override { return #_name; }\
             void operator=(_class::dtype _v){\
-                if constexpr (!_class##_##_name::is_struct){\
-                    Fvalue = _v;\
-                    signalEvents();\
-                }\
+                Fvalue = _v;\
+                signalEvents();\
             }\
     } _name;
 

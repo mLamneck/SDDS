@@ -54,6 +54,9 @@ void testTimeConv(){
     testConvTimeCase("01.01.1970T19:12:30","01.01.1970 19:12:30");
     testConvTimeCase("05/30/2020 19:12:30","30.05.2020 19:12:30");
 
+    testConvTimeCase("10.10.2023 00:00:00","10.10.2023 00:00:00");
+    testConvTimeCase("10.10.2023","10.10.2023 00:00:00");
+
     testConvTimeCase("31/30/2020 19:12:30",false);
     int i = 0;
     if (i > 0){

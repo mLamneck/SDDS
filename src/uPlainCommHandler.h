@@ -67,7 +67,10 @@ class TjsonSerializer{
             Fstream->write(']');
           }
           else{
+            bool quotes = d->needQuotes();
+            if (quotes) Fstream->write('"');
             Fstream->write(d->to_string().c_str()); //toDo... strings?
+            if (quotes) Fstream->write('"');
           }
 
         Fstream->write('}');

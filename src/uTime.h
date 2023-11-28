@@ -4,7 +4,8 @@
 #include "uPlatform.h"
 #include "uStrings.h"
 
-dtypes::string timeToString(timeval& _time);
+dtypes::string timeToString(timeval& _time, const char* _fmt = "");
+dtypes::TdateTime stringToTime(const char* _timeStr);
 
 /** \brief class used to parse a string into a TdateTime
  *
@@ -119,6 +120,9 @@ class TdateTimeParser{
          */
         bool parse(){
             Ftm = {};
+            Ftm.tm_hour = 1;    //if not time is parsed, hour has to be 1
+            Fmillisecs = 0;
+
             dtypes::uint16 val;
             if (!Fp.parseValue(val)) return false;
             char sep = Fp.next();
