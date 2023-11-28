@@ -43,7 +43,7 @@ class TstringRef{
             }
         }
 
-        bool parseValue(dtypes::uint32& _out){
+        bool parseValue1(dtypes::uint32& _out){
             bool res = false;
             dtypes::uint32 val = 0;
             while (hasNext()){
@@ -58,11 +58,36 @@ class TstringRef{
             return res;
         }
 
-        bool parseValue(dtypes::uint8& _out){
-            dtypes::uint32 outVal;
-            if (!parseValue(outVal)) return false;
-            if (outVal > 255) return false;
-            _out = outVal;
+        /** \brief parse an unsigned integer into _out, a call to curr() retrieves the character at which the parsing was stopped.
+         *
+         * \param _out an integer receiving the value
+         * \return true if an integer could be parsed, false otherwise
+         *
+         */
+
+        bool parseValue(dtypes::uint32& _out){
+            if (!hasNext()) return false;               //initial checks
+
+            dtypes::uint32 val = 0;
+            const char* pstart = Frun;
+            do{
+                dtypes::uint8 c = curr() - 0x30;        //overflow if c is less than 0x30
+                if (c > 9) break;                       //break if c is not in [0..9]
+                val = val*10 + c;
+                next();
+            } while (hasNext());
+
+            if (Frun == pstart) return false;           //return false if not at least 1 char was processed
+            _out = val;
+            return true;
+        }
+
+        template <typename T>
+        bool parseValue(T& _out){
+            dtypes::uint32 val;
+            if (!parseValue(val)) return false;
+            if ( val > (1ULL << (sizeof(T)*8))-1 ) return false;        //ULL -> Unsigned Long Long to get rid of warnings shift overflow
+            _out = val;
             return true;
         }
 

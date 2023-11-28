@@ -6,6 +6,7 @@
 #include "uLinkedList.h"
 #include "uStrings.h"
 #include "uEnumMacros.h"
+#include "uTime.h"
 
 #ifdef __AVR__
     //functional not available in AVR-gcc

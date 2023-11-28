@@ -136,6 +136,7 @@ class TplainCommHandler : public Tthread{
             send("E 1");
             return false;
         }
+        _msg.next();    //skip seperator
 
         Fmh = Froot;
         //locate path necessary???
@@ -257,12 +258,31 @@ class TplainCommHandler : public Tthread{
         }
     }
 
+    /** \brief Handle the given msg. Any trailing whitespaces will be replaced with '\0'
+     *
+     * \param _msg a nullterminated string without trailing whitespaces
+     */
     void handleMessage(const char* _msg){
         TstringRef msg(_msg);
         handleMessage(msg);
     }
 
+    /** \brief Handle the given msg. Any trailing whitespaces will be replaced with '\0'
+     *
+     * \param _msg a nullterminated string
+     * \param _length of the string
+     */
     void handleMessage(char* _msg, int _length){
+        while (_length > 0 && isspace(_msg[_length-1])) _msg[--_length] = '\0';
+        handleMessage(_msg);
+    }
+
+    /** \brief Handle the given msg. Any trailing whitespaces will be replaced with '\0'
+     *
+     * \param _msg
+     */
+    void handleMessage(dtypes::string _msg){
+        int _length = _msg.length();
         while (_length > 0 && isspace(_msg[_length-1])) _msg[--_length] = '\0';
         handleMessage(_msg);
     }

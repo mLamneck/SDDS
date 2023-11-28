@@ -3,8 +3,8 @@
 void string_sub(const char* _src, char* _dest, int _start, int _stop){
     char* p = &_dest[0];
     while (_start < _stop){
-        *p = _src[_start];
-        *p++;
+        *p++ = _src[_start];
+        //*p++;
         _start++;
     }
     *p = '\0';

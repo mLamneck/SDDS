@@ -4,12 +4,13 @@
 #ifndef UPLATFORM_H
 #define UPLATFORM_H
 
+#include <sys/time.h>
+
 #if defined(WIN32)      //#if defined(__MINGW64__)
     #define MARKI_DEBUG_PLATFORM 1
 
     #include <stdarg.h>     /* va_list, va_start, va_arg, va_end */
     #include <string>
-    #include <sys/time.h>
 
     constexpr int LED_BUILTIN = 1;
     void digitalWrite(int pin, int out);
@@ -17,6 +18,7 @@
     namespace dtypes{
         typedef std::string string;
         typedef int64_t TsystemTime;
+        typedef timeval dateTime;
     }
 
     namespace strConv{
@@ -39,6 +41,10 @@
     };
 #endif
 
+namespace strConv{
+    dtypes::string to_string(dtypes::dateTime _time);
+}
+
 //available on all compilers?
 namespace dtypes{
     //signed integers
@@ -56,6 +62,8 @@ namespace dtypes{
     //toDo!!! to be checked on each individual compiler and platfom!!!
     typedef float float32;
     typedef double float64;
+
+    typedef timeval TdateTime;
 }
 
 namespace debug{
