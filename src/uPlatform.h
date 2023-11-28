@@ -18,7 +18,6 @@
     namespace dtypes{
         typedef std::string string;
         typedef int64_t TsystemTime;
-        typedef timeval dateTime;
     }
 
     namespace strConv{
@@ -40,10 +39,6 @@
         inline dtypes::string to_string(valType _val) { return String(_val); }
     };
 #endif
-
-namespace strConv{
-    dtypes::string to_string(dtypes::dateTime _time);
-}
 
 //available on all compilers?
 namespace dtypes{
