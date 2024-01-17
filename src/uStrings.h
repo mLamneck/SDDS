@@ -43,28 +43,12 @@ class TstringRef{
             }
         }
 
-        bool parseValue1(dtypes::uint32& _out){
-            bool res = false;
-            dtypes::uint32 val = 0;
-            while (hasNext()){
-                dtypes::uint8 c = next();
-                if (c==' ' || c == '\t') break;
-                c -= 0x30;
-                if (c > 9) return false;
-                val = val*10 + c;
-                res = true;
-            }
-            _out = val;
-            return res;
-        }
-
         /** \brief parse an unsigned integer into _out, a call to curr() retrieves the character at which the parsing was stopped.
          *
          * \param _out an integer receiving the value
          * \return true if an integer could be parsed, false otherwise
          *
          */
-
         bool parseValue(dtypes::uint32& _out){
             if (!hasNext()) return false;               //initial checks
 

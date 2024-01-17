@@ -58,10 +58,12 @@ class TjsonSerializer{
             Fstream->write(json_key("enums"));
             Fstream->write('[');
             TenumBase* en = static_cast<TenumBase*>(d);
-            for (int i=0; i<en->enumCnt(); i++){
+            auto enumCnt = en->enumCnt();
+            for (auto i=0; i<enumCnt; i++){
                 Fstream->write('"');
                 Fstream->write(en->getEnum(i));
                 Fstream->write('"');
+                if (i+1 >= enumCnt) break;
                 Fstream->write(',');
             }
             Fstream->write(']');
@@ -96,9 +98,9 @@ class Tconnection : public TlinkedListElement{
 };
 
 class TplainCommHandler : public Tthread{
-
-
   typedef dtypes::int8 Tcmd;
+  typedef dtypes::uint8 Tport;
+  typedef dtypes::uint8 TerrorCode;
 
   private:
     TmenuHandle* Froot;
@@ -108,8 +110,12 @@ class TplainCommHandler : public Tthread{
     //returned by locatePath
     TmenuHandle* Fmh;
     Tconnection* Fconn;
-    dtypes::uint8 Fport;
+    Tport Fport;
   public:
+    TplainCommHandler(TmenuHandle* _root, Tstream* _stream){
+      Froot = _root;
+      Fstream = _stream;
+    }
     TplainCommHandler(TmenuHandle& _root, Tstream* _stream){
       Froot = &_root;
       Fstream = _stream;
@@ -125,20 +131,28 @@ class TplainCommHandler : public Tthread{
     }
 
     void startSendTypes(){
+        Fstream->write("t ");
         TjsonSerializer s(Froot,Fstream);
         s.serialize();
         Fstream->flush();
         //debug::log(Fstream1.Fbuffer.c_str());
     }
+	
+	bool sendError(TerrorCode _errCode, Tport _port = 0){
+		Fstream->write("E ");
+		Fstream->write(_port);
+		Fstream->write(' ');
+		Fstream->write(_errCode);
+		//Fstream->write(errCode);
+		Fstream->flush();
+		return false;
+	}
 
     bool locatePath(TstringRef& _msg){
         Fconn = nullptr;
         Fmh = nullptr;
 
-        if (!_msg.parseValue(Fport)){
-            send("E 1");
-            return false;
-        }
+        if (!_msg.parseValue(Fport)) return sendError(1);
         _msg.next();    //skip seperator
 
         Fmh = Froot;
@@ -146,23 +160,14 @@ class TplainCommHandler : public Tthread{
         if (_msg.hasNext()){
             //path not found???
             Tlocator l(Froot);
-            if (!l.locate(_msg)){
-                send("E 2");
-                return false;
-            }
+            if (!l.locate(_msg)) return sendError(2,Fport);
 
             //path doesn't point to a struct???
-            if (!l.result()->isStruct()){
-                send("E 3");
-                return false;
-            }
+            if (!l.result()->isStruct()) return sendError(3,Fport);
 
             //structs = nullptr????
             Fmh = static_cast<Tstruct*>(l.result())->value();
-            if (!Fmh){
-                send("E 4");
-                return false;
-            }
+            if (!Fmh) return sendError(4,Fport);
         }
 
         //find port
@@ -195,11 +200,13 @@ class TplainCommHandler : public Tthread{
     }
 
     void unlinkPath(TstringRef& _msg){
+        //this does work for empty path
         if (!locatePath(_msg)) return;
         if (!Fconn){
-            send("E 5");
-            return;
-        }
+			sendError(5,Fport);
+			return;
+		}
+		
         Fconnections.remove(Fconn);
         delete Fconn;
         Fstream->write("u ");
@@ -224,7 +231,7 @@ class TplainCommHandler : public Tthread{
         break;
 
       default:
-        send("E C");
+        sendError(6);
         break;
       }
     }
@@ -290,6 +297,17 @@ class TplainCommHandler : public Tthread{
         handleMessage(_msg);
     }
 
+    /** \brief close any open connections and don't send any messages from now
+     *
+     */
+    void shutdown(){
+        auto lconn = Fconnections.pop();
+        while (lconn){
+            delete lconn;
+            lconn = Fconnections.pop();
+        }
+    }
+    
     void execute(Tevent* _ev) override{
 
         if (!isTaskEvent(_ev)){

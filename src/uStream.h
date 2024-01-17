@@ -1,6 +1,8 @@
 #ifndef USTREAM_H
 #define USTREAM_H
 
+typedef dtypes::string TstringStreamBuffer;
+
 class Tstream{
     public:
         virtual void write(const char* _str) = 0;
@@ -13,13 +15,21 @@ class Tstream{
 class TstringStream : public Tstream{
   private:
     dtypes::string Fbuffer;
+    
+    //FpBuffer is intended to provide a buffer from the parent
+    //I want to use it in the webSocketServer to share a buffer
+    //with all connected clients...
+    dtypes::string* FpBuffer;
   protected:
   public:
+    TstringStream(){ FpBuffer = &Fbuffer; } 
+    TstringStream(dtypes::string* _buffer) { FpBuffer = _buffer; }
+    
     void write(const char* _str) override{
       Fbuffer += _str;
     }
     void write(const char _char) override{
-      Fbuffer += _char;
+        Fbuffer += _char;
     }
     void write(int _int) override{
       Fbuffer += strConv::to_string(_int);
@@ -27,7 +37,9 @@ class TstringStream : public Tstream{
     void clear(){
         Fbuffer = "";
     }
-    const char* data() { return Fbuffer.c_str(); }
+    const char* data() { 
+        return Fbuffer.c_str(); 
+    }
 };
 
 #endif //USTREAM_H

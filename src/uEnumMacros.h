@@ -28,9 +28,16 @@ class _name{                \
             if (idx < _name::COUNT) return ENUM_STRS_NAME(_name)[idx];\
             return "unknown";\
         }\
+        bool tryParseNumber(const char* _str){\
+            dtype val; TstringRef s(_str);\
+            if (!s.parseValue(val) || (s.hasNext())) return false;\
+            if (val>=_name::COUNT) return false;\
+            Fvalue = static_cast<ENUM_TYPE_NAME>(val);  \
+            return true;\
+        }\
         bool strToVal(const char* _str){  \
             for (int i=0; i<_name::COUNT; i++){ if (strcmp(ENUM_STRS_NAME(_name)[i],_str) == 0){ Fvalue = static_cast<ENUM_TYPE_NAME>(i); return true; }}\
-            return false;\
+            return tryParseNumber(_str);\
         }\
         const char* getEnum(int _idx) { return ENUM_STRS_NAME(_name)[_idx]; } \
         const char* to_string(){ return _name::to_string(Fvalue); }                                       \

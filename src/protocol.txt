@@ -1,0 +1,30 @@
+-------------------------------------------------------------------------------
+plainCommHandler:
+-------------------------------------------------------------------------------
+			CMD		Port	Payload						function
+-------------------------------------------------------------------------------
+request		T		-		path						request the type definitions
+answer		t		-									typinformation provided in json format
+-------------------------------------------------------------------------------
+request		L		%d		path						subscribe to path to get notifications
+answer		l		%d		first|csv...				message with data
+-------------------------------------------------------------------------------
+request		U		%d									unsubscribe from path assoziated with port
+answer		u 		%d						
+-------------------------------------------------------------------------------
+answer		E		%d		errCode						an error reported from the server
+-------------------------------------------------------------------------------
+
+ErrorCodes:
+	1:	couldn't parse port
+	2:	invalid path
+	3:	path resolved but doesn't point to a struct
+	4:	path resolved but pointer=nil
+	6:	INVALID CMD
+
+
+-------------------------------------------------------------------------------
+WebSocket:
+-------------------------------------------------------------------------------
+		
+			E				100

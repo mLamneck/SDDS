@@ -47,8 +47,7 @@ class TuserStruct : public TmenuHandle{
       
       sdds_var(Tuint8, filter, 0, 10);      //no option, default value=10
       sdds_var(Tfloat32, value);
-      sdds_var(Tfloat32, fValue);
-      sdds_var(Ttime,time,sdds::opt::timerel,stringToTime("10:57:00"));       //opt=timerel => show only time, stringToTime(...) set initial value to ...
+      sdds_var(Tfloat32, fValue);    
     )
     Ttimer timer;
     
@@ -57,12 +56,6 @@ class TuserStruct : public TmenuHandle{
       timer.start(1000);
       on(timer){
         timer.start(1000);
-        
-        //increment time by one second
-        Ttime::dtype t = time;
-        t.tv_sec += 1;
-        time = t;
-
         if (cntSwitch == ENUMS(TonOffState)::on){
           Fcnt = Fcnt + 1;
         }
