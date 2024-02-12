@@ -12,7 +12,7 @@ class TerrorCodeToString{
         TerrorCodeToString(){Fbuffer[0] = '\0';}
 
         char* codeToString(int _code){
-            FormatMessage (FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,   // flags
+            FormatMessageA (FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,   // flags
                NULL,                // lpsource
                _code,                 // message id
                MAKELANGID (LANG_NEUTRAL, SUBLANG_DEFAULT),    // languageid

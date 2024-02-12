@@ -6,7 +6,7 @@
 
 #include <sys/time.h>
 
-#if defined(WIN32)      //#if defined(__MINGW64__)
+#if defined(__MINGW64__) || defined(WIN32)      //__MINGW64__ works in VS_Code, WIN32 in codeBlocks
     #define MARKI_DEBUG_PLATFORM 1
 
     #include <stdarg.h>     /* va_list, va_start, va_arg, va_end */
