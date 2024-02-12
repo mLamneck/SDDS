@@ -12,8 +12,13 @@
     #include <stdarg.h>     /* va_list, va_start, va_arg, va_end */
     #include <string>
 
+    //compatibility with arduino
     constexpr int LED_BUILTIN = 1;
+    constexpr int OUTPUT = 1;
     void digitalWrite(int pin, int out);
+    inline void pinMode(int pin, int mode) {};
+    template <typename T>
+    inline const char* pcTaskGetName(T taskHandle) { return "debugTask"; }
 
     namespace dtypes{
         typedef std::string string;

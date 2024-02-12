@@ -1,3 +1,10 @@
+#include "uPlatform.h"
+
+/*  WebServer/socket not implemented for debug platforms
+    toDo: find a solution that works on windows/linux...
+*/
+#if MARKI_DEBUG_PLATFORM != 1
+
 #include "uWebCommHandler.h"
 #include "site_browser.h"
 
@@ -30,3 +37,5 @@ void TwebCommHandler::begin(){
   FwebServer.begin();
 
 }
+
+#endif

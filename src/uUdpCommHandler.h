@@ -1,10 +1,11 @@
-#ifndef UUDP_H
-#define UUDP_H
+#ifndef UUDPCOMMHANDLER_H
+#define UUDPCOMMHANDLER_H
 
 #include <Ws2tcpip.h>
 #include <winsock2.h>
 #include "uMultask.h"
 #include "uStream.h"
+#include "uPlainCommHandler.h"
 
 class TerrorCodeToString{
     char Fbuffer[254];
@@ -28,6 +29,8 @@ class TerrorCodeToString{
 
 };
 
+typedef dtypes::int16 TudpPort; 
+
 class Tudp : public TstringStream{
 
     private:
@@ -37,11 +40,15 @@ class Tudp : public TstringStream{
         sockaddr_in Fdest;
         sockaddr_in Fsrc;
 
+        TudpPort FremotePort;
+
         bool Fready;
         int Flength;
         char Fbuffer[64];
     public:
-        Tudp(){
+        Tudp(TudpPort _localPort = 9501, TudpPort _remotePort = 9500){
+            FremotePort = _remotePort;
+
             //local variables
             sockaddr_in local;
 
@@ -62,7 +69,7 @@ class Tudp : public TstringStream{
             //bind socket to local port
             local.sin_family = AF_INET;
             local.sin_addr.s_addr = htonl(INADDR_ANY);
-            local.sin_port = htons(9501);
+            local.sin_port = htons(_localPort);
             if (bind(Fs, (SOCKADDR *) & local, sizeof (local)) != 0) { return; }
 
             //switch socket to noneblocking mode
@@ -97,7 +104,7 @@ class Tudp : public TstringStream{
 
         void send(const char* _msg, int _len = -1){
             if (_len < 1){ _len = strlen(_msg); }
-            Fdest.sin_port = htons(9500);
+            Fdest.sin_port = htons(FremotePort);
             debug::log("UDP: sending %s", _msg);
             int ret = sendto(FsendSock, _msg, _len, 0, (sockaddr*)&Fdest, sizeof(Fdest) );
             if (ret == SOCKET_ERROR){
@@ -112,28 +119,23 @@ class Tudp : public TstringStream{
 
 };
 
-typedef void (*TudpOnMessage)(Tudp* _udp);
-
-class TudpThread : public Tthread{
-    int Fcnt = 0;
+class TudpCommHandler : public Tthread{
     Tudp Fudp;
-    TudpOnMessage FonMsg;
+    TplainCommHandler FcommHandler;
 
     void execute(Tevent* _ev){
         while (Fudp.receive()){
-            //handle message here
-            FonMsg(&Fudp);
+            FcommHandler.handleMessage(Fudp.data(),Fudp.length());
         };
         setTimeEvent(10);
     }
 
     public:
-        Tudp* stream(){ return &Fudp; };
-
-        void onPacket(TudpOnMessage _on){
-            FonMsg = _on;
+        TudpCommHandler(TmenuHandle& _root):
+            FcommHandler(&_root,&Fudp)
+        {
+            
         }
-
 };
 
 #endif //UUDP_H
