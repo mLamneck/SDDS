@@ -1,0 +1,1 @@
+These examples are to be used in the Arduino Studio with file->examples->sdds
