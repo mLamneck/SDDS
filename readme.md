@@ -1,123 +1,86 @@
-Installation:
-	copy sdds in the Arduino library folder (for me it is C:\Users\mark.lamneck\Documents\Arduino\libraries)
-	open arduino studio IDE and goto file->examples->sdds->serialComm
-
-tests with vbus:
-	open testSDDS from the vbus directory
-	adjust the comport in the script to the one of your Arduino. Make sure it's not blocked by the Arduino IDE
-	hit compile and have fun
-	the script makes a copy of the datastructure defined in the arduino code and keeps it in sync
-	this way you can use all the vbus components to visualize/set the variables from your code
-	
-	
-Quick Explainations:
-
-	The goal is to have a self-describing data structure (sdds) which provides standardized methods to read/write the data. 
-	For example store all values with an option sdds::opt::saveval to eeprom (not implemented yet) or set a value over serial 
-	console (userStruct.floatVal=11.4 would set the value to 11.4, userStruct.floatVal would read it). We wan't to get rid
-	of all the code neccessary to read/write values from remote or to keep it in sync. On the other hand we want to use
-	it like pure C++ if possible. We don't want to learn or worry much about the framework if possible. So we try
-	to keep the interface as simple as possible:		
-
-	I. In order to convert a C++ class to a sdds there a 3 steps to do:
-		1. Derive your class from TmenuHandle
-		2. wrap all variables that needs to be self-describing in a sdds_struct()
-		3. declare variables with sdds_var(type,name[,opt,initialValue])	//parameter 3 and 4 are optional
-
-		Example and comparison between plain C++ and sdds:
-			Plain C++ code							with sdds
-			
-			class TuserStruct{						class TuserStruct : public TmenuHandle{
-														sdds_struct(
-				uint8_t Fuint8=10;							sdds_var(Tuint8,Fuint8,0,10);		//with initial value			
-				double floatVal;							sdds_var(Tfloat32,floatVal);
-														)
-			} userStruct;							} userStruct;
-
-			It's not much of a change right!? 
-			
-	
-		To make it accessible over Serial the following code is required (Magic happens in the first 2 lines, the code in the loop is just to read the data from
-		the serial, I will do this somewhen in TplainCommHandler):
-				
-			TserialStream sStream(115200);
-			TplainCommHandler plainComm(userStruct, sStream);
+# SDDS (Self-Describing-Data-Structure)
+A simple and lighweight C++ library to write event driven processes with self generating user interfaces.
 
 
-			String buffer = "";
-			void loop() {
-			  while (Serial.available()) {
-				char inChar = (char)Serial.read();
-				if (inChar == '\n') {
-				  plainComm.handleMessage(buffer.c_str());
-				  buffer="";
-				}
-				else{
-				  buffer += inChar;
-				}
-			  }
-			  
-			  //THIS LINE IS VERY IMPORTANT, IT HAS TO BE EXECUTED FREQUENTLY
-			  TtaskHandler::handleEvents();			
-			}
-			
-		Note that the same would work with UDP or any other communication channel. The only thing that must be changed it the sStream object (Providing 3 or 4 methods to send data). 
-		And the code for receiving, which is typically a callback from some framework. In this callback you would simply call plainComm.handleMessage.
+## Installation
 
-	II. But how do we know when a value is set over network? Let's say we have a heater and we change the setpoint. Of course we want to do something in that exact moment. There is an easy
-		way to do that. Taking the example from above. We implement a constructor and in that constructor we place the code:
+### Arduino
+Clone this repository in your library folder and you are ready to go. Open arduino studio IDE and goto file->examples->sdds->serialComm
+
+### PlatformIO
+Add the github link to this repository as a lib dependency to your platformio.ini like so:
+```
+[env:esp32dev]
+platform = espressif32
+board = esp32dev
+framework = arduino
+lib_deps = 
+    https://github.com/mLamneck/SDDS.git
+```
+
+## Why to use this library
+
+The core of this library introcudes a concept of self describing data structures that provides standardized methods to acccess it. The purpose is to get rid of all the code neccessary to build a transport layer necessary to control or paramerize the written software from remote. Process variables can be flagged to be stored in a permament storage and will can loaded on the next startup.
+
+There are other libraries doing that, but they require a lot of setup and the declaration and usage of variables is complex. The goal of this library is to keep it as simple as possible. We want to declare and use variables like we are used to in regular C++, but gain the benefits on the other hand for free.
+
+## Example for this documentation
+
+The topic adressed by this document is fairly abstract. That's why we provide a simple example that will be used a long the whole document to show the connection to a real world scenario. For this purpose we want to use an advanced led blinking code with the following features:
+1. Turn the boards led on/off.
+2. Enable/Disable blinking of the led.
+3. Adjust the time the led is on/off when blinking.
+
+We use the serial console to trigger/control features. On ESP based boards it's possible to use the smartphone as well.
+
 	
-		class TuserStruct{
-			sdds_struct(
-				sdds_var(Tuint8,Fuint8,0,10);		//with initial value	
-				sdds_var(Tfloat32,floatVal);
-			)
-			public:
-				TuserStruct(){		//regular c++ constructor, nothing special
-				
-					//this block is the magic, it get's executed whenever floatVal is set
-					//over network or just by assigning some value to it from the code (floatVal=4).
-					on(floatVal){
-						Fuint8 = Fuint8 + 1			//increment Fuint8 on every "change" of floatVal
-					};
-				
-				}
-		} userStruct;
-	
-	
-	III. What if you want to do something every second or at some time in the future? This is where Ttimer comes into play:
-		1. instantiate a Ttimer within you class but outside of sdds_struct
-		2. start the timer
-		3. use on statement to do something on elapse
-			
-			class TuserStruct{
-				sdds_struct(
-					sdds_var(Tuint8,Fuint8,0,10);		//with initial value	
-					sdds_var(Tfloat32,floatVal);
-				)
-				Ttimer timer;
-				public:
-					TuserStruct(){		//regular c++ constructor, nothing special
-						
-						timer.start(1000);		//first start of the timer
-						
-						//code to be executed on timer
-						on(timer){				
-							timer.start(1000); //restart if neccessary
-							//...
-						};
-					}
-			} userStruct;
-			
-	
-	
-News (06.11.2023):
-	I've implemented the datatype time which is not featurerich at the moment. But basically it can be used to enter some date/times
-	and use it in the code. The underlying datatime is a timeval structure. So if you want to make use of it, you have to look for
-	the C++ functions. Following is from the sdds example. Ttime::dyte is equal to timeval from the c lib. In the example I'm incrementing
-	the time by 1 second in a time which runs every second. This will be much better supported in the future.
-      
-	  //increment time by one second
-        Ttime::dtype t = time;
-        t.tv_sec += 1;
-        time = t;
+## Coding the example
+Let's start by defining the datastructure for our example. We need the following.
+| Name           	| Possible Values  	|
+|:-------------		|:-----			|
+| Led Switch 	  	| ON,OFF 		|
+| Blink Switch 	  	| ON,OFF 		|
+| OnTime/OffTime  	| 100-10000 		|
+
+Let's code it right away:
+### Defining a structure
+```C++
+#include "uTypedef.h"
+#include "uMultask.h"
+
+ENUM(OFF,ON) TonOffState;
+
+class Tled : public TmenuHandle{
+  public:
+    sdds_struct(
+        sdds_var(TonOffState,ledSwitch);
+        sdds_var(Tuint16,onTime,sdds::opt::saveval,500);  //flag for eeprom save and give a default value	
+        sdds_var(Tuint16,offTime,sdds::opt::saveval,500);
+    )
+    public:
+        Tled(){
+            pinMode(LED_BUILTIN, OUTPUT);
+
+            //process logic goes here
+        }
+};
+```
+We start with the necessary includes followed by a enum definition. Next we define the necessary process variables for our example by deriving a class from TmenuHandle provided by the lib. Note the only special thing here, is the use of sdds_struct and sdds_var. Don't care about it, it will always look like this. Just note ssds_var has 4 parameters while the last 2 are optional.
+
+`sdds_var(dtype,name[,option,defaulValue])`
+1. Data Type
+2. name (to be used it the code)
+3. option (readonly, saveval, showhes, ...)
+4. default value
+
+We will proceed with the logic for the led handling in the constructor of this class.
+
+### Coding the logic
+The following code goes into the constructor of Tled.
+
+
+
+
+### Components
+A component is a datastructure plus logic responsible for a specific task. It does not depend on the rest of your code and if it's used via serial console, smartphone or any other communication channel. It can be outsourced into an include file and can be used in several projects and platforms. In a real world scenario you will have a lot of such components all together forming a hierachy of components.
+
