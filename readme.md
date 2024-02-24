@@ -1,6 +1,18 @@
 # SDDS (Self-Describing-Data-Structure)
 A simple and lighweight C++ library to write event driven processes with self generating user interfaces.
 
+## Table of contents
+- [Why to use this library](#why-to-use-this-library)
+- [Installation](#installation)
+  - [Arduino](#arduino)
+  - [PlatformIO](#platformio)
+- [Example for this documentation](#example-for-this-documentation)
+- [Coding the example](#coding-the-example)
+  - [Defining the structure](#defining-the-structure)
+  - [Reacting to state changes](#reacting-to-state-changes)
+  - [Introducing Timers](#introducing-timers)
+  - [Putting it all together](#putting-it-all-together)
+- [Testing the Example](#testing-the-example)
 
 ## Why to use this library
 In our opinion one of the most annoying things in software development is that one have to spend more time to provide ways to interact with the software compared to what's the program actually doing.The time needed to develop and test things like the following is massive.
@@ -51,7 +63,7 @@ Let's start by defining the datastructure for our example. We need the following
 | onTime/offTime  	| 100-10000 		|
 
 Let's code it right away:
-### Defining a structure
+### Defining the structure
 ```C++
 #include "uTypedef.h"
 #include "uMultask.h"
@@ -97,7 +109,7 @@ Tled(){
 ```
 This can by read like this: if the value of ledSwitch is written, execute the code in curly braces and this code finally turns the led on/off depending on the value of ledSwitch.
 
-### Timers and the full component
+### Introducing Timers
 
 Now we have a basic setup and we can switch the led, but in order to implement blinking of the led we need a mechanism for the timing. Without further doing let's have a look at the final code:
 
@@ -167,6 +179,10 @@ class TuserStruct : public TmenuHandle{
 #include "uPlainCommHandlerArduino.h"
 TserialPlainCommHandler serialHandler(userStruct);
 
+//make it available for Websockets
+#include "uWebCommHandler.h"
+TwebCommHandler webHandler(userStruct);
+
 void setup(){
 }
 
@@ -176,10 +192,13 @@ void loop(){
 
 ```
 
-There are some things to note here
+There are some things to note here:
 * There's not need to move the Tled code into a separate file. We think it's a good practice move components to their own files.
 * We nested the led component in another class called userStruct. This is not necessary. We could instead just declare Tled userStruct. Usually you will have multiple components and one root structure collecting it. But it's completely up to you.
-* The declaration of TserialPlainCommHandler makes the structure accessible over serial communication. And that's the beauty of it. You don't have to touch your Led component to make it available. And it doesn't matter if you add/remove variables to your led or if you add more components.
 * The call to TtaskHandler::handleEvents() in the loop is necessary to run the event handler.
+* The declaration of TserialPlainCommHandler makes the structure accessible over serial communication. And that's the beauty of it. You don't have to touch your Led component to make it available. And it doesn't matter if you add/remove variables to your led or if you add more components.
+* The declaration TwebCommHandler is only available for ESP32/ESP8266 and will provide a website with a generic user interface. If you are using an ESP, add your WiFi startup code in the setup, oterhwise comment out the lines for webSocket based handling.
 
+## Testing the Example
+to be done
 
