@@ -368,7 +368,7 @@ The serial spike uses the [Plain protocol](#plain-protocol) specified in the doc
       l 1 0 OFF,
       ```
  
- 8. If you are using an ESP board and you have enabled the WebSpike and your ESP is connected to the same WiFi as your laptop or smartphone, open your web browser and navigate to http://myEspWithSDDS (if the right column shown is "NULL" you propably have to refresh the page). You have to click on the "***>***" twice to get your Tled structure.
+ 8. If you are using an ESP board and you have enabled the WebSpike and your ESP is connected to the same WiFi as your laptop or smartphone, open your web browser and navigate to http://myEspWithSDDS (if the right column shown is "NULL" you propably have to refresh the page). You have to click on the "***>***" twice to get your Tled structure. If you are using your ESP as Access Point, you probably have to use http://ip instead of http://myEspWithSDDS. The ip you should use is printed in the serial monitor on startup.
     
     ![image](https://github.com/mLamneck/SDDS/assets/32937082/eb41a075-5ed6-4196-8592-094ed3d7b655)
     
