@@ -13,7 +13,19 @@ A simple and lighweight C++ library to write event driven processes with self ge
   - [Introducing Timers](#introducing-timers)
   - [Putting it all together](#putting-it-all-together)
 - [Testing the Example](#testing-the-example)
+  - [Build and Upload the code](#build-and-upload-the-code)
+  - [Full Example Code](#full-example-code)
+  - [Explore Serial Spike](#explore-serial-spike)
+  - [Request the type description](#request-the-type-description)
+  - [Subscribe to change notification](#subscribe-to-change-notification)
+  - [Set values](#set-values)
 - [Documentation](#documentation)
+  - [The Data Structure](#the-data-structure)
+  - [Spikes](#spikes)
+     - [Plain protocol](#plain-protocol)
+     - [Serial Spike](#serial-spike)
+     - [Web Spike](#web-spike)
+     - [Udp Spike](#udp-spike)
 
 
 ## Why to use this library
@@ -211,11 +223,15 @@ There are some things to note here:
 * The declaration TwebCommHandler is only available for ESP32/ESP8266 and will provide a website with a generic user interface. If you are using an ESP, add your WiFi startup code in the setup, oterhwise comment out the lines for webSocket based handling.
 
 ## Testing the Example
+It's time to finally play around and have fun...
+
+### Build and Upload the code
 If you are using Arduino IDE, just can just open the example. 
 
 ```File->Examples->SDDS->Led```
+### Full Example Code
+You can also copy and paste the following complete example. Note the settings on top and adjust to your preference.
 
-You can also copy and paste the following complete example. Note the settings on top and adjust to your preference. Let's start testing:
 ```C++
 //set to 1 on ESP boards if you want to use the webSpike
 //but make sure to have SDDS_ESP_EXTENSION library installed from here https://github.com/mLamneck/SDDS_ESP_Extension
@@ -312,24 +328,35 @@ void loop(){
 }
 
 ```
+
+### Explore Serial Spike
+The serial spike uses the [Plain protocol](#plain-protocol) specified in the documentation. Let's try it with the following steps.
+
 1. Build and upload the code to your board.
 2. Open the Serial Monitor (default baudrate 115200)
+   
+#### Request the type description
 3. Send the command "T"
-   * The response will look like the following. It's a full descpription of the datastructure you have declared within your code, inluding options, the current value, possible values for enums, ... This information can be used by a software to build a generich user-interface like showcased with the webSpike for ESP-based boards. For now let's continue to explore the fundamentals in the serial monitor.  
+   * The response will look like the following. It's a full descpription of the datastructure you have declared within your code, inluding options, the current value, possible values for enums, ... This information can be used by a software to build a generic user interface like showcased with the webSpike for ESP-based boards. For now let's continue to explore the fundamentals in the serial monitor.  
 
       ```t [{"type":66,"opt":0,"name":"led","value":[{"type":1,"opt":0,"name":"ledSwitch","value":"OFF","enums":["OFF","ON"]},...```
+
+#### Subscribe to change notification
+
 4. Send the command "L 1 led"
-   * This command is used to subscribe to the led structure, so that when ever a value changes we get a notification in the serial console. The intial response contains basically all values from our Tled structure:
+   * This command is used to subscribe to the led structure, so that whenever a value changes we get a notification in the serial console. The intial response contains basically all values from our Tled structure:
 
 	```l 1 0 OFF,OFF,500,500,```
-5. Use the command "led.ledSwitch=0/1" or "led.ledSwitch=OFF/ON" to turn the led off/on.
-   * Because we have previously subscribed to get change notification in step 3, we receive a notification as a result. If we have skipped step 3 we wouldn't get any response, but the led would still turn on/off.
+
+#### Set values
+6. Use the command "led.ledSwitch=0/1" or "led.ledSwitch=OFF/ON" to turn the led off/on.
+   * Because we have previously subscribed to get change notification in step 3, we receive a notification as a result. If we have skipped step 4 we wouldn't get any response, but the led would still turn on/off.
 	```
 	l 1 0 OFF,
 	l 1 0 ON,
 	```
- 6. Use the command "led.blinkSwitch=0/1" or "led.blinkSwitch=OFF/ON" to enable the automatic led toggle.
-    * Again because of our subscription initiated in step 3, we first get a change notification of the blinkSwitch and the ledSwitch in the first line of the response and later on we get a notifications every time the led turns on/off.
+7. Use the command "led.blinkSwitch=0/1" or "led.blinkSwitch=OFF/ON" to enable the automatic led toggle.
+    * Again because of our subscription initiated in step 4, we first get a change notification of the blinkSwitch and the ledSwitch in the first line of the response and later on we get a notifications every time the led turns on/off.
       
 	```
 	l 1 0 OFF,ON,
@@ -338,8 +365,8 @@ void loop(){
 	l 1 0 ON,
 	l 1 0 OFF,
 	```
- 7. Feel free play with led.onTime/offTime as you like...
- 8. You can also try to unsubscribe from notifications with the command "U 1" and try if the set commands still work.
+ 8. Feel free play with led.onTime/offTime as you like...
+ 9. You can also try to unsubscribe from notifications with the command "U 1" and try if the set commands still work.
 
 ## Documentation
 to be done...
@@ -347,5 +374,12 @@ to be done...
 to be done...
 ### Spikes
 to be done
-#### Webspike
+#### Plain protocol
+to be done
+#### Serial Spike
+to be done
+#### Web Spike
+to be done
+#### Udp Spike
+to be done
 
