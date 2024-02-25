@@ -544,6 +544,9 @@ class Ttimer : public Tevent{
         void start(Ttime _waitTime){
             setTimeEvent(_waitTime);
         }
+        void stop(){
+            Tevent::reclaim();
+        }
         void onTimerElapsed(){
             Fcallbacks.emit(nullptr);
         }
