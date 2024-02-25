@@ -34,17 +34,24 @@ We want to mention, that there are other libraries trying to achieve the same, b
 ## Installation
 
 ### Arduino
-Clone this repository in your library folder and you are ready to go. Open Arduino studio IDE and goto file->examples->sdds->serialComm
+Clone this repository in your library folder and you are ready to go. If you want to use ESP-only features like [web spikes](#webspike), you also need to install the [Esp Extension](https://github.com/mLamneck/SDDS_ESP_Extension).
 
 ### PlatformIO
-Add the github link to this repository as a lib dependency to your platformio.ini like so:
+Add the github link to this repository as a lib dependency to your platformio.ini like in the following example.
 ```
-[env:esp32dev]
+[env:myEnv]
+platform = ...
+board = ...
+framework = arduino
+lib_deps = https://github.com/mLamneck/SDDS.git
+```
+If you want to use ESP-only features like [web spikes](#webspike) you want to add the [Esp Extension](https://github.com/mLamneck/SDDS_ESP_Extension) instead. This will automatically add the SDDS core library.
+```
+[env:myEspEnv]
 platform = espressif32
 board = esp32dev
 framework = arduino
-lib_deps = 
-    https://github.com/mLamneck/SDDS.git
+lib_deps = https://github.com/mLamneck/SDDS.git
 ```
 
 ## Example for this documentation
@@ -211,4 +218,5 @@ to be done...
 to be done...
 ### Spikes
 to be done
+#### Webspike
 
