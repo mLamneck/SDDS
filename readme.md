@@ -64,14 +64,15 @@ The topic addressed by this document is fairly abstract. That's why we provide a
 We use the serial console to trigger/control features. On ESP based boards it's possible to use the smartphone as well.
 	
 ## Coding the example
-Let's start by defining the datastructure for our example. We need the following.
+If you like to have a look at the final implementation jump to the [Testing the Example](#testing-the-example) section right away. 
+
+Otherwise let's start by defining the datastructure for our example. We need the following.
 | Name           	| Possible Values  	|
 |:-------------		|:-----			|
 | ledSwitch 	  	| ON,OFF 		|
 | blinkSwitch 	  	| ON,OFF 		|
 | onTime/offTime  	| 100-10000 		|
 
-Let's code it right away:
 ### Defining the structure
 ```C++
 #include "uTypedef.h"
@@ -214,8 +215,7 @@ If you are using Arduino IDE, just can just open the example.
 
 ```File->Examples->SDDS->Led```
 
-You can also copy and paste the following complete example. Note the settings on top and adjust to your preference.
-
+You can also copy and paste the following complete example. Note the settings on top and adjust to your preference. Let's start testing:
 ```C++
 //set to 1 on ESP boards if you want to use the webSpike
 //but make sure to have SDDS_ESP_EXTENSION library installed from here https://github.com/mLamneck/SDDS_ESP_Extension
@@ -312,6 +312,34 @@ void loop(){
 }
 
 ```
+1. Build and upload the code to your board.
+2. Open the Serial Monitor (default baudrate 115200)
+3. Send the command "T"
+   * The response will look like the following. It's a full descpription of the datastructure you have declared within your code, inluding options, the current value, possible values for enums, ... This information can be used by a software to build a generich user-interface like showcased with the webSpike for ESP-based boards. For now let's continue to explore the fundamentals in the serial monitor.  
+
+      ```t [{"type":66,"opt":0,"name":"led","value":[{"type":1,"opt":0,"name":"ledSwitch","value":"OFF","enums":["OFF","ON"]},...```
+4. Send the command "L 1 led"
+   * This command is used to subscribe to the led structure, so that when ever a value changes we get a notification in the serial console. The intial response contains basically all values from our Tled structure:
+
+	```l 1 0 OFF,OFF,500,500,```
+5. Use the command "led.ledSwitch=0/1" or "led.ledSwitch=OFF/ON" to turn the led off/on.
+   * Because we have previously subscribed to get change notification in step 3, we receive a notification as a result. If we have skipped step 3 we wouldn't get any response, but the led would still turn on/off.
+	```
+	l 1 0 OFF,
+	l 1 0 ON,
+	```
+ 6. Use the command "led.blinkSwitch=0/1" or "led.blinkSwitch=OFF/ON" to enable the automatic led toggle.
+    * Again because of our subscription initiated in step 3, we first get a change notification of the blinkSwitch and the ledSwitch in the first line of the response and later on we get a notifications every time the led turns on/off.
+      
+	```
+	l 1 0 OFF,ON,
+	l 1 0 ON,
+	l 1 0 OFF,
+	l 1 0 ON,
+	l 1 0 OFF,
+	```
+ 7. Feel free play with led.onTime/offTime as you like...
+ 8. You can also try to unsubscribe from notifications with the command "U 1" and try if the set commands still work.
 
 ## Documentation
 to be done...
