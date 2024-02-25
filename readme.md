@@ -368,15 +368,15 @@ The serial spike uses the [Plain protocol](#plain-protocol) specified in the doc
       l 1 0 OFF,
       ```
  
- 8. If you are using an ESP board and you have enabled the WebSpike and your ESP is connected to the same WiFi as your laptop or smartphone, open your web browser and navigate to http://myEspWithSDDS (if the right column shown is "NULL" you propably have to refresh the page). You have to click on the "***>***" twice to get your Tled structure. 
-
+ 8. If you are using an ESP board and you have enabled the WebSpike and your ESP is connected to the same WiFi as your laptop or smartphone, open your web browser and navigate to http://myEspWithSDDS (if the right column shown is "NULL" you propably have to refresh the page). You have to click on the "***>***" twice to get your Tled structure.
+    
     ![image](https://github.com/mLamneck/SDDS/assets/32937082/eb41a075-5ed6-4196-8592-094ed3d7b655)
     
     ![image](https://github.com/mLamneck/SDDS/assets/32937082/e62e3b24-6aec-489c-b156-fe8082607fa2)
     
     ![image](https://github.com/mLamneck/SDDS/assets/32937082/5c995e0b-26c8-460c-81ba-12116949edef)
 
-    If you want more details about Web Spike read the documentation about [Web Spike](#web-spike). Note that you now have 2 active spikes, the Serial Spike and the Web Spike. You can set values in one of them and see the changes reflected in the other one.
+    To change a value click into the right column and enter or choose a new value. Note that you now have 2 active spikes, the Serial Spike and the Web Spike. You can set values in one of them and see the changes reflected in the other one. More information about [Web Spikes](#web-spike) will be available in the documentaion. 
     
       
  8. Feel free play with led.onTime/offTime as you like...
