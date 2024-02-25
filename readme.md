@@ -51,7 +51,7 @@ If you want to use ESP-only features like [web spikes](#webspike) you want to ad
 platform = espressif32
 board = esp32dev
 framework = arduino
-lib_deps = https://github.com/mLamneck/SDDS.git
+lib_deps = https://github.com/mLamneck/SDDS_ESP_Extension
 ```
 
 ## Example for this documentation
