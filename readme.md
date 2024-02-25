@@ -13,9 +13,11 @@ A simple and lighweight C++ library to write event driven processes with self ge
   - [Introducing Timers](#introducing-timers)
   - [Putting it all together](#putting-it-all-together)
 - [Testing the Example](#testing-the-example)
+- [Documentation](#documentation)
+
 
 ## Why to use this library
-In our opinion one of the most annoying things in software development is that one have to spend more time to provide ways to interact with the software compared to what's the program actually doing.The time needed to develop and test things like the following is massive.
+In our opinion one of the most annoying things in software development is that one have to spend more time to provide ways to interact with the software compared to what's the program actually doing. The time needed to develop and test things like the following is massive.
 
 * communication protocols to control the software via
   * serial
@@ -24,7 +26,7 @@ In our opinion one of the most annoying things in software development is that o
   * displays
 * save parameters to non-volatile memory
 
-The purpose of this library is to get rid of all that and focus on what's really important, the functionality that has to be implemented. This is done by completely separating the business logic and provide standard interfaces. This way all the points mentioned above have to be done only once in a generic way for all of our projects.   
+The purpose of this library is to get rid of all that and focus on what's really important, the functionality that has to be implemented. This is done by completely separating the business logic and provide standard interfaces. This way all the points mentioned above have to be done only once in a generic way for all of our projects in what we call [Spikes](#spikes).   
 
 We want to mention, that there are other libraries trying to achieve the same, but they require a lot of setup and the declaration and usage of variables is fairly complex. Another goal of this library is to keep it as simple as possible. We want to declare and use variables like we are used to in regular C++, but gain the benefits on the other hand for free.
 
@@ -74,6 +76,7 @@ class Tled : public TmenuHandle{
   public:
     sdds_struct(
         sdds_var(TonOffState,ledSwitch);
+	sdds_var(TonOffState,blinkSwitch);
         sdds_var(Tuint16,onTime,sdds::opt::saveval,500);  //flag for eeprom save and give a default value	
         sdds_var(Tuint16,offTime,sdds::opt::saveval,500);
     )
@@ -124,7 +127,7 @@ class Tled : public TmenuHandle{
     public:
         sdds_struct(
             sdds_var(TonOffState,ledSwitch);
-            sdds_var(TonOffState,blinkSwitch)
+            sdds_var(TonOffState,blinkSwitch);
             sdds_var(Tuint16,onTime,sdds::opt::saveval,500);
             sdds_var(Tuint16,offTime,sdds::opt::saveval,500);
         )
@@ -200,5 +203,12 @@ There are some things to note here:
 * The declaration TwebCommHandler is only available for ESP32/ESP8266 and will provide a website with a generic user interface. If you are using an ESP, add your WiFi startup code in the setup, oterhwise comment out the lines for webSocket based handling.
 
 ## Testing the Example
+to be done
+
+## Documentation
+to be done...
+### The Data Structure
+to be done...
+### Spikes
 to be done
 
