@@ -1,5 +1,5 @@
-#ifndef UPLAINCOMMHANDLERARDUINO_H
-#define UPLAINCOMMHANDLERARDUINO_H
+#ifndef USERIALSPIKE_H
+#define USERIALSPIKE_H
 
 #include "uPlainCommHandler.h"
 
@@ -14,18 +14,18 @@ class TserialStream : public Tstream{
       }
 };
 
-void* __TserialPlainCommHandlerInstance = nullptr;
+void* __TserialSpikeInstance = nullptr;
 
-class TserialPlainCommHandler{
+class TserialSpike{
   String Fbuffer;
   TplainCommHandler FcommHandler;
   TserialStream Fstream;
   public:
-    TserialPlainCommHandler(TmenuHandle& _root):
-      Fstream(115200)
+    TserialSpike(TmenuHandle& _root, int _baudrate = 115200):
+      Fstream(_baudrate)
       ,FcommHandler(_root,Fstream)
     {
-		__TserialPlainCommHandlerInstance = this;
+		__TserialSpikeInstance = this;
     }
 
     void read(){
@@ -43,12 +43,8 @@ class TserialPlainCommHandler{
 };
 
 void serialEvent(){
-	Serial.print(millis());
-	Serial.print(" serialEvent taskName= ");
-	Serial.println(pcTaskGetName( nullptr ));
-
-	if (__TserialPlainCommHandlerInstance){
-		static_cast<TserialPlainCommHandler*>(__TserialPlainCommHandlerInstance)->read();
+	if (__TserialSpikeInstance){
+		static_cast<TserialSpike*>(__TserialSpikeInstance)->read();
 	}
 }
 
