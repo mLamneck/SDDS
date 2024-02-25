@@ -385,7 +385,55 @@ The serial spike uses the [Plain protocol](#plain-protocol) specified in the doc
 ## Documentation
 to be done...
 ### The Data Structure
-to be done...
+In the middle of SDDS there is a global self describing datastructure organized in a hierachy called the tree. This tree is the only interface needed. You have to change your mindset from api driven interfaces, where you have a set of functions and methods you need to call. In sdds everything is done by manipulating variables. Typically you organize your programm into components. A component is a sub data structure within the global tree combined with some functionality. Our [Tled](#introducing-timers) class from the Example chapter is such a component. It's responsible for managing the boards led state. It's the master of the led if you want so. Instead of calling a function to turn the led on/off or let it periodically toggle (which would be complicated, unless you'd use some library like freeRtos to do it in a task), you change the value of the led fields: 
+```
+led.blinkSwitch=1
+```
+On the other hand you can always react to changes of variables in the tree by using the statement 
+```
+on(led.blinkSwitch){ 
+	//some code executed on state change
+};
+```
+Another example which is more focused on producing data would be a readout of the adc. It could probably look like this:
+```C++
+class Tadc : public TmenuHandle{
+    Ttimer timer;
+    public:
+        sdds_struct(
+            sdds_var(Tuint16,value,sdds::opt::readonly);
+            sdds_var(Tuint8,pin,sdds::opt::saveval);
+            sdds_var(Tuint16,readInterval,sdds::opt::saveval,100);
+        )
+        Tadc(int _pin){
+	    on(pin){
+		pinMode(pin, INPUT);
+		timer.start(0);
+            };
+
+            on(timer){
+              value = analogRead(_pin); 
+              timer.start(readInterval); 
+            };
+        }
+};
+```
+The beauty of this is that this code completely seperated from the rest of you code. It's responsible for one thing, to read out the adc with a given, adjustable interval. You don't care who get's notified of a change in the adc value nor who is setting the readInterval. There could be 10 clients subscribed due to different communication channels or none. And if nobody's interested in the adc value the line
+```
+value = analogRead(_pin); 
+```
+just set's the value in memory instead of sending it useless to the serial console or some websocket, udp or whatever. The library takes care for you. Imagin it like a secretary. You give the datastructure and say: Hey look this is my structure. Please provide it for everbody's interested in it and please notify me if somebody is changing the value of the variable "pin". The variable "value" is readonly, so nobody from outside of this machine is allowed to change it. The variables "pin" and "readInterval" should be stored to a non-volatile memory if a save is triggered. Now some code on the same machine could do something like this.
+```C++
+  ...
+  //within another component
+  on(adc0.value){
+    if (adc0.value > 2000){
+	//turn off something here.
+    }
+  }; 
+```
+This is an example of a component on the local machine beeing a client and reacting to state changes. For clients outside of the machine we use what we call [Spikes](#spikes) illustrated in the documentation.
+
 ### Spikes
 to be done
 #### Plain protocol
