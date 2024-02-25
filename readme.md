@@ -337,34 +337,37 @@ The serial spike uses the [Plain protocol](#plain-protocol) specified in the doc
    
 #### Request the type description
 3. Send the command "T"
-   * The response will look like the following. It's a full descpription of the datastructure you have declared within your code, inluding options, the current value, possible values for enums, ... This information can be used by a software to build a generic user interface like showcased with the webSpike for ESP-based boards. For now let's continue to explore the fundamentals in the serial monitor.  
-
-      ```t [{"type":66,"opt":0,"name":"led","value":[{"type":1,"opt":0,"name":"ledSwitch","value":"OFF","enums":["OFF","ON"]},...```
+   * The response will look like the following. It's a full descpription of the datastructure you have declared within your code, inluding options, the current value, possible values for enums, ... This information can be used by a software to build a generic user interface like showcased with the webSpike for ESP-based boards. For now let's continue to explore the fundamentals in the serial monitor.
+     
+     ```t [{"type":66,"opt":0,"name":"led","value":[{"type":1,"opt":0,"name":"ledSwitch","value":"OFF","enums":["OFF","ON"]},...```
 
 #### Subscribe to change notification
 
 4. Send the command "L 1 led"
    * This command is used to subscribe to the led structure, so that whenever a value changes we get a notification in the serial console. The intial response contains basically all values from our Tled structure:
 
-	```l 1 0 OFF,OFF,500,500,```
+     ```l 1 0 OFF,OFF,500,500,```
 
 #### Set values
 6. Use the command "led.ledSwitch=0/1" or "led.ledSwitch=OFF/ON" to turn the led off/on.
-   * Because we have previously subscribed to get change notification in step 3, we receive a notification as a result. If we have skipped step 4 we wouldn't get any response, but the led would still turn on/off.
-	```
-	l 1 0 OFF,
-	l 1 0 ON,
-	```
+   * Because we have previously subscribed to get change notification in step 4, we receive a notification as a result. If we have skipped step 4 we wouldn't get any response, but the led would still turn on/off.
+
+     ```
+     l 1 0 OFF,
+     l 1 0 ON,
+     ```
+     
 7. Use the command "led.blinkSwitch=0/1" or "led.blinkSwitch=OFF/ON" to enable the automatic led toggle.
     * Again because of our subscription initiated in step 4, we first get a change notification of the blinkSwitch and the ledSwitch in the first line of the response and later on we get a notifications every time the led turns on/off.
+
+      ```
+      l 1 0 OFF,ON,
+      l 1 0 ON,
+      l 1 0 OFF,
+      l 1 0 ON,
+      l 1 0 OFF,
+      ```
       
-	```
-	l 1 0 OFF,ON,
-	l 1 0 ON,
-	l 1 0 OFF,
-	l 1 0 ON,
-	l 1 0 OFF,
-	```
  8. Feel free play with led.onTime/offTime as you like...
  9. You can also try to unsubscribe from notifications with the command "U 1" and try if the set commands still work.
 
