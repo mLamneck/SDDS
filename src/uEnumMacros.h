@@ -23,7 +23,7 @@ class _name{                \
         ENUM_TYPE_NAME Fvalue;                                                                                         \
         operator ENUM_TYPE_NAME() const{return Fvalue;}                                                                \
         void operator=(ENUM_TYPE_NAME _value){Fvalue = _value;}                                                        \
-        static const char* to_string(ENUM_TYPE_NAME _v){\
+        static const char* c_str(ENUM_TYPE_NAME _v){\
             dtype idx = static_cast<dtype>(_v);\
             if (idx < _name::COUNT) return ENUM_STRS_NAME(_name)[idx];\
             return "unknown";\
@@ -40,7 +40,7 @@ class _name{                \
             return tryParseNumber(_str);\
         }\
         const char* getEnum(int _idx) { return ENUM_STRS_NAME(_name)[_idx]; } \
-        const char* to_string(){ return _name::to_string(Fvalue); }                                       \
+        const char* c_str(){ return _name::c_str(Fvalue); }                                       \
 }
 
 /* versions with case
