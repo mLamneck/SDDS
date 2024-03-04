@@ -68,6 +68,7 @@ namespace sdds{
         constexpr Toption mask_show = 0x0E;
     }
     namespace typeIds{
+        constexpr uint8_t size_mask = 0x0F; 
         constexpr Ttype_id STRUCT   = 0x42;
         constexpr Ttype_id TIME     = 0x06;
     }
@@ -120,9 +121,12 @@ class Tdescr : public TlinkedListElement{
     private:
         TmenuHandle* Fparent = nullptr;
 
-    protected:
-        void signalEvents();
     public:
+        #if MARKI_DEBUG_PLATFORM == 1
+        int createNummber;
+        #endif
+
+        void signalEvents();
         Tdescr(int id);
         Tcallbacks Fcallbacks;
         friend class TmenuHandle;
@@ -131,16 +135,26 @@ class Tdescr : public TlinkedListElement{
         virtual Ttype_id typeId() = 0;
         virtual const char* name(){return ""; };
         virtual Toption option(){return 0; };
+        virtual dtypes::uint8 valSize() { return typeId() & sdds::typeIds::size_mask; }
+        virtual void* pValue() { return nullptr; };
+
         Toption showOption(){ return (option() & sdds::opt::mask_show); }
+        inline bool saveval() { return ((option() & sdds::opt::saveval) > 0); }
+
+        //propably compare default value to current and only save if different
+        inline bool shouldBeSaved(){ return saveval(); }
 
         virtual bool isEnum() { return false; };
         inline bool isStruct() {return (typeId()==sdds::typeIds::STRUCT); };
+        inline bool hasChilds() {
+            if (!isStruct()) return false;
+        }
         inline bool needQuotes() {return (typeId()==sdds::typeIds::TIME); };
 
         //interface for generic handling
         virtual bool setValue(const char* _str) = 0;
         virtual TrawString to_string(){ return ""; }
-
+        virtual const char* c_str(){ return to_string().c_str(); }
 
         /************************************************************************************
         functions for type conversion used by derived types
@@ -227,6 +241,8 @@ template <class ValType, Ttype_id _type_id> class TdescrTemplate: public Tdescr{
         TdescrTemplate() : Tdescr(_type_id){};
 
         Ttype_id typeId() override {return _type_id; };
+        dtypes::uint8 valSize() override { return sizeof(Fvalue); }
+        void* pValue() override { return &Fvalue; };
 
         bool setValue(const char* _str) override {
             if (_strToValue(_str,Fvalue)){
@@ -274,6 +290,7 @@ template <typename ValType, Ttype_id _type_id=0x01> class TenumTemplate: public 
 
         typedef ValType enumClass;
         typedef typename ValType::e dtype;
+        typedef typename ValType::e e;
 
         /* override copy constructor to avoid a deep copy of the object
          * including callbacks and events
@@ -284,6 +301,9 @@ template <typename ValType, Ttype_id _type_id=0x01> class TenumTemplate: public 
         TenumTemplate(){}
 
         Ttype_id typeId() override {return _type_id; };
+        dtypes::uint8 valSize() override { return sizeof(dtype); }
+        void* pValue() override { return &Fvalue.Fvalue; };
+
         int enumCnt() override { return ValType::COUNT; };
         const char* getEnum(int _idx) override { return Fvalue.getEnum(_idx); }
 
@@ -295,7 +315,7 @@ template <typename ValType, Ttype_id _type_id=0x01> class TenumTemplate: public 
             return false;
         }
 
-        TrawString to_string() override { return Fvalue.to_string(); };
+        TrawString to_string() override { return Fvalue.c_str(); };
 
         inline ValType value(){ return Fvalue; }
 
@@ -527,6 +547,39 @@ class TmenuHandle : public Tstruct{
             //throw Exception(_name + " not found");
             return nullptr;
         }
+
+        #if (MARKI_DEBUG_PLATFORM == 1)
+        void log(dtypes::string _pre = ""){
+            for (auto it=iterator(); it.hasNext();){
+                auto d = it.next();
+                if (d->isStruct()){
+                    TmenuHandle* mh1 = static_cast<Tstruct*>(d)->value();
+                    debug::log("%s-> %s",_pre.c_str(),d->name());
+                    mh1->log(_pre + "  ");
+                    debug::log("%s<- %s",_pre.c_str(),d->name());
+                } else {
+                    debug::log("%s%s=%s",_pre.c_str(),d->name(),d->to_string().c_str());
+                }
+            }
+        }
+        void _logCreateAssoc(){
+            for (auto it=iterator(); it.hasNext();){
+                auto d = it.next();
+                debug::log("  case(%d): return \"%s\";",d->createNummber,d->name());
+                if (d->isStruct()){
+                    TmenuHandle* mh1 = static_cast<Tstruct*>(d)->value();
+                    mh1->_logCreateAssoc();
+                }
+            }
+        }
+        void logCreateAssoc(){
+            debug::log("switch(createNumber){");
+            debug::log("  case(0): return \"root\";");
+            _logCreateAssoc();
+            debug::log("}");
+        }
+        #endif
+        
 };
 
 

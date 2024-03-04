@@ -5,8 +5,45 @@
 TstructStack
 *************************************************************************************/
 
-class TstructStack{
-    struct TstackItem{
+
+#if MARKI_DEBUG_PLATFORM == 1
+    //#define DEBUGCODE(_code) _code ;
+    #define DEBUGCODE(_code)
+    #define SDDS_LOG(...) //debug::log(__VA_ARGS__)
+
+    int __createNummber = 0;
+    dtypes::string var_name = "";
+    dtypes::string lastCreatedStruct = "";
+    dtypes::string FlastCreatedStruct_ = "";
+    dtypes::string structOnStack = "";
+
+    /*
+    create this list with struct.logCreateAssoc of a given structure and copy it here.
+
+    userStruct.logCreateAssoc();
+    */
+    const char* _getVariableName(int createNumber){
+        switch(createNumber){
+            case(0): return "root";
+            case(1): return "val1";
+            case(2): return "val2";
+            case(3): return "val3";
+        }
+        return "unknown";
+    }
+
+    dtypes::string getVariableName(int createNumber){
+        var_name = _getVariableName(createNumber);
+        return var_name;
+    }
+#else
+    #define SDDS_LOG(...)
+    #define DEBUGCODE(_code)
+#endif
+
+
+class __attribute__ ((packed)) TstructStack{
+    struct __attribute__ ((packed)) TstackItem{
         TmenuHandle* mh;
         bool inSds;
     };
@@ -17,58 +54,52 @@ class TstructStack{
         int Fcnt = 0;
         TmenuHandle* FlastCreatedStruct = nullptr;
         bool inSds = false;
+
         void push(TmenuHandle* _mh){
             if (Fcnt < STACKSIZE) {
                 Fstack[Fcnt].inSds = inSds;
                 Fstack[Fcnt++].mh = _mh;
+                DEBUGCODE(structOnStack=getVariableName(_mh->createNummber));
             }
         }
-        TstackItem* first(){
+        
+        TstackItem* last(){
             if (Fcnt > 0) return &Fstack[Fcnt-1];
             return nullptr;
         }
 
     public:
         void setLastCreateStruct(TmenuHandle* _mh){
-            debug::log("creating TmenuHandleAuto... %d",_mh);
-            if (!FlastCreatedStruct){
-                FlastCreatedStruct = _mh;
-                inSds = false;
-            }
-            else if (inSds) FlastCreatedStruct = _mh;
-            //else throw "cannot create structure outside of sds";
+            FlastCreatedStruct = _mh;
         }
+
         void enterSds(){
-            debug::log("-> enter sds");
-            inSds = true;
             push(FlastCreatedStruct);
         }
+
         void leaveSds(){
-            debug::log("<- leave sds");
-            inSds = false;
             if (Fcnt > 0) Fcnt--;
         }
+
         void addDescr(Tdescr* _d){
-            TstackItem* si = first();
-            debug::log("create descr -> stackItem %d",si);
+            TstackItem* si = last();
             if (si){
-                if (si->inSds && si->mh){
-                    si->mh->addDescr(_d);
-                }
-                else{
-                    debug::log("not in sds, thats why we skip descr %d",_d);
-                }
+                SDDS_LOG("add %s to %s",getVariableName(_d->createNummber).c_str(),getVariableName(si->mh->createNummber).c_str());
+                si->mh->addDescr(_d);
             }
         }
 } structStack;
+
 
 
 /************************************************************************************
 Tdescr - abstract class for all types
 *************************************************************************************/
 
-
 Tdescr::Tdescr(int id){
+    #if MARKI_DEBUG_PLATFORM == 1
+    createNummber = __createNummber++;
+    #endif
     structStack.addDescr(this);
 }
 
@@ -80,9 +111,8 @@ TfinishMenuDefinition::TfinishMenuDefinition(){
     structStack.leaveSds();
 }
 
-
-
 TmenuHandle::TmenuHandle(){
+    DEBUGCODE(getVariableName(createNummber))
     Fvalue = this;
     structStack.setLastCreateStruct(this);
 };
@@ -151,15 +181,15 @@ void TmenuHandle::print(){
         if (descr->isStruct()){
 
             Tstruct* s = static_cast<Tstruct*>(descr);
-            debug::log("-> %s",descr->name());
+            SDDS_LOG("-> %s",descr->name());
             TmenuHandle* _mh = s->value();
             if (_mh){
                 _mh->print();
             }
-            debug::log("<- %s",descr->name());
+            SDDS_LOG("<- %s",descr->name());
         }
         else{
-            debug::log(descr->name());
+            SDDS_LOG(descr->name());
         }
     }
 }
