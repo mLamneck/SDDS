@@ -8,6 +8,7 @@
 
 #if defined(__MINGW64__) || defined(WIN32)      //__MINGW64__ works in VS_Code, WIN32 in codeBlocks
     #define MARKI_DEBUG_PLATFORM 1
+    #define CRC_TAB_IN_PROGMEM 0
 
     #include <stdarg.h>     /* va_list, va_start, va_arg, va_end */
     #include <string>
@@ -34,6 +35,13 @@
 
 #else
 	#include <Arduino.h>
+
+    //to be checked
+    #if defined(ESP32) || defined(ESP8266)
+    #define CRC_TAB_IN_PROGMEM 0
+    #else
+    #define CRC_TAB_IN_PROGMEM 1
+    #endif
 
     namespace dtypes{
         typedef String string;                      //for Arduino this seems to be the best option for dynamic strings
