@@ -5,6 +5,14 @@
 
 #include "uTypedef.h"
 #include "uCrc8.h"
+#if MARKI_DEBUG_PLATFORM == 0
+    #define USE_EEPROM 1
+#endif
+
+#if USE_EEPROM == 1
+    #define EEPROM_STREAM_SIZE 1024
+    #include <EEPROM.h>
+#endif
 
 enum class TseekMode {start, end, curr};
 
@@ -16,6 +24,8 @@ class TparamStream{
         TsreamLength Frun = 0;
 
     public:
+        dtypes::uint16 size(){ return Frun+1; }
+
         virtual bool writeByte(uint8_t _byte){
             //debug::log("0x%02X",_byte);
             return true;
@@ -41,37 +51,7 @@ class TparamStream{
             return true;
         }
 
-        virtual bool seek(TseekMode _mode, int _pos ){
-            return false;
-        }
-
-        virtual void flush(){}
-};
-
-class TparamStringStream : public TparamStream{
-    protected:
-        dtypes::string Fbuffer;
-        virtual int availableForRead(){ return Fbuffer.length() - Frun; }
-
-        void resize(int _size){ while(Fbuffer.length() < _size) Fbuffer+='\0'; }
-        
-        bool writeByte(uint8_t _byte) override{
-            resize(Frun+1);
-            Fbuffer[Frun] = _byte;
-            Frun++;
-            return true;
-        }
-
-        bool readByte(uint8_t& _byte) override {
-            if (availableForRead() <= 0) return false;
-            _byte = Fbuffer[Frun++];
-            return true;
-        }
-
-    public:
-        dtypes::string str() { return Fbuffer; }
-
-        bool seek(TseekMode _mode, int _pos) override {
+        virtual bool seek(TseekMode _mode, int _pos) {
             switch(_mode){
                 case (TseekMode::start):
                     if (_pos < 0) return false;
@@ -83,15 +63,80 @@ class TparamStringStream : public TparamStream{
                     break;
                 case (TseekMode::end):
                     if (_pos > 0) return false;
-                    Frun = Fbuffer.length()-1+_pos;
                     if (Frun < 0) Frun = 0;
                     break;
             }
             return true; 
         }
+
+        virtual void flush(){}
 };
 
+#if USE_EEPROM == 1
+
+class TeepromStream : public TparamStream{
+    bool writeByte(uint8_t _byte) override{
+        EEPROM.put(Frun++,_byte);
+        return true;
+    }
+
+    bool readByte(uint8_t& _byte) override {
+        EEPROM.get(Frun++,_byte);
+        return true;
+    }
+
+    void flush() override {
+        EEPROM.commit();
+    }
+};
+
+#endif
+
 #if MARKI_DEBUG_PLATFORM == 1
+
+    class TparamStringStream : public TparamStream{
+        protected:
+            dtypes::string Fbuffer;
+            virtual int availableForRead(){ return Fbuffer.length() - Frun; }
+
+            void resize(int _size){ while(Fbuffer.length() < _size) Fbuffer+='\0'; }
+            
+            bool writeByte(uint8_t _byte) override{
+                resize(Frun+1);
+                Fbuffer[Frun] = _byte;
+                Frun++;
+                return true;
+            }
+
+            bool readByte(uint8_t& _byte) override {
+                if (availableForRead() <= 0) return false;
+                _byte = Fbuffer[Frun++];
+                return true;
+            }
+
+        public:
+            dtypes::string str() { return Fbuffer; }
+
+            bool seek(TseekMode _mode, int _pos) override {
+                switch(_mode){
+                    case (TseekMode::start):
+                        if (_pos < 0) return false;
+                        Frun = _pos;
+                        break;
+                    case (TseekMode::curr):
+                        Frun += _pos;
+                        if (Frun < 0) Frun = 0;
+                        break;
+                    case (TseekMode::end):
+                        if (_pos > 0) return false;
+                        Frun = Fbuffer.length()-1+_pos;
+                        if (Frun < 0) Frun = 0;
+                        break;
+                }
+                return true; 
+            }
+    };
+
     /*
     on debug plattform we store to filesystem.
     */
@@ -287,7 +332,8 @@ class TparamSaveMenu : public TmenuHandle{
         typedef TenLoadSave::e Taction;
         sdds_struct(
             sdds_var(TenLoadSave,action)
-            sdds_var(TparamError,error);
+            sdds_var(TparamError,error)
+            sdds_var(Tuint16,size)
         )
         TparamSaveMenu(){
             on(action){
@@ -296,8 +342,9 @@ class TparamSaveMenu : public TmenuHandle{
                     TparamStreamer ps;
                     #if MARKI_DEBUG_PLATFORM == 1
                     TparamFileStream s("c:\\temp\\params.txt",action==TenLoadSave::e::save);
-                    #else
+                    #elif USE_EEPROM == 1
                     //to be done
+                    TeepromStream s;
                     #endif
                     if (action==TenLoadSave::e::load){
                         ps.load(root,&s);
@@ -305,11 +352,15 @@ class TparamSaveMenu : public TmenuHandle{
                         ps.save(root,&s);
                     }
                     error = ps.error();
+                    size = s.size();
                     action = TenLoadSave::e::___;
                 }
             };
 
             on(sdds::init){
+                #if USE_EEPROM == 1
+                    EEPROM.begin(EEPROM_STREAM_SIZE);
+                #endif
                 action = Taction::load;
             };
         }
