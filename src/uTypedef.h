@@ -1,3 +1,10 @@
+/************************************************************************************
+uTypeDef.h
+toDo:
+    - find an alternative for pValue() method to provide access to Fvalue for 
+      streaming access;
+*************************************************************************************/
+
 #ifndef UTYPEDEF_H
 #define UTYPEDEF_H
 
@@ -130,6 +137,8 @@ class Tdescr : public TlinkedListElement{
         Tdescr(int id);
         Tcallbacks Fcallbacks;
         friend class TmenuHandle;
+
+        TmenuHandle* findRoot();
 
         //providing type information
         virtual Ttype_id typeId() = 0;
@@ -331,11 +340,17 @@ template <typename ValType, Ttype_id _type_id=0x01> class TenumTemplate: public 
         operator ValType() const { return Fvalue; }
 };
 
+//do not use anymore use sdds_enum
 #define ENUM(...) \
     ENUM_CLASS(ENUM_UNIQUE_NAME(),__VA_ARGS__);\
     typedef TenumTemplate<ENUM_UNIQUE_NAME()>
 
+//do not use anymore... use enum::e
 #define ENUMS(_enum) _enum::dtype
+
+#define sdds_enum(...) \
+    ENUM_CLASS(ENUM_UNIQUE_NAME(),__VA_ARGS__);\
+    typedef TenumTemplate<ENUM_UNIQUE_NAME()>
 
 
 /************************************************************************************
@@ -517,6 +532,8 @@ class TmenuHandle : public Tstruct{
 
         TobjectEventList* events() { return &FobjectEvents; }
 
+        void* pValue() override { return nullptr; };
+
         void signalEvents(Tdescr* _sender){
             if (events()->hasElements()){
                 int idx = FmenuItems.indexOf(_sender);
@@ -594,15 +611,11 @@ class Ttimer : public Tevent{
     public:
         Tcallbacks Fcallbacks;
         Ttimer() : Tevent(&handleTimerEvent) {};
-        void start(Ttime _waitTime){
-            setTimeEvent(_waitTime);
-        }
-        void stop(){
-            Tevent::reclaim();
-        }
-        void onTimerElapsed(){
-            Fcallbacks.emit(nullptr);
-        }
+
+        void start(Ttime _waitTime){ setTimeEvent(_waitTime); }
+        void stop(){ Tevent::reclaim(); }
+        bool running(){ return linked(); }
+        void onTimerElapsed(){ Fcallbacks.emit(nullptr); }
 };
 
 
@@ -678,5 +691,19 @@ class Tlocator{
             return false;
         }
 };
+
+class TsetupTimer : public Ttimer{
+    public: TsetupTimer() { start(0); }
+};
+
+namespace sdds{
+    static Ttimer& setup(){
+        static Ttimer __setup;
+        __setup.start(0);
+        return __setup;
+    }
+
+    static TsetupTimer init;
+}
 
 #endif
