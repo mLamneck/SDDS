@@ -95,17 +95,16 @@ ENUM(OFF,ON) TonOffState;
 class Tled : public TmenuHandle{
   public:
     sdds_struct(
-        sdds_var(TonOffState,ledSwitch);
-	sdds_var(TonOffState,blinkSwitch);
+        sdds_var(TonOffState,ledSwitch,sdds::opt::saveval);
+        sdds_var(TonOffState,blinkSwitch,sdds::opt::saveval);
         sdds_var(Tuint16,onTime,sdds::opt::saveval,500);  //flag for eeprom save and give a default value	
         sdds_var(Tuint16,offTime,sdds::opt::saveval,500);
     )
-    public:
-        Tled(){
-            pinMode(LED_BUILTIN, OUTPUT);
+    Tled(){
+        pinMode(LED_BUILTIN, OUTPUT);
 
-            //process logic goes here
-        }
+        //process logic goes here
+    }
 };
 ```
 We start with the necessary includes followed by an enum definition. Next, we define the necessary process variables for our example by deriving a class from TmenuHandle provided by the lib. Note the only special thing here, is the use of sdds_struct and sdds_var. Don't care about it, it will always look like this. Just note ssds_var has 4 parameters while the last 2 are optional.
@@ -140,42 +139,42 @@ Now we have a basic setup and we can switch the led, but in order to implement b
 #include "uTypedef.h"
 #include "uMultask.h"
 
-ENUM(OFF,ON) TonOffState;
+sdds_enum(OFF,ON) TonOffState;
 
 class Tled : public TmenuHandle{
     Ttimer timer;	//this is added
     public:
-        sdds_struct(
-            sdds_var(TonOffState,ledSwitch);
-            sdds_var(TonOffState,blinkSwitch);
-            sdds_var(Tuint16,onTime,sdds::opt::saveval,500);
-            sdds_var(Tuint16,offTime,sdds::opt::saveval,500);
-        )
-        Tled(){
-            pinMode(LED_BUILTIN, OUTPUT);
+      sdds_struct(
+          sdds_var(TonOffState,ledSwitch,sdds::opt::saveval);
+          sdds_var(TonOffState,blinkSwitch,sdds::opt::saveval);
+          sdds_var(Tuint16,onTime,sdds::opt::saveval,500);
+          sdds_var(Tuint16,offTime,sdds::opt::saveval,500);
+      )
+      Tled(){
+          pinMode(LED_BUILTIN, OUTPUT);
 
-            on(ledSwitch){
-                if (ledSwitch == TonOffState::dtype::ON) digitalWrite(LED_BUILTIN,1);
-                else digitalWrite(LED_BUILTIN,0);
-            };
+          on(ledSwitch){
+              if (ledSwitch == TonOffState::dtype::ON) digitalWrite(LED_BUILTIN,1);
+              else digitalWrite(LED_BUILTIN,0);
+          };
 
-            // code from here is new
-            on(blinkSwitch){
-                if (blinkSwitch == TonOffState::dtype::ON) timer.start(0);
-                else timer.stop();
-            };
+          // code from here is new
+          on(blinkSwitch){
+              if (blinkSwitch == TonOffState::dtype::ON) timer.start(0);
+              else timer.stop();
+          };
 
-            on(timer){
-                if (ledSwitch == TonOffState::dtype::ON){
-                    ledSwitch = TonOffState::dtype::OFF;
-                    timer.start(offTime);
-                } 
-                else {
-                    ledSwitch = TonOffState::dtype::ON;
-                    timer.start(onTime);
-                }
-            };
-        }
+          on(timer){
+              if (ledSwitch == TonOffState::dtype::ON){
+                  ledSwitch = TonOffState::dtype::OFF;
+                  timer.start(offTime);
+              } 
+              else {
+                  ledSwitch = TonOffState::dtype::ON;
+                  timer.start(onTime);
+              }
+          };
+      }
 };
 ```
 
@@ -190,12 +189,11 @@ Now that we have a fully functional component, probably in a separate file we ca
 
 class TuserStruct : public TmenuHandle{
     public:
-    sdds_struct(
-        sdds_var(Tled,led);
-    )
-    public:
-        TuserStruct(){
-        }
+      sdds_struct(
+          sdds_var(Tled,led);
+      )
+      TuserStruct(){
+      }
 } userStruct;
 
 //make available through serial communication
@@ -216,17 +214,17 @@ void loop(){
 ```
 
 There are some things to note here:
-* There's not need to move the Tled code into a separate file. We think it's a good practice move components to their own files.
+* There's not need to move the Tled code into a separate file. We think it's a good practice to move components to their own files.
 * We nested the led component in another class called userStruct. This is not necessary. We could instead just declare Tled userStruct. Usually you will have multiple components and one root structure collecting it. But it's completely up to you.
 * The call to TtaskHandler::handleEvents() in the loop is necessary to run the event handler.
 * The declaration of TserialPlainCommHandler makes the structure accessible over serial communication. And that's the beauty of it. You don't have to touch your Led component to make it available. And it doesn't matter if you add/remove variables to your led or if you add more components.
-* The declaration TwebCommHandler is only available for ESP32/ESP8266 and will provide a website with a generic user interface. If you are using an ESP, add your WiFi startup code in the setup, oterhwise comment out the lines for webSocket based handling.
+* The declaration TwebCommHandler is only available for ESP32/ESP8266 and will provide a website with a generic user interface. If you are using an ESP, add your WiFi startup code in the setup, otherwise comment out the lines for webSocket based handling.
 
 ## Testing the Example
 It's time to finally play around and have fun...
 
 ### Build and Upload the code
-If you are using Arduino IDE, just can just open the example. 
+If you are using Arduino IDE, you can just open the example. 
 
 ```File->Examples->SDDS->Led```
 ### Full Example Code
@@ -244,14 +242,14 @@ You can also copy and paste the following complete example. Note the settings on
 #include "uTypedef.h"
 #include "uMultask.h"
 
-ENUM(OFF,ON) TonOffState;
+sdds_enum(OFF,ON) TonOffState;
 
 class Tled : public TmenuHandle{
     Ttimer timer;	//this is added
     public:
         sdds_struct(
-            sdds_var(TonOffState,ledSwitch);
-            sdds_var(TonOffState,blinkSwitch)
+            sdds_var(TonOffState,ledSwitch,sdds::opt::saveval);
+            sdds_var(TonOffState,blinkSwitch,sdds::opt::saveval);
             sdds_var(Tuint16,onTime,sdds::opt::saveval,500);
             sdds_var(Tuint16,offTime,sdds::opt::saveval,500);
         )
@@ -284,12 +282,11 @@ class Tled : public TmenuHandle{
 
 class TuserStruct : public TmenuHandle{
     public:
-    sdds_struct(
-        sdds_var(Tled,led);
-    )
-    public:
-        TuserStruct(){
-        }
+      sdds_struct(
+          sdds_var(Tled,led);
+      )
+      TuserStruct(){
+      }
 } userStruct;
 
 //make available through serial communication
@@ -344,13 +341,13 @@ The serial spike uses the [Plain protocol](#plain-protocol) specified in the doc
 #### Subscribe to change notification
 
 4. Send the command "L 1 led"
-   * This command is used to subscribe to the led structure, so that whenever a value changes we get a notification in the serial console. The intial response contains basically all values from our Tled structure:
+   * This command is used to subscribe to the led structure, so that whenever a value changes we get a notification in the serial console. The initial response contains basically all values from our Tled structure:
 
      ```l 1 0 OFF,OFF,500,500,```
 
 #### Set values
 6. Use the command "led.ledSwitch=0/1" or "led.ledSwitch=OFF/ON" to turn the led off/on.
-   * Because we have previously subscribed to get change notification in step 4, we receive a notification as a result. If we have skipped step 4 we wouldn't get any response, but the led would still turn on/off.
+   * Because we have previously subscribed to get change notifications in step 4, we receive a notification as a result. If we have skipped step 4 we wouldn't get any response, but the led would still turn on/off.
 
      ```
      l 1 0 OFF,
