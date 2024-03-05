@@ -25,9 +25,16 @@ TstructStack
     const char* _getVariableName(int createNumber){
         switch(createNumber){
             case(0): return "root";
-            case(1): return "val1";
-            case(2): return "val2";
-            case(3): return "val3";
+            case(1): return "nestedStruct";
+            case(2): return "rootVal0";
+            case(3): return "doubleDerived";
+            case(4): return "val1";
+            case(5): return "val2";
+            case(6): return "val3";
+            case(7): return "val4";
+            case(10): return "params";
+            case(8): return "rootValN";
+            case(9): return "ValN";
         }
         return "unknown";
     }
@@ -75,10 +82,15 @@ class __attribute__ ((packed)) TstructStack{
 
         void enterSds(){
             push(FlastCreatedStruct);
+            DEBUGCODE( structOnStack = getVariableName(last()->mh->createNummber).c_str(); )
         }
 
         void leaveSds(){
-            if (Fcnt > 0) Fcnt--;
+            if (Fcnt > 0) {
+                FlastCreatedStruct = last()->mh;
+                Fcnt--;
+                DEBUGCODE(if (Fcnt > 0){ structOnStack = getVariableName(last()->mh->createNummber).c_str(); })
+            }
         }
 
         void addDescr(Tdescr* _d){
@@ -90,18 +102,6 @@ class __attribute__ ((packed)) TstructStack{
         }
 } structStack;
 
-
-
-/************************************************************************************
-Tdescr - abstract class for all types
-*************************************************************************************/
-
-Tdescr::Tdescr(int id){
-    #if MARKI_DEBUG_PLATFORM == 1
-    createNummber = __createNummber++;
-    #endif
-    structStack.addDescr(this);
-}
 
 TstartMenuDefinition::TstartMenuDefinition(){
     structStack.enterSds();
@@ -116,6 +116,26 @@ TmenuHandle::TmenuHandle(){
     Fvalue = this;
     structStack.setLastCreateStruct(this);
 };
+
+
+/************************************************************************************
+Tdescr - abstract class for all types
+*************************************************************************************/
+
+Tdescr::Tdescr(int id){
+    #if MARKI_DEBUG_PLATFORM == 1
+    createNummber = __createNummber++;
+    #endif
+    structStack.addDescr(this);
+}
+
+TmenuHandle* Tdescr::findRoot(){
+    if (!Fparent) return nullptr;
+
+    TmenuHandle* root = Fparent;
+    while (root->Fparent) { root = root->Fparent; }
+    return root;
+}
 
 void Tdescr::signalEvents(){
     Fcallbacks.emit(this);
