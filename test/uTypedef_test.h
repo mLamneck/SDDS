@@ -60,6 +60,12 @@ class TtestTypedef : public TtestCase{
         )
     };
 
+    class TderivedDoubleNestedStruct : public TdoubleNestedStruct{
+        sdds_struct(
+            sdds_var(Tuint8,valEnd);
+        )
+    };
+
     const char* serialize(TmenuHandle& _struct){
         Fstream.clear();
         TjsonSerializer s(&_struct,&Fstream,false);
@@ -125,6 +131,11 @@ class TtestTypedef : public TtestCase{
         doTest([this](){
             TdoubleNestedStruct s;
             return testStruct(s,R"([{"type":66,"opt":0,"name":"nestedStruct","value":[{"type":1,"opt":0,"name":"rootVal0"},{"type":66,"opt":0,"name":"doubleDerived","value":[{"type":36,"opt":0,"name":"val1"},{"type":36,"opt":0,"name":"val2"},{"type":36,"opt":0,"name":"val3"},{"type":36,"opt":0,"name":"val4"}]},{"type":1,"opt":0,"name":"rootValN"}]},{"type":1,"opt":0,"name":"ValN"}])");
+        },"TdoubleNestedStruct struct");
+
+        doTest([this](){
+            TderivedDoubleNestedStruct s;
+            return testStruct(s,R"([{"type":66,"opt":0,"name":"nestedStruct","value":[{"type":1,"opt":0,"name":"rootVal0"},{"type":66,"opt":0,"name":"doubleDerived","value":[{"type":36,"opt":0,"name":"val1"},{"type":36,"opt":0,"name":"val2"},{"type":36,"opt":0,"name":"val3"},{"type":36,"opt":0,"name":"val4"}]},{"type":1,"opt":0,"name":"rootValN"}]},{"type":1,"opt":0,"name":"ValN"},{"type":1,"opt":0,"name":"valEnd"}])");
         },"TdoubleNestedStruct struct");
 
         return false;
