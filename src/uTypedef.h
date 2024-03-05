@@ -163,7 +163,6 @@ class Tdescr : public TlinkedListElement{
         //interface for generic handling
         virtual bool setValue(const char* _str) = 0;
         virtual TrawString to_string(){ return ""; }
-        virtual const char* c_str(){ return to_string().c_str(); }
 
         /************************************************************************************
         functions for type conversion used by derived types
