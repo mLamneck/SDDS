@@ -1,7 +1,7 @@
 #ifndef UPARAMSAVE_H
 #define UPARAMSAVE_H
 
-#define uParamSave_debug  1
+#define uParamSave_debug 0
 
 #include "uTypedef.h"
 #include "uCrc8.h"
@@ -91,30 +91,35 @@ class TparamStringStream : public TparamStream{
         }
 };
 
-#include <iostream>
-#include <fstream>
+#if MARKI_DEBUG_PLATFORM == 1
+    /*
+    on debug plattform we store to filesystem.
+    */
+    #include <iostream>
+    #include <fstream>
 
-class TparamOutputFileStream : public TparamStringStream{
-    std::ofstream Ffile;
-    public:
-        TparamOutputFileStream(const char* _filename){ Ffile.open(_filename,std::ios::binary); }
-        ~TparamOutputFileStream(){ close(); }
+    class TparamFileStream : public TparamStringStream{
+        const char* Ffilename;
 
         void flush() override { 
-            Ffile.write(Fbuffer.c_str(),Fbuffer.length());
-            Ffile.flush();
+            std::ofstream outfile;
+            outfile.open(Ffilename,std::ios::binary);
+            outfile.write(Fbuffer.c_str(),Fbuffer.length());
+            outfile.close();
         }
-        void close() { Ffile.close(); }
-};
 
-class TparamInputFileStream : public TparamStringStream{
-    public:
-    TparamInputFileStream(const char* _filename){
-        std::ifstream ifs(_filename);
-        Fbuffer = std::string(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>());
-        ifs.close();
-    }
-};
+        public:
+            TparamFileStream(const char* _filename, bool _output){
+                Ffilename = _filename;
+                if (!_output){
+                    std::ifstream ifs(_filename);
+                    Fbuffer = std::string(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>());
+                    ifs.close();
+                }
+            }
+    };
+
+#endif
 
 typedef uint8_t TparamSaveVersion; 
 struct __attribute__ ((packed)) TparamHeaderV0{
@@ -129,7 +134,7 @@ union TstructCrc{
     uint16_t crc;
 };
 
-ENUM(___,crc,stream) TparamError;
+sdds_enum(___,crc,stream) TparamError;
 
 class TparamStreamer{
     TparamError Ferror;
@@ -163,20 +168,23 @@ class TparamStreamer{
                 if (!mh) continue;
 
                 if (!saveStruct(mh)) return false;
+                continue;
             }
-            #if uParamSave_debug == 1
+
+        #if uParamSave_debug == 1
             uint8_t tempBuf[16] = {};
             int size = descr->valSize();
             bool res = Fstream->writeBytes(descr->pValue(),descr->valSize());
             Fstream->seek(TseekMode::curr,-size);
             Fstream->readBytes(&tempBuf,size);
             if (!res){
-            #else
+        #else
             if (!Fstream->writeBytes(descr->pValue(),descr->valSize())){
-            #endif
+        #endif
                 Ferror = TparamError::e::stream;
                 return false;
             };
+
         }
         return true;
     }
@@ -191,16 +199,22 @@ class TparamStreamer{
                 if (!mh) continue;
 
                 if (!_loadStruct(mh)) return false;
+                continue;
             }
+            
+        #if uParamSave_debug == 1
             uint8_t tempBuf[16] = {};
             int size = descr->valSize();
-            if (!Fstream->readBytes(&tempBuf,size))
-            {
-            //if (Fstream->readBytes(descr->pValue(),descr->valSize())){
+            if (!Fstream->readBytes(&tempBuf,size)){
+        #else
+            if (!Fstream->readBytes(descr->pValue(),descr->valSize())){
+        #endif
                 Ferror = TparamError::e::stream;
                 return false;
             }else{
+        #if uParamSave_debug == 1
                 memccpy(descr->pValue(),&tempBuf,size,size);
+        #endif
                 descr->signalEvents();
             };
         }
@@ -262,6 +276,43 @@ class TparamStreamer{
             return false;
         }
 
+};
+
+
+sdds_enum(___,load,save) TenLoadSave;
+
+class TparamSaveMenu : public TmenuHandle{
+    Ttimer timer;
+    public:
+        typedef TenLoadSave::e Taction;
+        sdds_struct(
+            sdds_var(TenLoadSave,action)
+            sdds_var(TparamError,error);
+        )
+        TparamSaveMenu(){
+            on(action){
+                if (action != TenLoadSave::e::___){
+                    TmenuHandle* root = findRoot();
+                    TparamStreamer ps;
+                    #if MARKI_DEBUG_PLATFORM == 1
+                    TparamFileStream s("c:\\temp\\params.txt",action==TenLoadSave::e::save);
+                    #else
+                    //to be done
+                    #endif
+                    if (action==TenLoadSave::e::load){
+                        ps.load(root,&s);
+                    }else if(action==TenLoadSave::e::save){
+                        ps.save(root,&s);
+                    }
+                    error = ps.error();
+                    action = TenLoadSave::e::___;
+                }
+            };
+
+            on(sdds::init){
+                action = Taction::load;
+            };
+        }
 };
 
 #endif
