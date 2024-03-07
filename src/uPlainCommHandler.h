@@ -52,9 +52,9 @@ class TplainCommHandler : public Tthread{
         Fstream->flush();
     }
 
-    void startSendTypes(){
+    void startSendTypes(TmenuHandle* _struct){
         Fstream->write("t ");
-        TjsonSerializer s(Froot,Fstream);
+        TjsonSerializer s(_struct,Fstream);
         s.serialize();
         Fstream->flush();
         //debug::log(Fstream1.Fbuffer.c_str());
@@ -70,15 +70,8 @@ class TplainCommHandler : public Tthread{
 		return false;
 	}
 
-    bool locatePath(TstringRef& _msg){
-        Fconn = nullptr;
-        Fmh = nullptr;
-
-        if (!_msg.parseValue(Fport)) return sendError(1);
-        _msg.next();    //skip seperator
-
+    bool scanTree(TstringRef& _msg){
         Fmh = Froot;
-        //locate path necessary???
         if (_msg.hasNext()){
             //path not found???
             Tlocator l(Froot);
@@ -91,6 +84,18 @@ class TplainCommHandler : public Tthread{
             Fmh = static_cast<Tstruct*>(l.result())->value();
             if (!Fmh) return sendError(4,Fport);
         }
+        return true;
+    }
+
+    bool prepareConnRelatedMsg(TstringRef& _msg){
+        Fconn = nullptr;
+        Fmh = nullptr;
+
+        if (!_msg.parseValue(Fport)) return sendError(1);
+        _msg.next();    //skip seperator
+
+        //locate path necessary???
+        if (!scanTree(_msg)) return false;
 
         //find port
         for (auto it = Fconnections.iterator(); it.hasNext(); ){
@@ -107,7 +112,7 @@ class TplainCommHandler : public Tthread{
     }
 
     void linkPath(TstringRef& _msg){
-        if (!locatePath(_msg)) return;
+        if (!prepareConnRelatedMsg(_msg)) return;
 
         //if connection for recycling found...
         Tconnection* conn = Fconn;
@@ -123,7 +128,7 @@ class TplainCommHandler : public Tthread{
 
     void unlinkPath(TstringRef& _msg){
         //this does work for empty path
-        if (!locatePath(_msg)) return;
+        if (!prepareConnRelatedMsg(_msg)) return;
         if (!Fconn){
 			sendError(5,Fport);
 			return;
@@ -141,7 +146,8 @@ class TplainCommHandler : public Tthread{
       switch (_cmd)
       {
       case 'T':
-        startSendTypes();
+        if (!scanTree(_msg)) return;
+        startSendTypes(Fmh);
         break;
 
       case 'L':
