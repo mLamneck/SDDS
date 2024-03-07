@@ -131,6 +131,10 @@ class TudpCommHandler : public Tthread{
     }
 
     public:
+        void handleMessage(const char* _msg) { 
+            FcommHandler.handleMessage(_msg);
+        }
+
         TudpCommHandler(TmenuHandle& _root):
             FcommHandler(&_root,&Fudp)
         {
