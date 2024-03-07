@@ -58,6 +58,22 @@ class TtestParamSave : public TtestCase{
         }
     }
 
+    int _calcSize(TmenuHandle& _s, int _size = 0){
+        for (auto it=_s.iterator(); it.hasNext();){
+            auto d = it.next();
+            if (!d->saveval()) continue;
+            if (d->isStruct()){
+                TmenuHandle* mh1 = static_cast<Tstruct*>(d)->value();
+                _size = _calcSize(*mh1,_size);
+            } else {
+                _size += d->valSize();
+            }
+        }
+        return _size;
+    }
+    
+    int calcSize(TmenuHandle& _s){ return _calcSize(_s) + sizeof(TparamSaveVersion) + sizeof(TparamHeaderV0); }
+
     bool compareStructs(TmenuHandle& s1, TmenuHandle& s2, dtypes::string _path = ""){
         auto it2 = s2.iterator();
         for (auto it1 = s1.iterator(); it1.hasNext();){
@@ -118,11 +134,18 @@ class TtestParamSave : public TtestCase{
         TparamStreamer ps;
         TparamStringStream s;
         bool res = ps.save(s1,&s);
+
+        int expSize = calcSize(s1); 
+        if (expSize != s.size()){
+            debug::log("size='%d'!='%d'=expected size",s.size(),expSize);
+            return false;
+        }
+
         //debug::log(binToHex(s.str()));
         s.seek(TseekMode::start,0);
         res = ps.load(s2,&s);
         if (_expLoadError != ps.error()){
-            debug::log("error='%s'!='%s'=expectedError",ps.error().c_str(),TparamError::enumClass::c_str(_expLoadError));
+            debug::log("error='%s'!='%s'=expectedError",ps.error().to_string().c_str(),TparamError::enumClass::c_str(_expLoadError));
             return false;
         }
         if (_expLoadError != TparamError::e::___) return true;

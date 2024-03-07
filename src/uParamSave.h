@@ -19,12 +19,20 @@ enum class TseekMode {start, end, curr};
 typedef int32_t TsreamLength;
 
 class TparamStream{
+    private:
+        TsreamLength Frun = 0;
+        TsreamLength Fsize = 0;
 
     protected:
-        TsreamLength Frun = 0;
+        TsreamLength curr(bool _inc = false){ 
+            auto curr = Frun;
+            if (Frun >= Fsize) Fsize++;
+            if (_inc) Frun++;
+            return curr; 
+        }
 
     public:
-        dtypes::uint16 size(){ return Frun+1; }
+        dtypes::uint16 size(){ return Fsize; }
 
         virtual bool writeByte(uint8_t _byte){
             //debug::log("0x%02X",_byte);
@@ -51,15 +59,22 @@ class TparamStream{
             return true;
         }
 
+        virtual bool grow(int _size){ return true; }
+
         virtual bool seek(TseekMode _mode, int _pos) {
             switch(_mode){
                 case (TseekMode::start):
                     if (_pos < 0) return false;
+                    if (!grow(_pos+1)) return false;
                     Frun = _pos;
                     break;
                 case (TseekMode::curr):
-                    Frun += _pos;
-                    if (Frun < 0) Frun = 0;
+                    if (_pos > 0){
+                        if (!grow(Frun + _pos + 1)) return false;
+                    } else{
+                        Frun += _pos;
+                        if (Frun < 0) Frun = 0;
+                    }
                     break;
                 case (TseekMode::end):
                     if (_pos > 0) return false;
@@ -75,13 +90,16 @@ class TparamStream{
 #if USE_EEPROM == 1
 
 class TeepromStream : public TparamStream{
+    bool grow(int _size) override{ return (_size <= EEPROM_STREAM_SIZE); }
+
     bool writeByte(uint8_t _byte) override{
-        EEPROM.put(Frun++,_byte);
+        EEPROM.put(curr(true),_byte);
         return true;
     }
-
+i
     bool readByte(uint8_t& _byte) override {
-        EEPROM.get(Frun++,_byte);
+        if (curr() >= EEPROM_STREAM_SIZE) return false;
+        EEPROM.get(curr(true),_byte);
         return true;
     }
 
@@ -97,44 +115,27 @@ class TeepromStream : public TparamStream{
     class TparamStringStream : public TparamStream{
         protected:
             dtypes::string Fbuffer;
-            virtual int availableForRead(){ return Fbuffer.length() - Frun; }
+            virtual int availableForRead(){ return Fbuffer.length() - curr(); }
 
-            void resize(int _size){ while(Fbuffer.length() < _size) Fbuffer+='\0'; }
-            
+            bool grow(int _size) override{
+                while(Fbuffer.length() < _size) Fbuffer+='\0';
+                return true;
+            }
+
             bool writeByte(uint8_t _byte) override{
-                resize(Frun+1);
-                Fbuffer[Frun] = _byte;
-                Frun++;
+                grow(curr()+1);
+                Fbuffer[curr(true)] = _byte;
                 return true;
             }
 
             bool readByte(uint8_t& _byte) override {
                 if (availableForRead() <= 0) return false;
-                _byte = Fbuffer[Frun++];
+                _byte = Fbuffer[curr(true)];
                 return true;
             }
 
         public:
             dtypes::string str() { return Fbuffer; }
-
-            bool seek(TseekMode _mode, int _pos) override {
-                switch(_mode){
-                    case (TseekMode::start):
-                        if (_pos < 0) return false;
-                        Frun = _pos;
-                        break;
-                    case (TseekMode::curr):
-                        Frun += _pos;
-                        if (Frun < 0) Frun = 0;
-                        break;
-                    case (TseekMode::end):
-                        if (_pos > 0) return false;
-                        Frun = Fbuffer.length()-1+_pos;
-                        if (Frun < 0) Frun = 0;
-                        break;
-                }
-                return true; 
-            }
     };
 
     /*
