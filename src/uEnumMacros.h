@@ -16,13 +16,14 @@
 #define ENUM_CLASS(_name,...)\
 constexpr static const char* ENUM_STRS_NAME(_name)[] = {SP_FOR_EACH_PARAM_CALL_MACRO_WITH_PARAM(ENUM_STR,__VA_ARGS__)};    \
 class _name{                \
+    typedef uint8_t dtype;\
     public: \
-        constexpr static const uint8_t COUNT = SP_COUNT_VARARGS(__VA_ARGS__);                                          \
-        typedef uint8_t dtype;\
+        constexpr static const dtype COUNT = SP_COUNT_VARARGS(__VA_ARGS__);                                          \
         enum class ENUM_TYPE_NAME : dtype {__VA_ARGS__};                                                             \
         ENUM_TYPE_NAME Fvalue;                                                                                         \
         operator ENUM_TYPE_NAME() const{return Fvalue;}                                                                \
         void operator=(ENUM_TYPE_NAME _value){Fvalue = _value;}                                                        \
+        static const dtype ord(ENUM_TYPE_NAME _v){return static_cast<dtype>(_v);}\
         static const char* c_str(ENUM_TYPE_NAME _v){\
             dtype idx = static_cast<dtype>(_v);\
             if (idx < _name::COUNT) return ENUM_STRS_NAME(_name)[idx];\
@@ -41,8 +42,9 @@ class _name{                \
         }\
         const char* getEnum(int _idx) { return ENUM_STRS_NAME(_name)[_idx]; } \
         const char* c_str(){ return _name::c_str(Fvalue); }                                       \
-}
+};
 
+#define sdds_enumClass ENUM_CLASS
 /* versions with case
     static const char* to_string(ENUM_TYPE_NAME _v){                                                               \
         switch(_v){                                                                                                \
