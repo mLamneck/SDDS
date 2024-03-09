@@ -122,7 +122,7 @@ TmenuHandle::TmenuHandle(){
 Tdescr - abstract class for all types
 *************************************************************************************/
 
-Tdescr::Tdescr(int id){
+Tdescr::Tdescr(){
     #if MARKI_DEBUG_PLATFORM == 1
     createNummber = __createNummber++;
     #endif
