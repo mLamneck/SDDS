@@ -21,17 +21,19 @@ class TtestParamSave : public TtestCase{
     class TstructAllTypes : public TmenuHandle{
         public:
             sdds_struct(
-                sdds_var(Tuint8,Fuint8,sdds::opt::saveval,0);
-                sdds_var(Tuint16,Fuint16,sdds::opt::saveval,0);
-                sdds_var(Tuint32,Fuint32,sdds::opt::saveval,0);
+                sdds_var(Tuint8,Fuint8,sdds::opt::saveval,0)
+                sdds_var(Tuint16,Fuint16,sdds::opt::saveval,0)
+                sdds_var(Tuint32,Fuint32,sdds::opt::saveval,0)
 
-                sdds_var(Tint8,Fint8,sdds::opt::saveval,0);
-                sdds_var(Tint16,Fint16,sdds::opt::saveval,0);
-                sdds_var(Tint32,Fint32,sdds::opt::saveval,0);
+                sdds_var(Tint8,Fint8,sdds::opt::saveval,0)
+                sdds_var(Tint16,Fint16,sdds::opt::saveval,0)
+                sdds_var(Tint32,Fint32,sdds::opt::saveval,0)
 
-                sdds_var(Tfloat32,Ffloat32,sdds::opt::saveval,0);
+                sdds_var(Tfloat32,Ffloat32,sdds::opt::saveval,0)
 
-                sdds_var(Ttime,Ftime,sdds::opt::saveval,stringToTime("10:00:00"));
+                sdds_var(Ttime,Ftime,sdds::opt::saveval,stringToTime("10:00:00"))
+
+                sdds_var(Tstring,Fstr,sdds::opt::saveval)
             )
     };
 
@@ -65,6 +67,8 @@ class TtestParamSave : public TtestCase{
             if (d->isStruct()){
                 TmenuHandle* mh1 = static_cast<Tstruct*>(d)->value();
                 _size = _calcSize(*mh1,_size);
+            } else if (d->type() == sdds::Ttype::STRING){
+                _size += d->to_string().length() + 1;
             } else {
                 _size += d->valSize();
             }
@@ -171,6 +175,7 @@ class TtestParamSave : public TtestCase{
             struct1.Fint32 = 5123;
             struct1.Ffloat32 = 1.2;
             struct1.Ftime = stringToTime("12:23:05");
+            struct1.Fstr = "HalloMarkiDasIstEinStringMitTab\t";
             return test2structs(struct1,struct11);
         },"TstructAllTypes");
 

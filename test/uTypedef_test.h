@@ -28,9 +28,12 @@ class TtestTypedef : public TtestCase{
             )
     };
 
+    sdds_enum(on,off,___) TonOff;
+
     class TstructAllTypes : public TmenuHandle{
         public:
             sdds_struct(
+                sdds_var(TonOff,onOff);
                 sdds_var(Tuint8,Fuint8,sdds::opt::saveval,0);
                 sdds_var(Tuint16,Fuint16,sdds::opt::saveval,0);
                 sdds_var(Tuint32,Fuint32,sdds::opt::saveval,0);
@@ -109,8 +112,13 @@ class TtestTypedef : public TtestCase{
     */
     bool test() override {
         doTest([this](){
+            TbaseStruct s;
+            return testStruct(s,R"([{"type":36,"opt":0,"name":"val1"}])");
+        },"TbaseStruct");
+
+        doTest([this](){
             TstructAllTypes s;
-            return testStruct(s,R"([{"type":1,"opt":128,"name":"Fuint8"},{"type":2,"opt":128,"name":"Fuint16"},{"type":4,"opt":128,"name":"Fuint32"},{"type":17,"opt":128,"name":"Fint8"},{"type":18,"opt":128,"name":"Fint16"},{"type":20,"opt":128,"name":"Fint32"},{"type":36,"opt":128,"name":"Ffloat32"},{"type":6,"opt":128,"name":"Ftime"}])");
+            return testStruct(s,R"([{"type":49,"opt":0,"name":"onOff","enums":["on","off","___"]},{"type":1,"opt":128,"name":"Fuint8"},{"type":2,"opt":128,"name":"Fuint16"},{"type":4,"opt":128,"name":"Fuint32"},{"type":17,"opt":128,"name":"Fint8"},{"type":18,"opt":128,"name":"Fint16"},{"type":20,"opt":128,"name":"Fint32"},{"type":36,"opt":128,"name":"Ffloat32"},{"type":6,"opt":128,"name":"Ftime"}])");
         },"TstructAllTypes");
 
         doTest([this](){
