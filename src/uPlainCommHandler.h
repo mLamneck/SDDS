@@ -6,7 +6,7 @@
 #include "uTypedef.h"
 #include "uStrings.h"
 #include "uJsonSerializer.h"
-
+#include "uPlainCommErrors.h"
 
 class Tconnection : public TlinkedListElement{
     public:
@@ -22,7 +22,6 @@ class Tconnection : public TlinkedListElement{
 class TplainCommHandler : public Tthread{
   typedef dtypes::int8 Tcmd;
   typedef dtypes::uint8 Tport;
-  typedef dtypes::uint8 TerrorCode;
 
   private:
     TmenuHandle* Froot;
@@ -47,154 +46,25 @@ class TplainCommHandler : public Tthread{
       Fstream = &_stream;
     }
 
-    void send(const char* _msg){
-        Fstream->write(_msg);
-        Fstream->flush();
-    }
+    void send(const char* _msg);
 
-    void startSendTypes(TmenuHandle* _struct){
-        Fstream->write("t ");
-        TjsonSerializer s(_struct,Fstream);
-        s.serialize();
-        Fstream->flush();
-        //debug::log(Fstream1.Fbuffer.c_str());
-    }
-	
-	bool sendError(TerrorCode _errCode, Tport _port = 0){
-		Fstream->write("E ");
-		Fstream->write(_port);
-		Fstream->write(' ');
-		Fstream->write(_errCode);
-		//Fstream->write(errCode);
-		Fstream->flush();
-		return false;
-	}
+    void startSendTypes(TmenuHandle* _struct);
 
-    bool scanTree(TstringRef& _msg){
-        Fmh = Froot;
-        if (_msg.hasNext()){
-            //path not found???
-            Tlocator l(Froot);
-            if (!l.locate(_msg)) return sendError(2,Fport);
+    bool sendError(plainComm::Terror::e _errCode, Tport _port = 0);
 
-            //path doesn't point to a struct???
-            if (!l.result()->isStruct()) return sendError(3,Fport);
+    bool scanTree(TstringRef& _msg);
 
-            //structs = nullptr????
-            Fmh = static_cast<Tstruct*>(l.result())->value();
-            if (!Fmh) return sendError(4,Fport);
-        }
-        return true;
-    }
+    bool prepareConnRelatedMsg(TstringRef& _msg);
 
-    bool prepareConnRelatedMsg(TstringRef& _msg){
-        Fconn = nullptr;
-        Fmh = nullptr;
+    void linkPath(TstringRef& _msg);
 
-        if (!_msg.parseValue(Fport)) return sendError(1);
-        _msg.next();    //skip seperator
+    void unlinkPath(TstringRef& _msg);
 
-        //locate path necessary???
-        if (!scanTree(_msg)) return false;
+    void handleCommand(Tcmd _cmd, TstringRef& _msg);
 
-        //find port
-        for (auto it = Fconnections.iterator(); it.hasNext(); ){
-            auto lconn = it.next();
-            if (lconn->FobjEvent.Ftag == Fport){
-                Fconn = lconn;
-                TmenuHandle* lmh = Fconn->menuHandle();
-                lmh->events()->remove(&Fconn->FobjEvent);
-                Fconn->FobjEvent.event()->reclaim();
-                break;
-            }
-        }
-        return true;
-    }
+    void handleReadWrite(TstringRef& msg);
 
-    void linkPath(TstringRef& _msg){
-        if (!prepareConnRelatedMsg(_msg)) return;
-
-        //if connection for recycling found...
-        Tconnection* conn = Fconn;
-        if (!conn){
-            conn = new Tconnection(this);
-            Fconnections.push_first(conn);
-        }
-        conn->FobjEvent.Fstruct = Fmh;
-        conn->FobjEvent.Ftag = Fport;
-        Fmh->events()->push_first(&conn->FobjEvent);
-        conn->FobjEvent.signal();
-    }
-
-    void unlinkPath(TstringRef& _msg){
-        //this does work for empty path
-        if (!prepareConnRelatedMsg(_msg)) return;
-        if (!Fconn){
-			sendError(5,Fport);
-			return;
-		}
-		
-        Fconnections.remove(Fconn);
-        delete Fconn;
-        Fstream->write("u ");
-        Fstream->write(Fport);
-        Fstream->flush();
-    }
-
-
-    void handleCommand(Tcmd _cmd, TstringRef& _msg){
-      switch (_cmd)
-      {
-      case 'T':
-        if (!scanTree(_msg)) return;
-        startSendTypes(Fmh);
-        break;
-
-      case 'L':
-        linkPath(_msg);
-        break;
-
-      case 'U':
-        unlinkPath(_msg);
-        break;
-
-      default:
-        sendError(6);
-        break;
-      }
-    }
-
-    void handleReadWrite(TstringRef& msg){
-      Tlocator l(Froot);
-      if (l.locate(msg)){
-          if (msg.hasNext()){
-              l.result()->setValue(msg.pCurr());
-          }
-          else{
-            debug::log("%s = %s",l.result()->name(),l.result()->to_string().c_str());
-            Tdescr* var = l.result();
-            Fstream->write(var->name());
-            Fstream->write('=');
-            Fstream->write(var->to_string());
-            Fstream->flush();
-          }
-      };
-    }
-
-    void handleMessage(TstringRef& msg){
-        char cmd = msg.next();
-        if (!msg.hasNext()) handleCommand(cmd,msg);
-        else{
-            char blank = msg.next();
-            if (blank == ' '){
-                handleCommand(cmd,msg);
-            }
-            else{
-                msg.offset(-2);
-                handleReadWrite(msg);
-            }
-        }
-    }
+    void handleMessage(TstringRef& msg);
 
     /** \brief Handle the given msg. Any trailing whitespaces will be replaced with '\0'
      *
@@ -236,28 +106,7 @@ class TplainCommHandler : public Tthread{
         }
     }
     
-    void execute(Tevent* _ev) override{
-
-        if (!isTaskEvent(_ev)){
-            TobjectEvent* oe= static_cast<TobjectEvent*>(_ev->context());
-            auto first = oe->first();
-            auto last = oe->last();
-
-            Fstream->write("l ");
-            Fstream->write(oe->Ftag);
-            Fstream->write(" ");
-            Fstream->write(first);
-            Fstream->write(" ");
-            auto it = oe->Fstruct->iterator(first);
-            while (first++ <= last && it.hasNext()){
-                Tdescr* d = it.next();
-                Fstream->write(d->to_string());
-                Fstream->write(',');
-            }
-            Fstream->flush();
-        }
-
-    }
+    void execute(Tevent* _ev) override;
 
 };
 
