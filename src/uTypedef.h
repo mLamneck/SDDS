@@ -46,10 +46,6 @@ forward declarations and typedefinitions for this unit
 class TmenuHandle;
 class Tdescr;
 
-//types used in Tdescr
-typedef uint8_t Ttype_id;
-typedef uint8_t Toption;
-
 //callback for ons
 #ifdef __AVR__
     //for AVR-gcc std::function is not available
@@ -60,11 +56,9 @@ typedef uint8_t Toption;
 #endif
 
 
-/************************************************************************************
-consts for Tdescr type and option
-*************************************************************************************/
-
 namespace sdds{
+    typedef uint8_t Toption;
+    
     namespace opt{
         constexpr Toption nothing   = 0;
         constexpr Toption readonly  = 0x01;
@@ -74,12 +68,32 @@ namespace sdds{
 
         constexpr Toption mask_show = 0x0E;
     }
+
     namespace typeIds{
         constexpr uint8_t size_mask = 0x0F; 
-        constexpr Ttype_id STRUCT   = 0x42;
-        constexpr Ttype_id TIME     = 0x06;
     }
+
+    enum class Ttype : dtypes::uint8{
+        UINT8   = 0x01,
+        UINT16  = 0x02,
+        UINT32  = 0x04,
+
+        TIME    = 0x06,
+
+        INT8    = 0x11,
+        INT16   = 0x12,
+        INT32   = 0x14,
+        
+        FLOAT32 = 0x24,
+        
+        ENUM    = 0x31,
+
+        STRUCT  = 0x42,
+
+        STRING  = 0x81
+    };
 }
+
 
 
 /************************************************************************************
@@ -134,31 +148,32 @@ class Tdescr : public TlinkedListElement{
         #endif
 
         void signalEvents();
-        Tdescr(int id);
+        Tdescr();
         Tcallbacks Fcallbacks;
         friend class TmenuHandle;
 
         TmenuHandle* findRoot();
 
         //providing type information
-        virtual Ttype_id typeId() = 0;
+        virtual sdds::Ttype type() = 0;
+        virtual dtypes::uint8 typeId(){ return static_cast<dtypes::uint8>(type()); }
+
         virtual const char* name(){return ""; };
-        virtual Toption option(){return 0; };
-        virtual dtypes::uint8 valSize() { return typeId() & sdds::typeIds::size_mask; }
+        virtual sdds::Toption option(){return 0; };
+        virtual dtypes::uint8 valSize() { return static_cast<uint8_t>(type()) & sdds::typeIds::size_mask; }
         virtual void* pValue() { return nullptr; };
 
-        Toption showOption(){ return (option() & sdds::opt::mask_show); }
+        sdds::Toption showOption(){ return (option() & sdds::opt::mask_show); }
         inline bool saveval() { return ((option() & sdds::opt::saveval) > 0); }
 
         //propably compare default value to current and only save if different
         inline bool shouldBeSaved(){ return saveval(); }
 
-        virtual bool isEnum() { return false; };
-        inline bool isStruct() {return (typeId()==sdds::typeIds::STRUCT); };
+        inline bool isStruct() { return (type()==sdds::Ttype::STRUCT); }
+
         inline bool hasChilds() {
             if (!isStruct()) return false;
         }
-        inline bool needQuotes() {return (typeId()==sdds::typeIds::TIME); };
 
         //interface for generic handling
         virtual bool setValue(const char* _str) = 0;
@@ -184,7 +199,8 @@ class Tdescr : public TlinkedListElement{
             return result;
         }
 
-        //convert internal values to string
+        //********* convert internal values to string ***************
+
         template <typename valType>
         TrawString _valToStr(valType _val){return strConv::to_string(_val); }
         TrawString _valToStr(TdateTime _val){
@@ -192,7 +208,8 @@ class Tdescr : public TlinkedListElement{
             return timeToString(_val);
         }
         TrawString _valToStr(TrawString _val){return _val; }
-        TrawString _valToStr(TmenuHandle* _val){ return ""; };
+        TrawString _valToStr(TmenuHandle* _val){ return (_val) ? "1" : "0"; };
+
 
         //********* covert string to internal values ***************
 
@@ -209,6 +226,8 @@ class Tdescr : public TlinkedListElement{
         //floating point
         static bool _strToValue(const char* _str, dtypes::float32& _value){return Tdescr::_strToNumber<dtypes::float32>(_str,_value);}
 
+        static bool _strToValue(const char* _str, dtypes::string& _value){ _value = _str; return true; }
+
         //DateTime
         static bool _strToValue(const char* _str, dtypes::TdateTime& _value){
             TdateTimeParser p(_str);
@@ -219,20 +238,14 @@ class Tdescr : public TlinkedListElement{
 
         static bool _strToValue(const char* _str, TmenuHandle*& _value){return true;}
 
-        //********* covert string to internal values ***************
 };
 
 
-/*
-        static bool _strToValue(const char* _str, dtypes::uint16& _value){return Tdescr::_strToNumber<dtypes::uint16>(_str,_value);}
-        static bool _strToValue(const char* _str, dtypes::uint32& _value){return Tdescr::_strToNumber<dtypes::uint32>(_str,_value);}
-
-*/
 /************************************************************************************
 template for the actual descriptive types
 *************************************************************************************/
 
-template <class ValType, Ttype_id _type_id> class TdescrTemplate: public Tdescr{
+template <class ValType, sdds::Ttype _type_id> class TdescrTemplate: public Tdescr{
     private:
     protected:
         ValType Fvalue;
@@ -246,9 +259,9 @@ template <class ValType, Ttype_id _type_id> class TdescrTemplate: public Tdescr{
         TdescrTemplate(const TdescrTemplate& _src) : TdescrTemplate(){
             Fvalue = _src.Fvalue;
         };
-        TdescrTemplate() : Tdescr(_type_id){};
+        TdescrTemplate(){};
 
-        Ttype_id typeId() override {return _type_id; };
+        sdds::Ttype type() override {return _type_id; };
         dtypes::uint8 valSize() override { return sizeof(Fvalue); }
         void* pValue() override { return &Fvalue; };
 
@@ -282,14 +295,13 @@ Enums
 *************************************************************************************/
 
 class TenumBase : public Tdescr{
-    bool isEnum() override{ return true; }
     public:
-        TenumBase() : Tdescr(77) {}
+        TenumBase(){}
         virtual int enumCnt() { return 0; };
         virtual const char* getEnum(int _idx) { return ""; };
 };
 
-template <typename ValType, Ttype_id _type_id=0x01> class TenumTemplate: public TenumBase{
+template <typename ValType, sdds::Ttype _type_id=sdds::Ttype::ENUM> class TenumTemplate: public TenumBase{
     private:
     protected:
         ValType Fvalue;
@@ -308,7 +320,7 @@ template <typename ValType, Ttype_id _type_id=0x01> class TenumTemplate: public 
         };
         TenumTemplate(){}
 
-        Ttype_id typeId() override {return _type_id; };
+        sdds::Ttype type() override {return _type_id; };
         dtypes::uint8 valSize() override { return sizeof(dtype); }
         void* pValue() override { return &Fvalue.Fvalue; };
 
@@ -357,35 +369,23 @@ finally instantiate real datatypes to be used outside of this unit
 *************************************************************************************/
 
 //unsigned integers
-typedef TdescrTemplate<dtypes::uint8,0x01> Tuint8;
-typedef TdescrTemplate<dtypes::uint16,0x02> Tuint16;
-typedef TdescrTemplate<dtypes::uint32,0x04> Tuint32;
-typedef TdescrTemplate<dtypes::TdateTime,sdds::typeIds::TIME> Ttime;
+typedef TdescrTemplate<dtypes::uint8,sdds::Ttype::UINT8> Tuint8;
+typedef TdescrTemplate<dtypes::uint16,sdds::Ttype::UINT16> Tuint16;
+typedef TdescrTemplate<dtypes::uint32,sdds::Ttype::UINT32> Tuint32;
 
 //signed integers
-typedef TdescrTemplate<dtypes::int8,0x11> Tint8;
-typedef TdescrTemplate<dtypes::int16,0x12> Tint16;
-typedef TdescrTemplate<dtypes::int32,0x14> Tint32;
+typedef TdescrTemplate<dtypes::int8,sdds::Ttype::INT8> Tint8;
+typedef TdescrTemplate<dtypes::int16,sdds::Ttype::INT16> Tint16;
+typedef TdescrTemplate<dtypes::int32,sdds::Ttype::INT32> Tint32;
 
 //floating point
-typedef TdescrTemplate<dtypes::float32,0x24> Tfloat32;
+typedef TdescrTemplate<dtypes::float32,sdds::Ttype::FLOAT32> Tfloat32;
+
+typedef TdescrTemplate<dtypes::TdateTime,sdds::Ttype::TIME> Ttime;
+typedef TdescrTemplate<dtypes::string,sdds::Ttype::STRING> Tstring;
 
 //composed types
-typedef TdescrTemplate<TmenuHandle*,sdds::typeIds::STRUCT> Tstruct;
-
-namespace sdds{
-    namespace types{
-        typedef Tuint8 Tuint8;
-        typedef Tuint16 Tuint16;
-        typedef Tuint32 Tuint32;
-
-        typedef Tint8 Tint8;
-        typedef Tint16 Tint16;
-        typedef Tint32 Tint32;
-
-        typedef Tfloat32 Tfloat32;
-    }
-}
+typedef TdescrTemplate<TmenuHandle*,sdds::Ttype::STRUCT> Tstruct;
 
 
 /************************************************************************************
@@ -428,7 +428,7 @@ class TfinishMenuDefinition{
             _class##_##_name(){\
                 _constructorAssign(_value)\
             }\
-            Toption option() override { return _option; }\
+            sdds::Toption option() override { return _option; }\
             const char* name() override { return #_name; }\
             void operator=(_class::dtype _v){\
                 Fvalue = _v;\
@@ -519,6 +519,8 @@ TmenuHandle - base class to be used to declare a structure with descriptive elem
 /**
  */
 class TmenuHandle : public Tstruct{
+    public:
+        typedef TlinkedListIterator<Tdescr> Titerator;
     private:
         TlinkedList<Tdescr> FmenuItems;
         TobjectEventList FobjectEvents;
@@ -669,12 +671,9 @@ class Tlocator{
         template <class _TstringRef>
         bool locate(_TstringRef& _path){
             TmenuHandle* parent = Froot;
-            char tokenBuf[16];
-            char* pToken = &tokenBuf[0];
             for (auto t = Tokenizer<_TstringRef>(_path); t.hasNext();)
             {
                 auto token = t.next();
-                token.copy(pToken);
                 Tdescr* d = parent->find(token);
                 if (!d) {return false;};
                 Fresult = d;
