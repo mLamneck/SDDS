@@ -5,6 +5,8 @@
 
 #define json_key(_key) #_key ":"
 
+using namespace sdds;
+
 TjsonSerializer::TjsonSerializer(TmenuHandle* _root, Tstream* _stream, bool _withValue){
     Froot = _root;
     Fstream = _stream;
@@ -47,12 +49,12 @@ void TjsonSerializer::serializeValues(Tstream* _stream, TmenuHandle* _struct, Tr
         do{
         Tdescr* d = it.next();
         switch(d->type()){
-            case(sdds::Ttype::STRING): case(sdds::Ttype::TIME):
-            TjsonSerializer::serializeAsString(_stream,d);
-            break;
+            case(Ttype::STRING): case(Ttype::TIME): case(Ttype::ENUM):
+                TjsonSerializer::serializeAsString(_stream,d);
+                break;
             default:
-            _stream->write(d->to_string().c_str());
-            break;
+                _stream->write(d->to_string().c_str());
+                break;
         }
         if (!it.hasNext() || (_first++ >= _last)) break;
         _stream->write(',');
