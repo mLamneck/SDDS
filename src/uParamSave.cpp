@@ -47,18 +47,28 @@ bool TparamStream::seek(TseekMode _mode, int _pos) {
 }
 
 
-void TparamStreamer::_calcCrc(TmenuHandle* s){
+dtypes::uint16 TparamStreamer::_calcCrc(TmenuHandle* s, dtypes::uint16 _cnt){
     for (auto it = s->iterator(); it.hasNext();){
         auto descr = it.next();
-        if (!descr->shouldBeSaved()) continue;
 
-        crc8::calc(Fcrc.rCrc.Ftype,descr->typeId());
         //crc8::calc(Fcrc.rCrc.Fname,descr->name(),strlen(descr->name()));
         if (descr->isStruct()){
             TmenuHandle* mh = static_cast<Tstruct*>(descr)->value();
-            if (mh) _calcCrc(mh);
+            if (mh){
+                auto cnt =_calcCrc(mh,_cnt);
+                if (cnt != _cnt){
+                    crc8::calc(Fcrc.rCrc.Ftype,descr->typeId());
+                    _cnt = cnt;
+                }
+                continue;
+            }
         }
+
+        if (!descr->shouldBeSaved()) continue;
+        _cnt++;
+        crc8::calc(Fcrc.rCrc.Ftype,descr->typeId());
     }
+    return _cnt;
 }
 
 bool TparamStreamer::writeByte(dtypes::uint8 _byte){
@@ -71,18 +81,23 @@ bool TparamStreamer::writeByte(dtypes::uint8 _byte){
 bool TparamStreamer::saveStruct(TmenuHandle* s){
     for (auto it = s->iterator(); it.hasNext();){
         auto descr = it.next();
-        if (!descr->shouldBeSaved()) continue;
 
-        crc8::calc(Fcrc.rCrc.Ftype,descr->typeId());
         //crc8::calc(Fcrc.rCrc.Fname,descr->name(),strlen(descr->name()));
         if(descr->type() == sdds::Ttype::STRUCT){
             TmenuHandle* mh = static_cast<Tstruct*>(descr)->value();
             if (!mh) continue;
-
+            
+            TsreamLength size = Fstream->size();
             if (!saveStruct(mh)) return false;
+            if (size != Fstream->size()){
+                crc8::calc(Fcrc.rCrc.Ftype,descr->typeId());
+            }
             continue;
         }
         
+        if (!descr->shouldBeSaved()) continue;
+        
+        crc8::calc(Fcrc.rCrc.Ftype,descr->typeId());
         if (descr->type() == sdds::Ttype::STRING){
             dtypes::string* str = static_cast<dtypes::string*>(descr->pValue());
             if (str->length() > 255){
@@ -125,7 +140,6 @@ bool TparamStreamer::readByte(dtypes::uint8& _byte){
 bool TparamStreamer::_loadStruct(TmenuHandle* s){
     for (auto it = s->iterator(); it.hasNext();){
         auto descr = it.next();
-        if (!descr->shouldBeSaved()) continue;
 
         if (descr->isStruct()){
             TmenuHandle* mh = static_cast<Tstruct*>(descr)->value();
@@ -134,7 +148,8 @@ bool TparamStreamer::_loadStruct(TmenuHandle* s){
             if (!_loadStruct(mh)) return false;
             continue;
         }
-        
+
+        if (!descr->shouldBeSaved()) continue;
         if (descr->type() == sdds::Ttype::STRING){
             dtypes::uint8 strSize;
             if (!readByte(strSize)) return false;

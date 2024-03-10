@@ -144,9 +144,9 @@ class TparamStreamer{
     TparamStream* Fstream;
     TstructCrc Fcrc;
 
-    void _calcCrc(TmenuHandle* s);
+    dtypes::uint16 _calcCrc(TmenuHandle* s, dtypes::uint16 _cnt);
     
-    void calcCrc(TmenuHandle* s){ Fcrc.crc=0; _calcCrc(s); }
+    void calcCrc(TmenuHandle* s){ Fcrc.crc=0; _calcCrc(s,0); }
 
     bool writeByte(dtypes::uint8 _byte);
 
