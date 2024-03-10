@@ -641,7 +641,7 @@ class Tokenizer{
             while (Fstr.hasNext()){
                 char c = Fstr.next();
                 Fcurr = c;
-                if ((c == '/') || (c == '.') || (c=='=')){
+                if ((c == '/') || (c == '.') || (c=='=') || (c=='?')){
                     return TsubStringRef(pStart,Fstr.pCurr()-1);
                 }
             }
