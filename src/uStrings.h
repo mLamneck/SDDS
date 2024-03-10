@@ -37,6 +37,18 @@ class TstringRef{
         inline bool hasNext(){ return (*Frun != '\0') && (*Frun != '\n'); }
         inline char curr() { return *Frun; }
         inline char next() { return hasNext()? *Frun++ : '\0'; }
+        inline char get(int _ofs) {
+            const char* destAddr = Frun+_ofs;
+            if (_ofs > 0){
+                //this is not tested!!!
+                auto currRun = Frun;
+                while (hasNext() && (_ofs-->0)) next();
+                char res = curr();
+                Frun = currRun;
+                return res;
+            }
+            return (destAddr >= Fstr)? (*destAddr) : '\0';
+        }
         void offset(int _ofs){
             if (_ofs < 0){
                 Frun = (Frun + _ofs)>=Fstr? (Frun + _ofs) : Fstr;
