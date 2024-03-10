@@ -41,8 +41,8 @@ class TtestParamSave : public TtestCase{
         public:
         sdds_struct(
             sdds_var(Tuint8,Fuint8);
-            sdds_var(TsubStructNoSave,subNoSave,sdds::opt::saveval);
-            sdds_var(TsubStructSave,subSave,sdds::opt::saveval);
+            sdds_var(TsubStructNoSave,subNoSave);
+            sdds_var(TsubStructSave,subSave);
         )
     };
 
@@ -63,11 +63,14 @@ class TtestParamSave : public TtestCase{
     int _calcSize(TmenuHandle& _s, int _size = 0){
         for (auto it=_s.iterator(); it.hasNext();){
             auto d = it.next();
-            if (!d->saveval()) continue;
             if (d->isStruct()){
                 TmenuHandle* mh1 = static_cast<Tstruct*>(d)->value();
                 _size = _calcSize(*mh1,_size);
-            } else if (d->type() == sdds::Ttype::STRING){
+                continue;
+            } 
+             
+            if (!d->saveval()) continue;
+            if (d->type() == sdds::Ttype::STRING){
                 _size += d->to_string().length() + 1;
             } else {
                 _size += d->valSize();
