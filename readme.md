@@ -19,8 +19,10 @@ A simple and lighweight C++ library to write event driven processes with self ge
   - [Request the type description](#request-the-type-description)
   - [Subscribe to change notification](#subscribe-to-change-notification)
   - [Set values](#set-values)
+  - [Save Parameters](#save-parameters)
 - [Documentation](#documentation)
   - [The Data Structure](#the-data-structure)
+  - [Parameter Save](#parameter-save)
   - [Spikes](#spikes)
      - [Plain protocol](#plain-protocol)
      - [Serial Spike](#serial-spike)
@@ -40,7 +42,7 @@ In our opinion one of the most annoying things in software development is that o
 
 The purpose of this library is to get rid of all that and focus on what's really important, the functionality that has to be implemented. This is done by completely separating the business logic and provide standard interfaces. This way all the points mentioned above have to be done only once in a generic way for all of our projects in what we call [Spikes](#spikes).   
 
-We want to mention, that there are other libraries trying to achieve the same, but they require a lot of setup and the declaration and usage of variables is fairly complex. Another goal of this library is to keep it as simple as possible. We want to declare and use variables like we are used to in regular C++, but gain the benefits on the other hand for free.
+Another goal of this library is to keep it as simple as possible. We want to declare and use variables like we are used to in regular C++, but gain the benefits on the other hand for free.
 
 
 ## Installation
@@ -72,6 +74,7 @@ The topic addressed by this document is fairly abstract. That's why we provide a
 1. Turn the boards led on/off.
 2. Enable/Disable blinking of the led.
 3. Adjust the time the led is on/off when blinking.
+4. Save settings to non-volatile memory to be available again after restarting the board
 
 We use the serial console to trigger/control features. On ESP based boards it's possible to use the smartphone as well.
 	
@@ -95,10 +98,10 @@ ENUM(OFF,ON) TonOffState;
 class Tled : public TmenuHandle{
   public:
     sdds_struct(
-        sdds_var(TonOffState,ledSwitch,sdds::opt::saveval);
-        sdds_var(TonOffState,blinkSwitch,sdds::opt::saveval);
-        sdds_var(Tuint16,onTime,sdds::opt::saveval,500);  //flag for eeprom save and give a default value	
-        sdds_var(Tuint16,offTime,sdds::opt::saveval,500);
+        sdds_var(TonOffState,ledSwitch,sdds::opt::saveval)
+        sdds_var(TonOffState,blinkSwitch,sdds::opt::saveval)
+        sdds_var(Tuint16,onTime,sdds::opt::saveval,500)  //flag for eeprom save and give a default value	
+        sdds_var(Tuint16,offTime,sdds::opt::saveval,500)
     )
     Tled(){
         pinMode(LED_BUILTIN, OUTPUT);
@@ -145,10 +148,10 @@ class Tled : public TmenuHandle{
     Ttimer timer;	//this is added
     public:
       sdds_struct(
-          sdds_var(TonOffState,ledSwitch,sdds::opt::saveval);
-          sdds_var(TonOffState,blinkSwitch,sdds::opt::saveval);
-          sdds_var(Tuint16,onTime,sdds::opt::saveval,500);
-          sdds_var(Tuint16,offTime,sdds::opt::saveval,500);
+          sdds_var(TonOffState,ledSwitch,sdds::opt::saveval)
+          sdds_var(TonOffState,blinkSwitch,sdds::opt::saveval)
+          sdds_var(Tuint16,onTime,sdds::opt::saveval,500)
+          sdds_var(Tuint16,offTime,sdds::opt::saveval,500)
       )
       Tled(){
           pinMode(LED_BUILTIN, OUTPUT);
@@ -182,43 +185,64 @@ Note the definition of the Ttimer at the top of the class. Just like we did with
 
 ### Putting it all together
 
-Now that we have a fully functional component, probably in a separate file we can use it for example in an Arduino Sketch:
+Now that we have a fully functional component, we can use it for example in an Arduino Sketch:
 
 ```C++
+//set to 1 on ESP boards if you want to use the webSpike
+//but make sure to have SDDS_ESP_EXTENSION library installed from here https://github.com/mLamneck/SDDS_ESP_Extension
+#define USE_WEB_SPIKE 1
+#if USE_WEB_SPIKE == 1
+    #define WIFI_MANAGER_AP_SSID "myExcitingSSID"
+    #define WIFI_MANAGER_AP_PW "Start12345"
+    #include "uWifiManager.h"
+#endif
+
 #include "uLed.h"
+#include "uParamSave.h"
 
 class TuserStruct : public TmenuHandle{
     public:
-      sdds_struct(
-          sdds_var(Tled,led);
-      )
-      TuserStruct(){
-      }
+    sdds_struct(
+        sdds_var(Tled,led,sdds::opt::saveval)
+        sdds_var(TparamSaveMenu,params)
+#if USE_WEB_SPIKE == 1
+        sdds_var(TwifiManager,wifi)
+#endif
+    )
+    public:
+        TuserStruct(){
+        }
 } userStruct;
 
 //make available through serial communication
-#include "uPlainCommHandlerArduino.h"
-TserialPlainCommHandler serialHandler(userStruct);
+#include "uSerialSpike.h"
+TserialSpike serialHandler(userStruct,115200);
 
+#if USE_WEB_SPIKE == 1
 //make it available for Websockets
-#include "uWebCommHandler.h"
-TwebCommHandler webHandler(userStruct);
+  #include "uWebSpike.h"
+  TwebSpike webSpike(userStruct);
+#endif
 
 void setup(){
+
 }
 
 void loop(){
   TtaskHandler::handleEvents();
 }
-
 ```
 
 There are some things to note here:
-* There's not need to move the Tled code into a separate file. We think it's a good practice to move components to their own files.
-* We nested the led component in another class called userStruct. This is not necessary. We could instead just declare Tled userStruct. Usually you will have multiple components and one root structure collecting it. But it's completely up to you.
+
+* We nested the led component in another class called userStruct. This is not necessary. We could instead just declare ```Tled led``` and replace all occurrences of userStruct with led. Usually you will have multiple components and one root structure collecting it. But it's completely up to you. 
+* Another reason to nest the Tled component is that we've implemented the parameter save right away. We promised to implement a parameter save right? That's done by simply including the ```TparamSaveMenu``` somewhere in you tree. You will see it in action in the testing section.
 * The call to TtaskHandler::handleEvents() in the loop is necessary to run the event handler.
-* The declaration of TserialPlainCommHandler makes the structure accessible over serial communication. And that's the beauty of it. You don't have to touch your Led component to make it available. And it doesn't matter if you add/remove variables to your led or if you add more components.
-* The declaration TwebCommHandler is only available for ESP32/ESP8266 and will provide a website with a generic user interface. If you are using an ESP, add your WiFi startup code in the setup, otherwise comment out the lines for webSocket based handling.
+* The declaration of TserialSpike makes the structure accessible over serial communication. And that's the beauty of it. You don't have to touch your Led component to make it available. And it doesn't matter if you add/remove variables to your led or if you add more components. Same holds true for the parameter save.
+
+Notes for ESP devices:
+* The declaration TwebSpike is available for ESP32/ESP8266 and will provide a website with a generic user interface.
+* We have also included a WifiManager. Read more about it In the [SDDS_ESP_EXTENSION](https://github.com/mLamneck/SDDS_ESP_Extension) repository. But basically it let you configure the ssid and password to connect to your local network by creating an Access Point with the website.
 
 ## Testing the Example
 It's time to finally play around and have fun...
@@ -233,60 +257,28 @@ You can also copy and paste the following complete example. Note the settings on
 ```C++
 //set to 1 on ESP boards if you want to use the webSpike
 //but make sure to have SDDS_ESP_EXTENSION library installed from here https://github.com/mLamneck/SDDS_ESP_Extension
-#define USE_WEB_SPIKE 0
-#define WLAN_SSID "ENTER_YOUR_SSID_HERE"
-#define WLAN_PW "ENTER_YOUR_PASSWORD_HERE"
-#define HOSTNAME "myEspWithSDDS"
-#define WLAN_AP 0   //to be set if you want to use it as access point instead of connecting to your wifi
+#define USE_WEB_SPIKE 1
+#if USE_WEB_SPIKE == 1
+    #define WIFI_MANAGER_AP_SSID "myExcitingSSID"
+    #define WIFI_MANAGER_AP_PW "Start12345"
+    #include "uWifiManager.h"
+#endif
 
-#include "uTypedef.h"
-#include "uMultask.h"
-
-sdds_enum(OFF,ON) TonOffState;
-
-class Tled : public TmenuHandle{
-    Ttimer timer;	//this is added
-    public:
-        sdds_struct(
-            sdds_var(TonOffState,ledSwitch,sdds::opt::saveval);
-            sdds_var(TonOffState,blinkSwitch,sdds::opt::saveval);
-            sdds_var(Tuint16,onTime,sdds::opt::saveval,500);
-            sdds_var(Tuint16,offTime,sdds::opt::saveval,500);
-        )
-        Tled(){
-            pinMode(LED_BUILTIN, OUTPUT);
-
-            on(ledSwitch){
-                if (ledSwitch == TonOffState::dtype::ON) digitalWrite(LED_BUILTIN,1);
-                else digitalWrite(LED_BUILTIN,0);
-            };
-
-            // code from here is new
-            on(blinkSwitch){
-                if (blinkSwitch == TonOffState::dtype::ON) timer.start(0);
-                else timer.stop();
-            };
-
-            on(timer){
-                if (ledSwitch == TonOffState::dtype::ON){
-                    ledSwitch = TonOffState::dtype::OFF;
-                    timer.start(offTime);
-                } 
-                else {
-                    ledSwitch = TonOffState::dtype::ON;
-                    timer.start(onTime);
-                }
-            };
-        }
-};
+#include "uLed.h"
+#include "uParamSave.h"
 
 class TuserStruct : public TmenuHandle{
     public:
-      sdds_struct(
-          sdds_var(Tled,led);
-      )
-      TuserStruct(){
-      }
+    sdds_struct(
+        sdds_var(Tled,led,sdds::opt::saveval)
+        sdds_var(TparamSaveMenu,params)
+#if USE_WEB_SPIKE == 1
+        sdds_var(TwifiManager,wifi)
+#endif
+    )
+    public:
+        TuserStruct(){
+        }
 } userStruct;
 
 //make available through serial communication
@@ -300,34 +292,16 @@ TserialSpike serialHandler(userStruct,115200);
 #endif
 
 void setup(){
-  #if USE_WEB_SPIKE == 1
-    WiFi.setHostname(HOSTNAME);
-    #if WLAN_AP == 0
-      WiFi.begin(WLAN_SSID, WLAN_PW);
-      while (WiFi.status() != WL_CONNECTED) {
-        delay(1000);
-        Serial.println("Connecting to WiFi..");
-      }
-      // Print ESP Local IP Address
-      Serial.println(WiFi.localIP());
-    #else
-      WiFi.mode(WIFI_AP);
-      WiFi.softAP(WLAN_SSID, WLAN_PW);
-      IPAddress IP = WiFi.softAPIP();
-      Serial.print("AP IP address: ");
-      Serial.println(IP);
-    #endif
-  #endif
+
 }
 
 void loop(){
   TtaskHandler::handleEvents();
 }
-
 ```
 
 ### Explore Serial Spike
-The serial spike uses the [Plain protocol](#plain-protocol) specified in the documentation. Let's try it with the following steps.
+The serial spike uses the [Plain protocol](#plain-protocol) specified in the documentation to populate the datastructure we've build over the default serial. We want to point out here that the following section is not how it's supposed to be used. It's made to have a software running on the host machine to provide a userinterface using the protocol to read/write the data. There is a full featured software, but unfortunatelay it's not available for public. Let's try it with the following steps.
 
 1. Build and upload the code to your board.
 2. Open the Serial Monitor (default baudrate 115200)
@@ -365,7 +339,7 @@ The serial spike uses the [Plain protocol](#plain-protocol) specified in the doc
       l 1 0 OFF,
       ```
  
- 8. If you are using an ESP board and you have enabled the WebSpike and your ESP is connected to the same WiFi as your laptop or smartphone, open your web browser and navigate to http://myEspWithSDDS (if the right column shown is "NULL" you propably have to refresh the page). You have to click on the "***>***" twice to get your Tled structure. If you are using your ESP as Access Point, you probably have to use http://ip instead of http://myEspWithSDDS. The ip you should use is printed in the serial monitor on startup.
+ 8. If you are using an ESP board and you have enabled the WebSpike an Access Point is created with the ssid and password provided at the top of the file. After you are connected to this Access Point you can find the website with the UI with http://192.168.4.1.(if the right column shown is "NULL" you propably have to refresh the page). You have to click on the "***>***" twice to get your Tled structure. You can also make use of the WifiManager by entering the wifi structure, providing you ssid, password and hostname.
     
     ![image](https://github.com/mLamneck/SDDS/assets/32937082/eb41a075-5ed6-4196-8592-094ed3d7b655)
     
@@ -374,11 +348,16 @@ The serial spike uses the [Plain protocol](#plain-protocol) specified in the doc
     ![image](https://github.com/mLamneck/SDDS/assets/32937082/5c995e0b-26c8-460c-81ba-12116949edef)
 
     To change a value click into the right column and enter or choose a new value. Note that you now have 2 active spikes, the Serial Spike and the Web Spike. You can set values in one of them and see the changes reflected in the other one. More information about [Web Spikes](#web-spike) will be available in the documentaion. 
-    
-      
- 8. Feel free play with led.onTime/offTime as you like...
- 9. You can also try to unsubscribe from notifications with the command "U 1" and try if the set commands still work.
 
+9. Feel free play with led.onTime/offTime as you like...
+10. You can also try to unsubscribe from notifications with the command "U 1" and try if the set commands still work.
+
+ #### Save Parameters
+ 11. Let's try to save parameters. Turn on the periodic blinking of the led. Enter the ```L 2 params``` to enable change notifications for the params menu. This is not necessary but in order to see a response we better do it. Enter ```params.action=save``` in the serial console. The response will look something like the following. The first ```___``` is the action variable which you have set to ```save``` with your command. This triggeres the save of the menu and when the command is done, it is set back to ```___``` by the ```TparamSaveMenu``` component. The second ```___``` means no error occured and the third value, is the number of bytes that have been save to the non-volatile memory, in this case 8 (2x1 byte for the ledSwitch/blinkSwitch, 2x2 bytes for on/offTime, and 2 bytes for internal management). Read more about [Parameter Saving](#parameter-save) in the Documentation.
+ ```
+u 2 ___,___,8
+ ```
+ 
 ## Documentation
 to be done...
 ### The Data Structure
@@ -398,20 +377,20 @@ class Tadc : public TmenuHandle{
     Ttimer timer;
     public:
         sdds_struct(
-            sdds_var(Tuint16,value,sdds::opt::readonly);
-            sdds_var(Tuint8,pin,sdds::opt::saveval);
-            sdds_var(Tuint16,readInterval,sdds::opt::saveval,100);
+            sdds_var(Tuint16,value,sdds::opt::readonly)
+            sdds_var(Tuint8,pin,sdds::opt::saveval)
+            sdds_var(Tuint16,readInterval,sdds::opt::saveval,100)
         )
         Tadc(int _pin){
-	    on(pin){
-		pinMode(pin, INPUT);
-		timer.start(0);
-            };
+          on(pin){
+            pinMode(pin, INPUT);
+            timer.start(0);
+          };
 
-            on(timer){
-              value = analogRead(_pin); 
-              timer.start(readInterval); 
-            };
+          on(timer){
+            value = analogRead(_pin); 
+            timer.start(readInterval); 
+          };
         }
 };
 ```
@@ -431,14 +410,158 @@ just set's the value in memory instead of sending it useless to the serial conso
 ```
 This is an example of a component on the local machine beeing a client and reacting to state changes. For clients outside of the machine we use what we call [Spikes](#spikes) illustrated in the documentation.
 
+### Data Types
+Sdds provides primtive types as well as composed types and enums.
+
+#### Primitives
+We support the usual primitve datatypes like displayed in the following table.
+
+| Type      | Min         | Max         |
+| -         | -           | -           |
+| Tuint8    | 0           | 255         |
+| Tuint16   | 0           | 65535       |
+| Tuint32   | 0           | 4294967295  |
+| Tint8     | -128        | 127         |
+| Tint16    | -32768      | 32767       |
+| Tint32    | -2147483648 | 2147483647  |
+| Ffloat32  |             |             |
+
+Not all operators are implemented yet. 
+```C++
+class TmyStruct : public TmenuHandle{
+    sdds_struct(
+        sdds_var(Tuint8,cnt);
+    )
+    TmyStruct(){
+      cnt = 5;    //works
+      cnt++;      //not implemented yet, use cnt=cnt+1
+      cnt+=2;     //not implemented yet, use cnt=cnt+2
+      //...
+    }
+};
+
+```
+It's not a problem to implement these things but not done at the moment.
+
+#### Strings
+There's not much to say about strings. Under the hood a dynamic string representation is used. The parameter save however is limited to 255 byte length.
+
+#### Enums
+If you don't know about enums, it is basically an integer type that has a more readable representation. This is for example useful for status variables.
+
+```C++
+sdds_enum(on,off) TonOffState;
+...
+sdds_struct(
+  sdds_var(TonOffState,switch,sdds::opt::saveval,TonOffState::e::on)
+)
+```
+
+toDo: There's a lot to write about enums
+
+#### Structs
+Structs are a collection of primitive values bundled together. Structs can be nested to form the [tree](#the-data-structure). You can also derive a struct from a base struct.
+
+```C++
+//declare a struct
+class TmyStruct : public TmenuHandle{
+    sdds_struct(
+        sdds_var(Tuint8,cnt);
+        sdds_var(Tuint32,max);
+    )
+};
+
+//nest within another struct
+class TrootStruct : public TmenuHandle{
+    sdds_struct(
+        sdds_var(TmyStruct,myStruct);
+    )
+};
+
+//derive from TmyStruct and add a time variable
+class TderivedStruct : public TmyStruct{
+    sdds_struct(
+        sdds_var(Ttime,time);
+    )
+};
+
+
+```
+### Parameter Save
+In most application you will find the need to store some of the parameters you are using to a non-volatile memory to be available after a restart. In sdds this is quite simple. Just specify the ```saveval``` when declaring a variable end include the builtin ```TparamSaveMenu``` somewhere in your [tree](#the-data-structure) and you are ready to go. This way, whenever you trigger a parameter save (```params.action=save```), all parameters you have flagged for save are stored and automatically reloaded after a power up. A full example can be found in [Putting it all together section](#putting-it-all-together).
+
+#### Changing in structure
+You can always add/remove variables or restructure your components. Just be aware that you probably loose your saved values after you change the tree. You can use the ```T``` command to rertieve the current state of your tree before you flash a new version to have a copy of you old version. 
+
+Values from the tree are saved binary so when you change something, this can lead to weird values when loading. Therefore we are calculating a checksum of the tree and only execute a param load when the stored checksum matches the one of your tree. To build the checksum we only use the types and not the names. So it's possible to change names without loosing your config. 
+
+Parameters will not be loaded under the following circumstances.
+* the type of a saved variable has changed
+* the order of saved variables have changed
+* variables flagged with saveval are added
+* variables flagged with saveval are removed
+
+Parameters will still load even if you
+* change the name of a saved variable
+* add variables not flagged fo save
+* remove variables not flagged for save
+
+#### Size in the non-volatile memory
+The size required for the parameter save is basically the binary size of all the variables that have to be saved plus 2 bytes for the checksum and a version number.
+
+After a save/load of parameters you will find the used space in the size variable of the ```TsaveParamsMenu```.
+
+
 ### Spikes
-to be done
+
+Like mentioned before, in the middle of ssds is the [tree](#the-data-structure). An interface that can populate this data structure over a communication channel like *serial* or a *websocket*  is what we call a spike. It needs 2 things.
+* a protocol
+* a communication channel
+
 #### Plain protocol
-to be done
+The plain protocol is human readable format. All commands are terminated with a ```\n```. At the moment this is the only protocol we are using but there will be a binary protocol as well in the future.
+
+The most obvious commands are to simply read and write values.
+```C++
+  led.blinkSwitch         //replies with led.blinkSwitch=ON/OFF
+  led.blinkSwitch?        //replies with led.blinkSwitch=ON/OFF
+  led.blinkSwitch=ON      //set the value. No reply
+  led.blinkSwitch=1       //set the value. No replpy
+```
+
+For more advanced usage we need the following:
+ * retrieve type information
+ * (un)subscribe to change notifications
+ * error handling
+
+Find a list of all available cmds in the following table.
+
+| type            | func | port | data           | example
+|-                |:-----|:----:| --             | -
+| type request    | T    |  %d+ | path           | T 11 led
+| type answer     | t    |  %d+ | json           | T 11 [{"type": 1, "opt": 0, "value":1},...]
+| link request    | L    |  %d+ | path           | L 33 led
+| link answer     | l    |  %d+ | first \| json  | l 33 0 [1,1.4,"stringVal",...]
+| unlink request  | U    |  %d+ |-               | U 3
+| unlink answer   | u    |  %d+ |-               | u 3
+| error           | E    |  %d+ | err string     | E 5 invPort
+| boot notify     | B    |  0   | -              |
+
+You can find the error codes in the [source file](src/uPlainCommErrors.h).
+
+
 #### Serial Spike
-to be done
+
+The Serial Spike uses the [plain protocol](#plain-protocol) to publish the data over the default serial.
+
 #### Web Spike
-to be done
+
+The Web Spike does actually 2 things.
+* It uses the [plain protocol](#plain-protocol) to publish data over websockets
+* It provides a website with a generic ui to interact with the data.
+Web Spikes are only available on ESP platforms with the [SDDS_ESP_EXTENSION](https://github.com/mLamneck/SDDS_ESP_Extension).
+
 #### Udp Spike
-to be done
+
+At the moment not implemented for ESP. We use it for debugging when running sdds on windows with mingw.
 
