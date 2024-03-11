@@ -1,6 +1,7 @@
 #include "uPlainCommHandler.h"
 
 using namespace plainComm;
+using namespace sdds;
 
 void TplainCommHandler::send(const char* _msg){
     Fstream->write(_msg);
@@ -9,6 +10,8 @@ void TplainCommHandler::send(const char* _msg){
 
 void TplainCommHandler::startSendTypes(TmenuHandle* _struct){
     Fstream->write("t ");
+    Fstream->write(Fport);
+    Fstream->write(' ');
     TjsonSerializer s(_struct,Fstream);
     s.serialize();
     Fstream->flush();
@@ -100,6 +103,13 @@ void TplainCommHandler::handleCommand(Tcmd _cmd, TstringRef& _msg){
     switch (_cmd)
     {
         case 'T':
+            if (_msg.parseValue(Fport)){
+                if (!_msg.next() == ' '){
+                    sendError(Terror::e::portParseErr);
+                    return;
+                }
+            } 
+            else Fport = 0;
             if (!scanTree(_msg)) return;
             startSendTypes(Fmh);
             break;
@@ -118,20 +128,33 @@ void TplainCommHandler::handleCommand(Tcmd _cmd, TstringRef& _msg){
     }
 }
 
+/*
+        if (!msg.curr() == '?'){
+            debug::log("%s = %s",l.result()->name(),l.result()->to_string().c_str());
+            Tdescr* var = l.result();
+            Fstream->write(var->name());
+            Fstream->write('=');
+            Fstream->write(var->to_string());
+            Fstream->flush();
+        }
+
+            if (l.result()->type() == Ttype::STRING){
+                l.result()->setValue("");
+            }
+*/
 void TplainCommHandler::handleReadWrite(TstringRef& msg){
     Tlocator l(Froot);
     if (l.locate(msg)){
-        if (msg.hasNext()){
+        if (msg.get(-1) == '='){
             l.result()->setValue(msg.pCurr());
+            return;
         }
-        else{
         debug::log("%s = %s",l.result()->name(),l.result()->to_string().c_str());
         Tdescr* var = l.result();
         Fstream->write(var->name());
         Fstream->write('=');
         Fstream->write(var->to_string());
         Fstream->flush();
-        }
     };
 }
 
@@ -151,8 +174,7 @@ void TplainCommHandler::handleMessage(TstringRef& msg){
     }
 }
 
-void TplainCommHandler::execute(Tevent* _ev){
-
+void TplainCommHandler::execute(Tevent* _ev){ 
     if (!isTaskEvent(_ev)){
         TobjectEvent* oe= static_cast<TobjectEvent*>(_ev->context());
         auto first = oe->first();
@@ -164,6 +186,10 @@ void TplainCommHandler::execute(Tevent* _ev){
         Fstream->write(first);
         Fstream->write(" ");
         TjsonSerializer::serializeValues(Fstream,oe->Fstruct,first,last);
+        Fstream->flush();
+    }
+    else{
+        Fstream->write("B 0");
         Fstream->flush();
     }
 
