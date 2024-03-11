@@ -155,10 +155,11 @@ bool TparamStreamer::_loadStruct(TmenuHandle* s){
             if (!readByte(strSize)) return false;
             dtypes::string* str = static_cast<dtypes::string*>(descr->pValue());
             str->reserve(strSize);  //don't grow on each iteration
+            *str = "";
             uint8_t c;
             while(strSize-- > 0){
                 if (!readByte(c)) return false;
-                *str += c;
+                *str += (char)c;
             }
             continue;
         }

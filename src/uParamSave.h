@@ -53,7 +53,7 @@ class TeepromStream : public TparamStream{
         EEPROM.put(curr(true),_byte);
         return true;
     }
-i
+
     bool readByte(uint8_t& _byte) override {
         if (curr() >= EEPROM_STREAM_SIZE) return false;
         EEPROM.get(curr(true),_byte);
