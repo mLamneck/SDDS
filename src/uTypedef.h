@@ -351,17 +351,16 @@ template <typename ValType, sdds::Ttype _type_id=sdds::Ttype::ENUM> class TenumT
         operator ValType() const { return Fvalue; }
 };
 
+#define __sdds_namedEnum(_name, ...) \
+    ENUM_CLASS(_name,__VA_ARGS__);\
+    typedef TenumTemplate<_name>
+
 //do not use anymore use sdds_enum
-#define ENUM(...) \
-    ENUM_CLASS(ENUM_UNIQUE_NAME(),__VA_ARGS__);\
-    typedef TenumTemplate<ENUM_UNIQUE_NAME()>
+#define ENUM(...) __sdds_namedEnum(ENUM_UNIQUE_NAME(),__VA_ARGS__)
+#define sdds_enum(...) __sdds_namedEnum(ENUM_UNIQUE_NAME(),__VA_ARGS__)
 
 //do not use anymore... use enum::e
 #define ENUMS(_enum) _enum::dtype
-
-#define sdds_enum(...) \
-    ENUM_CLASS(ENUM_UNIQUE_NAME(),__VA_ARGS__);\
-    typedef TenumTemplate<ENUM_UNIQUE_NAME()>
 
 
 /************************************************************************************

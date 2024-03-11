@@ -5,7 +5,7 @@
 
 #define ENUM__TOKENPASTE(x, y) x ## y
 #define ENUM__TOKENPASTE2(x, y) ENUM__TOKENPASTE(x, y)
-#define ENUM_UNIQUE_NAME() ENUM__TOKENPASTE2(__Tenum__,__LINE__)
+#define ENUM_UNIQUE_NAME() ENUM__TOKENPASTE2(__Tenum__,__COUNTER__)
 
 #define ENUM_CASE(_enumStr) case e::_enumStr : return #_enumStr;
 #define ENUM_TYPE_NAME e
