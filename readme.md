@@ -415,7 +415,7 @@ We support the usual primitve datatypes like displayed in the following table. T
 | -         | :-:         | :-:         | -----------:| -----------:|
 | Tuint8    | 0x01        | 1           | 0           | 255         |
 | Tuint16   | 0x02        | 2           | 0           | 65535       |
-| Tuint32   | 0x04        | 4           | 4294967295  |             |
+| Tuint32   | 0x04        | 4           | 0           |4294967295   |
 | Tint8     | 0x11        | 17          | -128        | 127         |
 | Tint16    | 0x12        | 18          |-32768       | 32767       |
 | Tint32    | 0x14        | 20          |-2147483648  | 2147483647  |
