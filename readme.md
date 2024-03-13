@@ -40,7 +40,7 @@ In our opinion one of the most annoying things in software development is that o
   * displays
 * save parameters to non-volatile memory
 
-The purpose of this library is to get rid of all that and focus on what's really important, the functionality that has to be implemented. This is done by completely separating the business logic and provide standard interfaces. This way all the points mentioned above have to be done only once in a generic way for all of our projects in what we call [Spikes](#spikes).   
+The purpose of this library is to get rid of all that and focus on what's really important, the functionality that has to be implemented. This is done by completely separating the business logic and provide standard interfaces. This way all the points mentioned above have to be done only once in a generic way for all of our projects in what we call [Spikes](#spikes). If you are not sure what we are talking about, check out or [Coding a full-featured WiFi Manager in 120 lines](#https://github.com/mLamneck/SDDS_ESP_Extension?tab=readme-ov-file#coding-a-full-featured-wifi-manager-in-120-lines) where we showcase how you can tremendously speed up your developement process with SDDS.
 
 Another goal of this library is to keep it as simple as possible. We want to declare and use variables like we are used to in regular C++, but gain the benefits on the other hand for free.
 
@@ -188,41 +188,26 @@ Note the definition of the Ttimer at the top of the class. Just like we did with
 Now that we have a fully functional component, we can use it for example in an Arduino Sketch:
 
 ```C++
-//set to 1 on ESP boards if you want to use the webSpike
-//but make sure to have SDDS_ESP_EXTENSION library installed from here https://github.com/mLamneck/SDDS_ESP_Extension
-#define USE_WEB_SPIKE 1
-#if USE_WEB_SPIKE == 1
-    #define WIFI_MANAGER_AP_SSID "myExcitingSSID"
-    #define WIFI_MANAGER_AP_PW "Start12345"
-    #include "uWifiManager.h"
-#endif
-
-#include "uLed.h"
+#include "uTypedef.h"
+#include "uMultask.h"
 #include "uParamSave.h"
 
+//...
+//your Tled component
+//...
+
 class TuserStruct : public TmenuHandle{
-    public:
     sdds_struct(
-        sdds_var(Tled,led,sdds::opt::saveval)
+        sdds_var(Tled,led)
         sdds_var(TparamSaveMenu,params)
-#if USE_WEB_SPIKE == 1
-        sdds_var(TwifiManager,wifi)
-#endif
     )
-    public:
-        TuserStruct(){
-        }
+    TuserStruct(){
+        //you application code goes here... 
+    }
 } userStruct;
 
-//make available through serial communication
 #include "uSerialSpike.h"
 TserialSpike serialHandler(userStruct,115200);
-
-#if USE_WEB_SPIKE == 1
-//make it available for Websockets
-  #include "uWebSpike.h"
-  TwebSpike webSpike(userStruct);
-#endif
 
 void setup(){
 
@@ -252,44 +237,62 @@ If you are using Arduino IDE, you can just open the example.
 
 ```File->Examples->SDDS->Led```
 ### Full Example Code
-You can also copy and paste the following complete example. Note the settings on top and adjust to your preference.
+You can also copy and paste the following complete example.
 
 ```C++
-//set to 1 on ESP boards if you want to use the webSpike
-//but make sure to have SDDS_ESP_EXTENSION library installed from here https://github.com/mLamneck/SDDS_ESP_Extension
-#define USE_WEB_SPIKE 1
-#if USE_WEB_SPIKE == 1
-    #define WIFI_MANAGER_AP_SSID "myExcitingSSID"
-    #define WIFI_MANAGER_AP_PW "Start12345"
-    #include "uWifiManager.h"
-#endif
-
-#include "uLed.h"
+#include "uTypedef.h"
+#include "uMultask.h"
 #include "uParamSave.h"
 
+sdds_enum(OFF,ON) TonOffState;
+
+class Tled : public TmenuHandle{
+    Ttimer timer;
+    public:
+      sdds_struct(
+          sdds_var(TonOffState,ledSwitch,sdds::opt::saveval)
+          sdds_var(TonOffState,blinkSwitch,sdds::opt::saveval)
+          sdds_var(Tuint16,onTime,sdds::opt::saveval,500)
+          sdds_var(Tuint16,offTime,sdds::opt::saveval,500)
+      )
+      Tled(){
+          pinMode(LED_BUILTIN, OUTPUT);
+
+          on(ledSwitch){
+              if (ledSwitch == TonOffState::dtype::ON) digitalWrite(LED_BUILTIN,1);
+              else digitalWrite(LED_BUILTIN,0);
+          };
+
+          on(blinkSwitch){
+              if (blinkSwitch == TonOffState::dtype::ON) timer.start(0);
+              else timer.stop();
+          };
+
+          on(timer){
+              if (ledSwitch == TonOffState::dtype::ON){
+                  ledSwitch = TonOffState::dtype::OFF;
+                  timer.start(offTime);
+              } 
+              else {
+                  ledSwitch = TonOffState::dtype::ON;
+                  timer.start(onTime);
+              }
+          };
+      }
+};
+
 class TuserStruct : public TmenuHandle{
-    public:
     sdds_struct(
-        sdds_var(Tled,led,sdds::opt::saveval)
+        sdds_var(Tled,led)
         sdds_var(TparamSaveMenu,params)
-#if USE_WEB_SPIKE == 1
-        sdds_var(TwifiManager,wifi)
-#endif
     )
-    public:
-        TuserStruct(){
-        }
+    TuserStruct(){
+        //you application code goes here... 
+    }
 } userStruct;
 
-//make available through serial communication
 #include "uSerialSpike.h"
 TserialSpike serialHandler(userStruct,115200);
-
-#if USE_WEB_SPIKE == 1
-//make it available for Websockets
-  #include "uWebSpike.h"
-  TwebSpike webSpike(userStruct);
-#endif
 
 void setup(){
 
@@ -301,65 +304,57 @@ void loop(){
 ```
 
 ### Explore Serial Spike
-The serial spike uses the [Plain protocol](#plain-protocol) specified in the documentation to populate the datastructure we've build over the default serial. We want to point out here that the following section is not how it's supposed to be used. It's made to have a software running on the host machine to provide a userinterface using the protocol to read/write the data. There is a full featured software, but unfortunatelay it's not available for public. Let's try it with the following steps.
+The serial spike uses the [Plain protocol](#plain-protocol) specified in the documentation to populate the datastructure we've build over the default serial. We want to point out here that the following section is not how it's supposed to be used. It's made to have a software running on the host machine to provide a userinterface using the protocol to read/write the data like showcased [here](https://github.com/mLamneck/SDDS_ESP_Extension?tab=readme-ov-file#introducing-the-user-interface) for ESP boards. There is a full featured software for serial communicatio, but unfortunatelay it's not available for public. It still make sense to checkout the following instructions to get an idea how spikes word under the hood. So let's walk through...
 
 1. Build and upload the code to your board.
 2. Open the Serial Monitor (default baudrate 115200)
    
 #### Request the type description
 3. Send the command "T"
-   * The response will look like the following. It's a full descpription of the datastructure you have declared within your code, inluding options, the current value, possible values for enums, ... This information can be used by a software to build a generic user interface like showcased with the webSpike for ESP-based boards. For now let's continue to explore the fundamentals in the serial monitor.
+    * The response will look like the following. It's a full descpription of the datastructure you have declared within your code, inluding options, the current value, possible values for enums, ... This information can be used by a software to build a generic user interface like showcased with the webSpike for ESP-based boards. For now let's continue to explore the fundamentals in the serial monitor.
      
-     ```t [{"type":66,"opt":0,"name":"led","value":[{"type":1,"opt":0,"name":"ledSwitch","value":"OFF","enums":["OFF","ON"]},...```
+       ```t 0 [{"type":66,"opt":0,"name":"led","value":[{"type":49,"opt":0,"name":"ledSwitch","value":"OFF","enums":["OFF","ON"]},...```
+    
+    Without specifying a path after the ```T``` you get the whole datastructure. You can also ask more specific i.e. ```T led``` which will give you the description of the component we've created.
 
 #### Subscribe to change notification
 
 4. Send the command "L 1 led"
    * This command is used to subscribe to the led structure, so that whenever a value changes we get a notification in the serial console. The initial response contains basically all values from our Tled structure:
 
-     ```l 1 0 OFF,OFF,500,500,```
+     ```l 1 0 ["OFF","OFF",500,500]```
 
 #### Set values
 6. Use the command "led.ledSwitch=0/1" or "led.ledSwitch=OFF/ON" to turn the led off/on.
    * Because we have previously subscribed to get change notifications in step 4, we receive a notification as a result. If we have skipped step 4 we wouldn't get any response, but the led would still turn on/off.
 
      ```
-     l 1 0 OFF,
-     l 1 0 ON,
+     l 1 0 ["OFF"]
+     l 1 0 ["ON"]
      ```
      
-7. Use the command "led.blinkSwitch=0/1" or "led.blinkSwitch=OFF/ON" to enable the automatic led toggle.
+7. Use the command ```led.blinkSwitch=0/1``` or ```led.blinkSwitch=OFF/ON``` to enable the automatic led toggle.
     * Again because of our subscription initiated in step 4, we first get a change notification of the blinkSwitch and the ledSwitch in the first line of the response and later on we get a notifications every time the led turns on/off.
 
       ```
-      l 1 0 OFF,ON,
-      l 1 0 ON,
-      l 1 0 OFF,
-      l 1 0 ON,
-      l 1 0 OFF,
+      l 1 0 ["OFF","ON"]
+      l 1 0 ["ON"]
+      l 1 0 ["OFF"]
+      l 1 0 ["ON"]
+      l 1 0 ["OFF"]
       ```
- 
- 8. If you are using an ESP board and you have enabled the WebSpike an Access Point is created with the ssid and password provided at the top of the file. After you are connected to this Access Point you can find the website with the UI with http://192.168.4.1.(if the right column shown is "NULL" you propably have to refresh the page). You have to click on the "***>***" twice to get your Tled structure. You can also make use of the WifiManager by entering the wifi structure, providing you ssid, password and hostname.
-    
-    ![image](https://github.com/mLamneck/SDDS/assets/32937082/eb41a075-5ed6-4196-8592-094ed3d7b655)
-    
-    ![image](https://github.com/mLamneck/SDDS/assets/32937082/e62e3b24-6aec-489c-b156-fe8082607fa2)
-    
-    ![image](https://github.com/mLamneck/SDDS/assets/32937082/5c995e0b-26c8-460c-81ba-12116949edef)
 
-    To change a value click into the right column and enter or choose a new value. Note that you now have 2 active spikes, the Serial Spike and the Web Spike. You can set values in one of them and see the changes reflected in the other one. More information about [Web Spikes](#web-spike) will be available in the documentaion. 
-
-9. Feel free play with led.onTime/offTime as you like...
-10. You can also try to unsubscribe from notifications with the command "U 1" and try if the set commands still work.
+8. Feel free play with led.onTime/offTime as you like...
+9. You can also try to unsubscribe from notifications with the command "U 1" and try if the set commands still work.
 
  #### Save Parameters
- 11. Let's try to save parameters. Turn on the periodic blinking of the led. Enter the ```L 2 params``` to enable change notifications for the params menu. This is not necessary but in order to see a response we better do it. Enter ```params.action=save``` in the serial console. The response will look something like the following. The first ```___``` is the action variable which you have set to ```save``` with your command. This triggeres the save of the menu and when the command is done, it is set back to ```___``` by the ```TparamSaveMenu``` component. The second ```___``` means no error occured and the third value, is the number of bytes that have been save to the non-volatile memory, in this case 8 (2x1 byte for the ledSwitch/blinkSwitch, 2x2 bytes for on/offTime, and 2 bytes for internal management). Read more about [Parameter Saving](#parameter-save) in the Documentation.
+ 10. Let's try to save parameters. Turn on the periodic blinking of the led. Enter the ```L 2 params``` to enable change notifications for the params menu. This is not necessary but in order to see a response we better do it. Enter ```params.action=save``` in the serial console. The response will look something like the following. The first ```___``` is the action variable which you have set to ```save``` with your command. This triggeres the save of the menu and when the command is done, it is set back to ```___``` by the ```TparamSaveMenu``` component. The second ```___``` means no error occured and the third value, is the number of bytes that have been save to the non-volatile memory, in this case 8 (2x1 byte for the ledSwitch/blinkSwitch, 2x2 bytes for on/offTime, and 2 bytes for internal management). Read more about [Parameter Saving](#parameter-save) in the Documentation. The response will look like this:
  ```
-u 2 ___,___,8
+l 2 0 ["___","___",8]
  ```
  
 ## Documentation
-to be done...
+
 ### The Data Structure
 In the middle of SDDS there is a global self describing datastructure organized in a hierachy called the tree. This tree is the only interface needed. You have to change your mindset from api driven interfaces, where you have a set of functions and methods you need to call. In sdds everything is done by manipulating variables. Typically you organize your programm into components. A component is a sub data structure within the global tree combined with some functionality. Our [Tled](#introducing-timers) class from the Example chapter is such a component. It's responsible for managing the boards led state. It's the master of the led if you want so. Instead of calling a function to turn the led on/off or let it periodically toggle (which would be complicated, unless you'd use some library like freeRtos to do it in a task), you change the value of the led fields: 
 ```
@@ -414,17 +409,17 @@ This is an example of a component on the local machine beeing a client and react
 Sdds provides primtive types as well as composed types and enums.
 
 #### Primitives
-We support the usual primitve datatypes like displayed in the following table.
+We support the usual primitve datatypes like displayed in the following table. The TypeID field is what you see as the type fields in the resonse of ```T``` command.
 
-| Type      | Min         | Max         |
-| -         | -           | -           |
-| Tuint8    | 0           | 255         |
-| Tuint16   | 0           | 65535       |
-| Tuint32   | 0           | 4294967295  |
-| Tint8     | -128        | 127         |
-| Tint16    | -32768      | 32767       |
-| Tint32    | -2147483648 | 2147483647  |
-| Ffloat32  |             |             |
+| Type      | TypeID/hex  | TypeID/dec  | Min         | Max         |
+| -         | :-:         | :-:         | -----------:| -----------:|
+| Tuint8    | 0x01        | 1           | 0           | 255         |
+| Tuint16   | 0x02        | 2           | 0           | 65535       |
+| Tuint32   | 0x04        | 4           | 4294967295  |             |
+| Tint8     | 0x11        | 17          | -128        | 127         |
+| Tint16    | 0x12        | 18          |-32768       | 32767       |
+| Tint32    | 0x14        | 20          |-2147483648  | 2147483647  |
+| Ffloat32  | 0x24        | 36          |             |             |
 
 Not all operators are implemented yet. 
 ```C++
@@ -443,6 +438,16 @@ class TmyStruct : public TmenuHandle{
 ```
 It's not a problem to implement these things but not done at the moment.
 
+#### Other Types
+
+| Type      | TypeID/hex  | TypeID/dec  |
+| -         | :-:         | :-:         |
+| Ttime     | 0x06        | 6           |
+| Tstring   | 0x81        | 129         |
+| Tstruct   | 0x42        | 66          |
+| Enum      | 0x31        | 49          |
+
+
 #### Strings
 There's not much to say about strings. Under the hood a dynamic string representation is used. The parameter save however is limited to 255 byte length.
 
@@ -457,7 +462,7 @@ sdds_struct(
 )
 ```
 
-toDo: There's a lot to write about enums
+toDo: There's a lot to write about enums and it could be a library on their own...
 
 #### Structs
 Structs are a collection of primitive values bundled together. Structs can be nested to form the [tree](#the-data-structure). You can also derive a struct from a base struct.
@@ -484,9 +489,8 @@ class TderivedStruct : public TmyStruct{
         sdds_var(Ttime,time);
     )
 };
-
-
 ```
+
 ### Parameter Save
 In most application you will find the need to store some of the parameters you are using to a non-volatile memory to be available after a restart. In sdds this is quite simple. Just specify the ```saveval``` when declaring a variable end include the builtin ```TparamSaveMenu``` somewhere in your [tree](#the-data-structure) and you are ready to go. This way, whenever you trigger a parameter save (```params.action=save```), all parameters you have flagged for save are stored and automatically reloaded after a power up. A full example can be found in [Putting it all together section](#putting-it-all-together).
 
