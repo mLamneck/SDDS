@@ -442,6 +442,16 @@ class Tstring : public TdescrTemplate<dtypes::string,sdds::Ttype::STRING>{
             return (Fvalue!=(*pVal));
         }
         bool operator!=(const char* _inp){ return (Fvalue!=_inp); }
+        
+        void operator+=(Tstring& _inp){
+            ValType* pVal = static_cast<ValType*>(_inp.pValue());
+            if (!pVal) return;
+            Fvalue += (*pVal);
+            signalEvents();
+        }
+
+        template <typename T>
+        void operator+=(T _inp){ Fvalue += _inp; signalEvents(); }
 
         const char* c_str() { return Fvalue.c_str(); }
         
