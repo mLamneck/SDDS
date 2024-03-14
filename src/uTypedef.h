@@ -282,6 +282,61 @@ template <class ValType, sdds::Ttype _type_id> class TdescrTemplate: public Tdes
             return Fvalue;
         }
 
+        /*
+        ValType operator+(TdescrTemplate<ValType,_type_id>& _inp){
+            ValType* pVal = static_cast<ValType*>(_inp.pValue());
+            if (!pVal) return Fvalue;
+            return Fvalue + (*pVal);
+        }
+        */
+
+        template <typename T>
+        void operator++(T) { Fvalue++; signalEvents(); };
+
+        template <typename T>
+        void operator--(T) { Fvalue--; signalEvents(); };
+
+        void operator+=(TdescrTemplate<ValType,_type_id>& _inp){
+            ValType* pVal = static_cast<ValType*>(_inp.pValue());
+            if (!pVal) return;
+            Fvalue += (*pVal);
+            signalEvents();
+        }
+
+        template <typename T>
+        void operator+=(T _inp){ Fvalue += _inp; signalEvents(); }
+
+        void operator-=(TdescrTemplate<ValType,_type_id>& _inp){
+            ValType* pVal = static_cast<ValType*>(_inp.pValue());
+            if (!pVal) return;
+            Fvalue -= (*pVal);
+            signalEvents();
+        }
+
+        template <typename T>
+        void operator-=(T _inp){ Fvalue -= _inp; signalEvents(); }
+
+        void operator*=(TdescrTemplate<ValType,_type_id>& _inp){
+            ValType* pVal = static_cast<ValType*>(_inp.pValue());
+            if (!pVal) return;
+            Fvalue *= (*pVal);
+            signalEvents();
+        }
+        template <typename T>
+        void operator*=(T _inp){ Fvalue *= _inp; signalEvents(); }
+
+        template <typename T>
+        void operator<<=(T _inp){ Fvalue <<= _inp; signalEvents(); }
+
+        template <typename T>
+        void operator>>=(T _inp){ Fvalue >>= _inp; signalEvents(); }
+
+        bool operator==(TdescrTemplate<ValType,_type_id>& _inp){
+            ValType* pVal = static_cast<ValType*>(_inp.pValue());
+            if (!pVal) return false;
+            return (Fvalue==(*pVal));
+        }
+
         //= operator will not be inherited!!!
         void operator=(ValType _value){
             Fvalue=_value;
@@ -364,6 +419,38 @@ template <typename ValType, sdds::Ttype _type_id=sdds::Ttype::ENUM> class TenumT
 
 
 /************************************************************************************
+Tstring
+*************************************************************************************/
+
+class Tstring : public TdescrTemplate<dtypes::string,sdds::Ttype::STRING>{
+    typedef const char* Tcstr;
+    public:
+        typedef dtypes::string ValType;
+
+        dtypes::int32 length() { return Fvalue.length(); }
+
+        bool operator==(Tstring& _inp){
+            ValType* pVal = static_cast<ValType*>(_inp.pValue());
+            if (!pVal) return false;
+            return (Fvalue==(*pVal));
+        }
+        bool operator==(const char* _inp){ return (Fvalue==_inp); }
+
+        bool operator!=(Tstring& _inp){
+            ValType* pVal = static_cast<ValType*>(_inp.pValue());
+            if (!pVal) return false;
+            return (Fvalue!=(*pVal));
+        }
+        bool operator!=(const char* _inp){ return (Fvalue!=_inp); }
+
+        const char* c_str() { return Fvalue.c_str(); }
+        
+        operator ValType() { return Fvalue; }
+        operator Tcstr(){ return c_str(); }
+};
+
+
+/************************************************************************************
 finally instantiate real datatypes to be used outside of this unit
 *************************************************************************************/
 
@@ -381,7 +468,7 @@ typedef TdescrTemplate<dtypes::int32,sdds::Ttype::INT32> Tint32;
 typedef TdescrTemplate<dtypes::float32,sdds::Ttype::FLOAT32> Tfloat32;
 
 typedef TdescrTemplate<dtypes::TdateTime,sdds::Ttype::TIME> Ttime;
-typedef TdescrTemplate<dtypes::string,sdds::Ttype::STRING> Tstring;
+//typedef TdescrTemplate<dtypes::string,sdds::Ttype::STRING> Tstring;
 
 //composed types
 typedef TdescrTemplate<TmenuHandle*,sdds::Ttype::STRUCT> Tstruct;
