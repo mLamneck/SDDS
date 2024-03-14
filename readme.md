@@ -112,7 +112,7 @@ class Tled : public TmenuHandle{
 ```
 We start with the necessary includes followed by an enum definition. Next, we define the necessary process variables for our example by deriving a class from TmenuHandle provided by the lib. Note the only special thing here, is the use of sdds_struct and sdds_var. Don't care about it, it will always look like this. Just note ssds_var has 4 parameters while the last 2 are optional.
 
-`sdds_var(dtype,name[,option,defaulValue])`
+```sdds_var(dtype,name[,option,defaulValue])```
 1. Data Type
 2. name (to be used it the code)
 3. option (readonly, saveval, showhex, ...)
@@ -310,7 +310,7 @@ The serial spike uses the [Plain protocol](#plain-protocol) specified in the doc
 2. Open the Serial Monitor (default baudrate 115200)
    
 #### Request the type description
-3. Send the command "T"
+3. Send the command ```T```
     * The response will look like the following. It's a full descpription of the datastructure you have declared within your code, inluding options, the current value, possible values for enums, ... This information can be used by a software to build a generic user interface like showcased with the webSpike for ESP-based boards. For now let's continue to explore the fundamentals in the serial monitor.
      
        ```t 0 [{"type":66,"opt":0,"name":"led","value":[{"type":49,"opt":0,"name":"ledSwitch","value":"OFF","enums":["OFF","ON"]},...```
@@ -319,13 +319,13 @@ The serial spike uses the [Plain protocol](#plain-protocol) specified in the doc
 
 #### Subscribe to change notification
 
-4. Send the command "L 1 led"
+4. Send the command ```L 1 led```
    * This command is used to subscribe to the led structure, so that whenever a value changes we get a notification in the serial console. The initial response contains basically all values from our Tled structure:
 
      ```l 1 0 ["OFF","OFF",500,500]```
 
-#### Set values
-6. Use the command "led.ledSwitch=0/1" or "led.ledSwitch=OFF/ON" to turn the led off/on.
+#### Set Values
+5. Use the command ```led.ledSwitch=0/1``` or ```led.ledSwitch=OFF/ON``` to turn the led off/on.
    * Because we have previously subscribed to get change notifications in step 4, we receive a notification as a result. If we have skipped step 4 we wouldn't get any response, but the led would still turn on/off.
 
      ```
@@ -333,7 +333,7 @@ The serial spike uses the [Plain protocol](#plain-protocol) specified in the doc
      l 1 0 ["ON"]
      ```
      
-7. Use the command ```led.blinkSwitch=0/1``` or ```led.blinkSwitch=OFF/ON``` to enable the automatic led toggle.
+6. Use the command ```led.blinkSwitch=0/1``` or ```led.blinkSwitch=OFF/ON``` to enable the automatic led toggle.
     * Again because of our subscription initiated in step 4, we first get a change notification of the blinkSwitch and the ledSwitch in the first line of the response and later on we get a notifications every time the led turns on/off.
 
       ```
@@ -344,11 +344,11 @@ The serial spike uses the [Plain protocol](#plain-protocol) specified in the doc
       l 1 0 ["OFF"]
       ```
 
-8. Feel free play with led.onTime/offTime as you like...
-9. You can also try to unsubscribe from notifications with the command "U 1" and try if the set commands still work.
+7. Feel free play with led.onTime/offTime as you like...
+8. You can also try to unsubscribe from notifications with the command "U 1" and try if the set commands still work.
 
  #### Save Parameters
- 10. Let's try to save parameters. Turn on the periodic blinking of the led. Enter the ```L 2 params``` to enable change notifications for the params menu. This is not necessary but in order to see a response we better do it. Enter ```params.action=save``` in the serial console. The response will look something like the following. The first ```___``` is the action variable which you have set to ```save``` with your command. This triggeres the save of the menu and when the command is done, it is set back to ```___``` by the ```TparamSaveMenu``` component. The second ```___``` means no error occured and the third value, is the number of bytes that have been save to the non-volatile memory, in this case 8 (2x1 byte for the ledSwitch/blinkSwitch, 2x2 bytes for on/offTime, and 2 bytes for internal management). Read more about [Parameter Saving](#parameter-save) in the Documentation. The response will look like this:
+ 9. Let's try to save parameters. Turn on the periodic blinking of the led. Enter the ```L 2 params``` to enable change notifications for the params menu. This is not necessary but in order to see a response we better do it. Enter ```params.action=save``` in the serial console. The response will look something like the following. The first ```___``` is the action variable which you have set to ```save``` with your command. This triggeres the save of the menu and when the command is done, it is set back to ```___``` by the ```TparamSaveMenu``` component. The second ```___``` means no error occured and the third value, is the number of bytes that have been save to the non-volatile memory, in this case 8 (2x1 byte for the ledSwitch/blinkSwitch, 2x2 bytes for on/offTime, and 2 bytes for internal management). Read more about [Parameter Saving](#parameter-save) in the Documentation. The response will look like this:
  ```
 l 2 0 ["___","___",8]
  ```
@@ -361,7 +361,7 @@ In the middle of SDDS there is a global self describing datastructure organized 
 led.blinkSwitch=1
 ```
 On the other hand you can always react to changes of variables in the tree by using the statement 
-```
+```C++
 on(led.blinkSwitch){ 
 	//some code executed on state change
 };
@@ -390,7 +390,7 @@ class Tadc : public TmenuHandle{
 };
 ```
 The beauty of this is that this code completely seperated from the rest of you code. It's responsible for one thing, to read out the adc with a given, adjustable interval. You don't care who get's notified of a change in the adc value nor who is setting the readInterval. There could be 10 clients subscribed due to different communication channels or none. And if nobody's interested in the adc value the line
-```
+```C++
 value = analogRead(_pin); 
 ```
 just set's the value in memory instead of sending it useless to the serial console or some websocket, udp or whatever. The library takes care for you. Imagin it like a secretary. You give the datastructure and say: Hey look this is my structure. Please provide it for everbody's interested in it and please notify me if somebody is changing the value of the variable "pin". The variable "value" is readonly, so nobody from outside of this machine is allowed to change it. The variables "pin" and "readInterval" should be stored to a non-volatile memory if a save is triggered. Now some code on the same machine could do something like this.
@@ -421,22 +421,6 @@ We support the usual primitve datatypes like displayed in the following table. T
 | Tint32    | 0x14        | 20          |-2147483648  | 2147483647  |
 | Ffloat32  | 0x24        | 36          |             |             |
 
-Not all operators are implemented yet. 
-```C++
-class TmyStruct : public TmenuHandle{
-    sdds_struct(
-        sdds_var(Tuint8,cnt);
-    )
-    TmyStruct(){
-      cnt = 5;    //works
-      cnt++;      //not implemented yet, use cnt=cnt+1
-      cnt+=2;     //not implemented yet, use cnt=cnt+2
-      //...
-    }
-};
-
-```
-It's not a problem to implement these things but not done at the moment.
 
 #### Other Types
 
