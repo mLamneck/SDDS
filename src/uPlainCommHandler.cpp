@@ -128,20 +128,6 @@ void TplainCommHandler::handleCommand(Tcmd _cmd, TstringRef& _msg){
     }
 }
 
-/*
-        if (!msg.curr() == '?'){
-            debug::log("%s = %s",l.result()->name(),l.result()->to_string().c_str());
-            Tdescr* var = l.result();
-            Fstream->write(var->name());
-            Fstream->write('=');
-            Fstream->write(var->to_string());
-            Fstream->flush();
-        }
-
-            if (l.result()->type() == Ttype::STRING){
-                l.result()->setValue("");
-            }
-*/
 void TplainCommHandler::handleReadWrite(TstringRef& msg){
     Tlocator l(Froot);
     if (l.locate(msg)){
@@ -153,8 +139,17 @@ void TplainCommHandler::handleReadWrite(TstringRef& msg){
         Tdescr* var = l.result();
         Fstream->write(var->name());
         Fstream->write('=');
-        Fstream->write(var->to_string());
-        Fstream->flush();
+        if (var->isStruct()){
+            Tstruct* s = static_cast<Tstruct*>(var);
+            if (!s->value()){
+                Fstream->write("NULL");
+                return;
+            }
+            TjsonSerializer::serializeValues(Fstream,s->value(),0);
+        }else{
+            Fstream->write(var->to_string());
+            Fstream->flush();
+        }
     };
 }
 
