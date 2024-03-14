@@ -20,7 +20,7 @@ class TjsonSerializer{
 
     void serializeAsString(Tdescr* _d);
     
-    static void serializeValues(Tstream* _stream, TmenuHandle* _struct, TrangeItem _first, TrangeItem _last);
+    static void serializeValues(Tstream* _stream, TmenuHandle* _struct, TrangeItem _first=0, TrangeItem _last=TrangeItem_max);
 
     void serializeTypeDescr(Tdescr* _d);
     
