@@ -104,7 +104,7 @@ void TplainCommHandler::handleCommand(Tcmd _cmd, TstringRef& _msg){
     {
         case 'T':
             if (_msg.parseValue(Fport)){
-                if (!_msg.next() == ' '){
+                if (_msg.next() != ' '){
                     sendError(Terror::e::portParseErr);
                     return;
                 }

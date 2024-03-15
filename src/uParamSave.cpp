@@ -261,9 +261,13 @@ TparamSaveMenu::TparamSaveMenu(){
         }
     };
 
-    on(sdds::init){
+    on(sdds::setup()){
         #if USE_EEPROM == 1
-            EEPROM.begin(EEPROM_STREAM_SIZE);
+            #if SDDS_EEPROM_BEGIN_WITH_SIZE == 1
+                EEPROM.begin(SDDS_EEPROM_SIZE);
+            #else
+                EEPROM.begin();
+            #endif
         #endif
         action = Taction::load;
     };

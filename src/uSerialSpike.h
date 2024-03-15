@@ -22,8 +22,8 @@ class TserialSpike{
   TserialStream Fstream;
   public:
     TserialSpike(TmenuHandle& _root, int _baudrate = 115200):
-      Fstream(_baudrate)
-      ,FcommHandler(_root,Fstream)
+      FcommHandler(_root,Fstream)
+      ,Fstream(_baudrate)
     {
 		__TserialSpikeInstance = this;
     }

@@ -788,18 +788,12 @@ class Tlocator{
         }
 };
 
-class TsetupTimer : public Ttimer{
-    public: TsetupTimer() { start(0); }
-};
-
 namespace sdds{
-    static Ttimer& setup(){
+    static __attribute__ ((unused)) Ttimer& setup(){
         static Ttimer __setup;
         __setup.start(0);
         return __setup;
     }
-
-    static TsetupTimer init;
 }
 
 #endif

@@ -10,7 +10,6 @@
 #endif
 
 #if USE_EEPROM == 1
-    #define EEPROM_STREAM_SIZE 1024
     #include <EEPROM.h>
 #endif
 
@@ -46,8 +45,12 @@ class TparamStream{
 
 #if USE_EEPROM == 1
 
+#ifndef SDDS_EEPROM_COMMIT 
+    #define SDDS_EEPROM_COMMIT 1
+#endif
+
 class TeepromStream : public TparamStream{
-    bool grow(int _size) override{ return (_size <= EEPROM_STREAM_SIZE); }
+    bool grow(int _size) override{ return (_size <= SDDS_EEPROM_SIZE); }
 
     bool writeByte(uint8_t _byte) override{
         EEPROM.put(curr(true),_byte);
@@ -55,13 +58,15 @@ class TeepromStream : public TparamStream{
     }
 
     bool readByte(uint8_t& _byte) override {
-        if (curr() >= EEPROM_STREAM_SIZE) return false;
+        if (curr() >= SDDS_EEPROM_SIZE) return false;
         EEPROM.get(curr(true),_byte);
         return true;
     }
 
     void flush() override {
+        #if SDDS_EEPROM_COMMIT == 1
         EEPROM.commit();
+        #endif
     }
 };
 
