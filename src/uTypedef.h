@@ -256,7 +256,7 @@ template <class ValType, sdds::Ttype _type_id> class TdescrTemplate: public Tdes
         /* override copy constructor to avoid a deep copy of the object
          * including callbacks and events
         */
-        TdescrTemplate(const TdescrTemplate& _src) : TdescrTemplate(){
+        TdescrTemplate(const TdescrTemplate& _src){
             Fvalue = _src.Fvalue;
         };
         TdescrTemplate(){};
@@ -390,6 +390,8 @@ template <typename ValType, sdds::Ttype _type_id=sdds::Ttype::ENUM> class TenumT
             return false;
         }
 
+        static const char* c_str(dtype _enum){ return ValType::c_str(_enum); };
+        const char* c_str() { return ValType::c_str(Fvalue); }
         TrawString to_string() override { return Fvalue.c_str(); };
 
         inline ValType value(){ return Fvalue; }
