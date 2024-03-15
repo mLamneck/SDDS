@@ -6,6 +6,7 @@ A lightweight, dependency-free C++ library to write event-driven processes with 
 - [Installation](#installation)
   - [Arduino](#arduino)
   - [PlatformIO](#platformio)
+- [Supported platforms](#supported-platforms)
 - [Example for this documentation](#example-for-this-documentation)
 - [Coding the example](#coding-the-example)
   - [Defining the structure](#defining-the-structure)
@@ -93,6 +94,7 @@ The library is intended to be highly scalable, i.e., capable of running with min
   - WEMOS LOLIN32 Lite
 - ESP8266
   - LOLIN D1 mini
+  - LOLIN D1 mini lite
 
 We would appreciate feedback to further extend this list.
 
@@ -288,8 +290,8 @@ class Tled : public TmenuHandle{
           pinMode(LED_BUILTIN, OUTPUT);
 
           on(ledSwitch){
-              if (ledSwitch == TonOffState::dtype::ON) digitalWrite(LED_BUILTIN,1);
-              else digitalWrite(LED_BUILTIN,0);
+              if (ledSwitch == TonOffState::dtype::ON) digitalWrite(LED_BUILTIN,0);
+              else digitalWrite(LED_BUILTIN,1);
           };
 
           on(blinkSwitch){
@@ -311,6 +313,7 @@ class Tled : public TmenuHandle{
 };
 
 class TuserStruct : public TmenuHandle{
+  public:
     sdds_struct(
         sdds_var(Tled,led)
         sdds_var(TparamSaveMenu,params)
