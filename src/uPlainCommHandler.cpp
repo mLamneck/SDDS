@@ -146,6 +146,7 @@ void TplainCommHandler::handleReadWrite(TstringRef& msg){
                 return;
             }
             TjsonSerializer::serializeValues(Fstream,s->value(),0);
+            Fstream->flush();
         }else{
             Fstream->write(var->to_string());
             Fstream->flush();
