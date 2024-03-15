@@ -100,7 +100,7 @@ We would appreciate feedback to further extend this list.
 
 ### Known issues
 
-At the moment, we do not support AVR CPUs because of AVRgcc's inability to capture variables in lambda functions. We will work on this issue, but it may lead to slight changes in syntax when using AVR CPUs. Nevertheless, there will be a syntax that works for all platforms. Perhaps we can implement the missing feature on our own using some type-traits magic.
+At the moment, we do not support AVR CPUs because of AVR-GCC's inability to capture variables in lambda functions. We will work on this issue, but it may lead to slight changes in syntax when using AVR CPUs. Nevertheless, there will be a syntax that works for all platforms. Perhaps we can implement the missing feature on our own using some type-traits magic.
 
 ## Example for this documentation
 
