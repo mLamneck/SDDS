@@ -4,9 +4,9 @@
 #ifndef UPLATFORM_H
 #define UPLATFORM_H
 
-#include <sys/time.h>
-
 #if defined(__MINGW64__) || defined(WIN32)      //__MINGW64__ works in VS_Code, WIN32 in codeBlocks
+    #include <sys/time.h>
+    
     #define MARKI_DEBUG_PLATFORM 1
     #define CRC_TAB_IN_PROGMEM 0
 
@@ -43,7 +43,7 @@
         #define SDDS_EEPROM_SIZE 1024
         #define SDDS_EEPROM_BEGIN_WITH_SIZE 1
     #else
-        #define CRC_TAB_IN_PROGMEM 0
+        #define CRC_TAB_IN_PROGMEM 1
         #define SDDS_EEPROM_COMMIT 0
         #define SDDS_EEPROM_SIZE 1024
         #define SDDS_EEPROM_BEGIN_WITH_SIZE 0
