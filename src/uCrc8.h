@@ -5,7 +5,11 @@
 
 namespace crc8{
 	typedef uint8_t Tcrc;
-	extern Tcrc tab[];
+    #if CRC_TAB_IN_PROGMEM == 1
+		extern const Tcrc tab[] PROGMEM;
+	#else 
+		extern Tcrc tab[];
+	#endif
 
 	inline void calc(Tcrc& _crc, uint8_t _input){
 		_crc = tab[_crc ^ _input];
