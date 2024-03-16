@@ -231,3 +231,10 @@ void handleTimerEvent(Tevent* _timerEv){
     static_cast<Ttimer*>(_timerEv)->onTimerElapsed();
 }
 
+namespace sdds{
+    Ttimer& setup(){
+        static Ttimer __setup;
+        __setup.start(0);
+        return __setup;
+    }
+}

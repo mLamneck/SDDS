@@ -788,12 +788,16 @@ class Tlocator{
         }
 };
 
+/*
+    declare some global system events here
+    toDo: 
+        -piorities!?
+            what if we need a specific order of execution i.e.
+                init Wifi fist
+                than init webserver
+*/
 namespace sdds{
-    static __attribute__ ((unused)) Ttimer& setup(){
-        static Ttimer __setup;
-        __setup.start(0);
-        return __setup;
-    }
+    Ttimer& setup();
 }
 
 #endif
