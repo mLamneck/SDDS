@@ -1,7 +1,10 @@
 #include "uTime.h"
 
-dtypes::string timeToString(timeval& _time, const char* _fmt){
-    constexpr int bufsize = 64;
+using namespace dtypes;
+
+dtypes::string timeToString(dtypes::TdateTime& _time, const char* _fmt){
+    //10.10.2024 10:33:33.999       //length 23
+    constexpr int bufsize = 24;
     char buffer[bufsize];
     time_t secs = _time.tv_sec;
     auto t = gmtime(&secs);

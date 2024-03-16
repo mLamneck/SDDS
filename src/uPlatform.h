@@ -4,6 +4,10 @@
 #ifndef UPLATFORM_H
 #define UPLATFORM_H
 
+#ifdef __AVR__
+    #define SDDS_ON_AVR
+#endif
+
 #if defined(__MINGW64__) || defined(WIN32)      //__MINGW64__ works in VS_Code, WIN32 in codeBlocks
     #include <sys/time.h>
     
@@ -76,8 +80,6 @@ namespace dtypes{
     //toDo!!! to be checked on each individual compiler and platfom!!!
     typedef float float32;
     typedef double float64;
-
-    typedef timeval TdateTime;
 }
 
 namespace debug{

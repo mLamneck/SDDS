@@ -4,7 +4,24 @@
 #include "uPlatform.h"
 #include "uStrings.h"
 
-dtypes::string timeToString(timeval& _time, const char* _fmt = "");
+#ifdef SDDS_ON_AVR
+    #include "time.h"
+#endif
+
+namespace dtypes{
+    typedef tm TdateTimeRec;
+    #ifdef SDDS_ON_AVR
+        struct TdateTime
+        {
+            time_t tv_sec;
+            dtypes::uint16 tv_usec;
+        };
+    #else
+        typedef timeval TdateTime;
+    #endif 
+}
+
+dtypes::string timeToString(dtypes::TdateTime& _time, const char* _fmt = "");
 dtypes::TdateTime stringToTime(const char* _timeStr);
 
 /** \brief class used to parse a string into a TdateTime
@@ -15,7 +32,7 @@ class TdateTimeParser{
     private:
         TstringRef Fp;
         dtypes::uint16 Fval;
-        tm Ftm;
+        dtypes::TdateTimeRec Ftm;
         dtypes::uint16 Fmillisecs;
 
         bool adjustDateRec(){
@@ -109,7 +126,7 @@ class TdateTimeParser{
 
         TdateTimeParser(const char* _input) : Fp(_input){}
         TdateTimeParser() : Fp(""){}
-
+        
          /** \brief parse a dateTime string into a TdateTime variable. Possible Formats:\n
          * 2022-08-1983[ 12:32:14[.123]]\n
          * 31.08.1983[ 12:32:14[.123]]\n

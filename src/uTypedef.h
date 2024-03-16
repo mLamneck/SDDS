@@ -29,10 +29,11 @@ macro expansion
 #ifdef __AVR__
     //AVR-gcc seems to have some issues with __VAR_ARGS__ and __VA_OPT__
     #define descr(_var, _option, _value) addDescr(&_var, #_var, _option, _value)
+    #define on(_var) if (1 == 1)
 #else
     #define on(_var) _var.Fcallbacks = [=](Tdescr* sender)
 //#define descr(_var, ...) addDescr(&_var, #_var __VA_OPT__(,) __VA_ARGS__)
-    #define descr(_var, ...) addDescr(&_var, #_var, ##__VA_ARGS__)
+//    #define descr(_var, ...) addDescr(&_var, #_var, ##__VA_ARGS__)
 #endif
 
 //__VA_OPT__ expands to ,VA_ARGS if VA_ARGS is not empty and to "" otherwise
