@@ -3,9 +3,9 @@
 
 #include "uPlatform.h"
 #include "uStrings.h"
+#include "time.h"
 
 #ifdef SDDS_ON_AVR
-    #include "time.h"
 #endif
 
 namespace dtypes{
