@@ -43,7 +43,7 @@
     //to be checked
     #if defined(ESP32) || defined(ESP8266)
         #define CRC_TAB_IN_PROGMEM 0
-        #define SDDS_EEPROM_COMMIT 0
+        #define SDDS_EEPROM_COMMIT 1
         #define SDDS_EEPROM_SIZE 1024
         #define SDDS_EEPROM_BEGIN_WITH_SIZE 1
     #else
