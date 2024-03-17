@@ -76,6 +76,8 @@ class __attribute__ ((packed)) TstructStack{
         }
 
     public:
+        TmenuHandle* lastCreatedStruct(){ return FlastCreatedStruct; }
+
         void setLastCreateStruct(TmenuHandle* _mh){
             FlastCreatedStruct = _mh;
         }
@@ -122,6 +124,10 @@ TmenuHandle::TmenuHandle(){
 Tdescr - abstract class for all types
 *************************************************************************************/
 
+Ttimer::Ttimer() : Tevent(&handleTimerEvent){
+    Fstruct = structStack.lastCreatedStruct();
+}
+
 Tdescr::Tdescr(){
     #if MARKI_DEBUG_PLATFORM == 1
     createNummber = __createNummber++;
@@ -138,7 +144,7 @@ TmenuHandle* Tdescr::findRoot(){
 }
 
 void Tdescr::signalEvents(){
-    Fcallbacks.emit(this);
+    Fcallbacks.emit(Fparent);
     if (Fparent){
         Fparent->signalEvents(this);
     }
@@ -176,9 +182,8 @@ void TobjectEvent::signal(TrangeItem _first, TrangeItem _last){
 }
 
 
-TobjectEvent::TobjectEvent(Tthread* _owner, const char* _name) : Fevent(_owner){
+TobjectEvent::TobjectEvent(Tthread* _owner) : Fevent(_owner){
     afterDispatch();
-    Fname = _name;
     Fevent.setContext(this);
 }
 

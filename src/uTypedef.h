@@ -15,7 +15,7 @@ toDo:
 #include "uEnumMacros.h"
 #include "uTime.h"
 
-#ifdef __AVR__
+#ifdef SDDS_ON_AVR
     //functional not available in AVR-gcc
 #else
 	#include <functional>
@@ -26,19 +26,13 @@ toDo:
 macro expansion
 *************************************************************************************/
 
-#ifdef __AVR__
-    //AVR-gcc seems to have some issues with __VAR_ARGS__ and __VA_OPT__
-    #define descr(_var, _option, _value) addDescr(&_var, #_var, _option, _value)
-    #define on(_var) if (1 == 1)
+#ifdef SDDS_ON_AVR
+    #define on(_var) _var.Fcallbacks = [](void* _self)
 #else
-    #define on(_var) _var.Fcallbacks = [=](Tdescr* sender)
-//#define descr(_var, ...) addDescr(&_var, #_var __VA_OPT__(,) __VA_ARGS__)
-//    #define descr(_var, ...) addDescr(&_var, #_var, ##__VA_ARGS__)
+    #define on(_var) _var.Fcallbacks = [=](void* _self)
 #endif
 
-//__VA_OPT__ expands to ,VA_ARGS if VA_ARGS is not empty and to "" otherwise
-//#define log(_fmt,...) debug::log(_fmt __VA_OPT__(,) __VA_ARGS__)
-
+#define sdds_self(className) auto self = static_cast<className*>(_self)
 
 /************************************************************************************
 forward declarations and typedefinitions for this unit
@@ -51,9 +45,9 @@ class Tdescr;
 #ifdef __AVR__
     //for AVR-gcc std::function is not available
     //we have to store a pure funcion ptr instead
-    typedef void (*Tcallback)(Tdescr*);
+    typedef void (*Tcallback)(void*);
 #else
-    typedef std::function<void(Tdescr* p)> Tcallback;
+    typedef std::function<void(void* p)> Tcallback;
 #endif
 
 
@@ -108,9 +102,9 @@ class TcallbackWrapper : public TlinkedListElement{
         TcallbackWrapper(Tcallback _cb){
             Fcallback = _cb;
         }
-        void emit(Tdescr* _descr){
+        void emit(TmenuHandle* _parent){
             if (Fcallback){
-                Fcallback(_descr);
+                Fcallback(_parent);
             }
         }
 };
@@ -118,9 +112,9 @@ typedef TlinkedListIterator<TcallbackWrapper> TcallbackIterator;
 
 class Tcallbacks : public TlinkedList<TcallbackWrapper>{
     public:
-        inline void emit(Tdescr* _descr){
+        inline void emit(TmenuHandle* _parent){
             for (auto it = iterator(); it.hasNext();){
-                it.next()->emit(_descr);
+                it.next()->emit(_parent);
             }
         }
 
@@ -147,7 +141,7 @@ class Tdescr : public TlinkedListElement{
         #if MARKI_DEBUG_PLATFORM == 1
         int createNummber;
         #endif
-
+        
         void signalEvents();
         Tdescr();
         Tcallbacks Fcallbacks;
@@ -595,7 +589,7 @@ class TobjectEvent : public TlinkedListElement{
         Tevent* event();
         void signal(TrangeItem _first = 0, TrangeItem _last = TrangeItem_max);
 
-        TobjectEvent(Tthread* _owner, const char* _name);
+        TobjectEvent(Tthread* _owner);
 };
 
 
@@ -708,14 +702,16 @@ void handleTimerEvent(Tevent* _timerEv);
 
 class Ttimer : public Tevent{
     typedef dtypes::TsystemTime Ttime;
+    TmenuHandle* Fstruct = nullptr;
+
     public:
         Tcallbacks Fcallbacks;
-        Ttimer() : Tevent(&handleTimerEvent) {};
+        Ttimer();
 
         void start(Ttime _waitTime){ setTimeEvent(_waitTime); }
         void stop(){ Tevent::reclaim(); }
         bool running(){ return linked(); }
-        void onTimerElapsed(){ Fcallbacks.emit(nullptr); }
+        void onTimerElapsed(){ Fcallbacks.emit(Fstruct); }
 };
 
 
