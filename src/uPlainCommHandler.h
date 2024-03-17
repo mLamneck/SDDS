@@ -15,7 +15,7 @@ class Tconnection : public TlinkedListElement{
             FobjEvent.event()->reclaim();
         };
         TobjectEvent FobjEvent;
-        Tconnection(Tthread* _owner) : FobjEvent(_owner,""){}
+        Tconnection(Tthread* _owner) : FobjEvent(_owner){}
         TmenuHandle* menuHandle() { return FobjEvent.menuHandle(); }
 };
 
