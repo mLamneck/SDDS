@@ -46,6 +46,26 @@ class TtestParamSave : public TtestCase{
         )
     };
 
+    sdds_enum(OFF,ON) TonOffState;
+        
+    class Tled : public TmenuHandle{
+        public:
+        sdds_struct(
+            sdds_var(TonOffState,ledSwitch,sdds::opt::saveval)
+            sdds_var(TonOffState,blinkSwitch,sdds::opt::saveval)
+            sdds_var(Tuint16,onTime,sdds::opt::saveval,500)
+            sdds_var(Tuint16,offTime,sdds::opt::saveval,500)
+        )
+    };
+
+    class TuserStruct : public TmenuHandle{
+        public:
+            sdds_struct(
+                sdds_var(Tled,led,sdds::opt::saveval)
+                sdds_var(TparamSaveMenu,params)
+            )
+    };
+
     void logStruct(TmenuHandle& s1, dtypes::string _pre = ""){
         for (auto it=s1.iterator(); it.hasNext();){
             auto d = it.next();
@@ -143,8 +163,8 @@ class TtestParamSave : public TtestCase{
         bool res = ps.save(s1,&s);
 
         int expSize = calcSize(s1); 
-        if (expSize != s.size()){
-            debug::log("size='%d'!='%d'=expected size",s.size(),expSize);
+        if (expSize != s.high()){
+            debug::log("size='%d'!='%d'=expected size",s.high(),expSize);
             return false;
         }
 
@@ -160,6 +180,14 @@ class TtestParamSave : public TtestCase{
     }
 
     bool test() override {
+        doTest([this](){
+            TuserStruct struct1;
+            TuserStruct struct2;
+            struct1.led.ledSwitch = TonOffState::e::ON;
+            struct1.led.blinkSwitch = TonOffState::e::ON;
+            return test2structs(struct1,struct2);
+        },"Tled");
+
         doTest([this](){
             TstructAllTypes struct1;
             TnestedStruct struct11;
