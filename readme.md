@@ -7,6 +7,9 @@ A lightweight, dependency-free C++ library to write event-driven processes with 
   - [Arduino](#arduino)
   - [PlatformIO](#platformio)
 - [Supported platforms](#supported-platforms)
+- [Known Issues](#known-issues)
+  - [Boards with AVR CPU's](#boards-with-avr-cpus)
+    - [Reacting to state changes on AVR](#reacting-to-state-changes-on-avr)
 - [Example for this documentation](#example-for-this-documentation)
 - [Coding the example](#coding-the-example)
   - [Defining the structure](#defining-the-structure)
@@ -95,12 +98,61 @@ The library is intended to be highly scalable, i.e., capable of running with min
 - ESP8266
   - LOLIN D1 mini
   - LOLIN D1 mini lite
+- Arduino
+  - UNO [*](#reacting-to-state-changes-on-avr)
 
 We would appreciate feedback to further extend this list.
 
-### Known issues
+## Known issues
+### Boards with AVR CPU's
 
-At the moment, we do not support AVR CPUs because of AVR-GCC's inability to capture variables in lambda functions. We will work on this issue, but it may lead to slight changes in syntax when using AVR CPUs. Nevertheless, there will be a syntax that works for all platforms. Perhaps we can implement the missing feature on our own using some type-traits magic.
+At the moment, we do not fully support AVR CPUs because of AVR-GCC's inability to capture variables in lambda functions. We will work on this issue, but at the moment when using AVRs you need to change the syntax slightly. Nevertheless, the syntax for AVR at least works for all platforms. Perhaps we can solve this issue somewhen on our own using some type-traits magic.
+
+### Reacting to state changes on AVR
+At the moment we have to adjust the syntax for boards with AVR CPU's when reacting to state changes from
+
+```C++
+...
+Tled(){
+  ...
+  on(ledSwitch){
+    if (ledSwitch == TonOffState::dtype::ON) digitalWrite(LED_BUILTIN,1);
+    else digitalWrite(LED_BUILTIN,0);
+  };
+}
+```
+to
+```C++
+...
+Tled(){
+  ...
+  on(ledSwitch){
+    sdds_self(Tled);
+    if (self->ledSwitch == TonOffState::dtype::ON) digitalWrite(LED_BUILTIN,1);
+    else digitalWrite(LED_BUILTIN,0);
+  };
+}
+```
+Unfortunately we have to use `sdds_self(classname)` to retrieve a reference to the current object where classname is the name of your component i.e. Tled. The retrieved reference is implicitly called `self`. Therefore in the following code whenever you want to access data from the current object you need to use `self->variableToAccess` instead of just the variable name i.e. `ledSwitch` vs. `self->ledSwitch`. This has to be done in each `on(var){...}` block.
+
+There is an alternative syntax that you might find a bit nicer:
+
+```C++
+...
+Tled(){
+  #define ref(var) sdds_ref(Tled)->var
+  ...
+  on(ledSwitch){
+    if (ref(ledSwitch) == TonOffState::dtype::ON) digitalWrite(LED_BUILTIN,1);
+    else digitalWrite(LED_BUILTIN,0);
+  };
+}
+```
+Here you define a macro `ref` and use it around all variables you access. This is a bit shorter and you have the classname i.e. `Tled` just in one place. Feel free to choose what alternative you like more.
+
+The only good news about it is, that this syntax works on all platforms. So if you want to write a component to be used on multiple platforms, you can't go wrong with the AVR syntax. However you can always start with the nice syntax and if there's somewhen a need to run it on an AVR, you can refactor you code, because it has no impact on the usage of the component. Perhaps until than we have a solution for this and there's no need for the refactoring anymore.
+
+The full LED [example code](examples/avr/led/led.ino) for AVR's is available in the examples folder of the library.
 
 ## Example for this documentation
 
@@ -167,7 +219,10 @@ Tled(){
   };
 }
 ```
-This can be read like this: if the value of `ledSwitch` is written, execute the code in curly braces, and this code finally turns the LED on/off depending on the value of `ledSwitch`.
+This can be read like this: if the value of `ledSwitch` is written, execute the code in curly braces, and this code finally turns the LED on/off depending on the value of `ledSwitch`. 
+
+If you are using a board with an AVR CPU, please read [known issues with AVR](#reacting-to-state-changes-on-avr) first.
+
 
 ### Introducing Timers
 

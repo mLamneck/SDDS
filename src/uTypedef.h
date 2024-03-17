@@ -33,6 +33,7 @@ macro expansion
 #endif
 
 #define sdds_self(className) auto self = static_cast<className*>(_self)
+#define sdds_ref(className) static_cast<className*>(_self)
 
 /************************************************************************************
 forward declarations and typedefinitions for this unit
