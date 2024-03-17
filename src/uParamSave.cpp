@@ -1,11 +1,20 @@
 #include "uParamSave.h"
 
-TsreamLength TparamStream::curr(bool _inc){ 
-    auto curr = Frun;
-    if (Frun >= Fsize) Fsize++;
-    if (_inc) Frun++;
-    return curr; 
-}
+bool TparamStream::writeByte(uint8_t _byte){
+    if (!grow(curr()+1)) return false;
+    if (!doWriteByte(_byte)) return false;
+    Frun++;
+    if (Frun > FhighWater) FhighWater = Frun;
+    return true;
+};
+
+bool TparamStream::readByte(uint8_t& _byte){
+    if (availableForRead() <= 0) return false;
+    if (!doReadByte(_byte)) return false;
+    Frun++;
+    if (Frun > FhighWater) FhighWater = Frun;
+    return true;
+};
 
 bool TparamStream::writeBytes(const void* _buf, uint8_t _len){
     auto buf = static_cast<const uint8_t*>(_buf);
@@ -45,7 +54,6 @@ bool TparamStream::seek(TseekMode _mode, int _pos) {
     }
     return true; 
 }
-
 
 dtypes::uint16 TparamStreamer::_calcCrc(TmenuHandle* s, dtypes::uint16 _cnt){
     for (auto it = s->iterator(); it.hasNext();){
@@ -87,9 +95,9 @@ bool TparamStreamer::saveStruct(TmenuHandle* s){
             TmenuHandle* mh = static_cast<Tstruct*>(descr)->value();
             if (!mh) continue;
             
-            TsreamLength size = Fstream->size();
+            TstreamLength size = Fstream->high();
             if (!saveStruct(mh)) return false;
-            if (size != Fstream->size()){
+            if (size != Fstream->high()){
                 crc8::calc(Fcrc.rCrc.Ftype,descr->typeId());
             }
             continue;
@@ -124,8 +132,6 @@ bool TparamStreamer::saveStruct(TmenuHandle* s){
             Ferror = TparamError::e::outOfMem;
             return false;
         };
-        if (descr->type() != sdds::Ttype::STRING)
-            continue;
     }
     return true;
 }
@@ -241,8 +247,10 @@ bool TparamStreamer::load(TmenuHandle* s, TparamStream* _stream){
 
 TparamSaveMenu::TparamSaveMenu(){
     on(action){
+        auto self = static_cast<TparamSaveMenu*>(_self);
+        TenLoadSave::dtype action = self->action;
         if (action != TenLoadSave::e::___){
-            TmenuHandle* root = findRoot();
+            TmenuHandle* root = self->findRoot();
             TparamStreamer ps;
             #if MARKI_DEBUG_PLATFORM == 1
             TparamFileStream s("c:\\temp\\params.txt",action==TenLoadSave::e::save);
@@ -255,9 +263,9 @@ TparamSaveMenu::TparamSaveMenu(){
             }else if(action==TenLoadSave::e::save){
                 ps.save(root,&s);
             }
-            error = ps.error();
-            size = s.size();
-            action = TenLoadSave::e::___;
+            self->error = ps.error();
+            self->size = s.high();
+            self->action = TenLoadSave::e::___;
         }
     };
 
@@ -269,6 +277,7 @@ TparamSaveMenu::TparamSaveMenu(){
                 EEPROM.begin();
             #endif
         #endif
-        action = Taction::load;
+        auto self = static_cast<TparamSaveMenu*>(_self);
+        self->action = Taction::load;
     };
 }

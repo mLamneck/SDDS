@@ -15,32 +15,35 @@
 
 enum class TseekMode {start, end, curr};
 
-typedef int32_t TsreamLength;
+typedef int16_t TstreamLength;
 
 class TparamStream{
     private:
-        TsreamLength Frun = 0;
-        TsreamLength Fsize = 0;
+        TstreamLength Frun = 0;
+        TstreamLength FhighWater = 0;
 
     protected:
-        TsreamLength curr(bool _inc = false);
+        TstreamLength curr() { return Frun; };
 
+        virtual TstreamLength availableForRead() = 0;
+        virtual bool doWriteByte(uint8_t _byte) = 0;
+        virtual bool doReadByte(uint8_t& _byte) = 0;
     public:
-        dtypes::uint16 size(){ return Fsize; }
+        inline bool writeByte(uint8_t _byte);
 
-        virtual bool writeByte(uint8_t _byte) = 0;
-
-        virtual bool readByte(uint8_t& _byte) = 0;
+        inline bool readByte(uint8_t& _byte);
 
         bool writeBytes(const void* _buf, uint8_t _len);
 
         bool readBytes(void* _buf, uint8_t _len);
 
+        bool seek(TseekMode _mode, int _pos);
+
         virtual bool grow(int _size){ return true; }
 
-        virtual bool seek(TseekMode _mode, int _pos);
-
         virtual void flush(){};
+
+        TstreamLength high(){ return FhighWater; }
 };
 
 #if USE_EEPROM == 1
@@ -52,14 +55,15 @@ class TparamStream{
 class TeepromStream : public TparamStream{
     bool grow(int _size) override{ return (_size <= SDDS_EEPROM_SIZE); }
 
-    bool writeByte(uint8_t _byte) override{
-        EEPROM.put(curr(true),_byte);
+    virtual TstreamLength availableForRead() override { return SDDS_EEPROM_SIZE - curr(); }
+
+    bool doWriteByte(uint8_t _byte) override{
+        EEPROM.put(curr(),_byte);
         return true;
     }
 
-    bool readByte(uint8_t& _byte) override {
-        if (curr() >= SDDS_EEPROM_SIZE) return false;
-        EEPROM.get(curr(true),_byte);
+    bool doReadByte(uint8_t& _byte) override {
+        EEPROM.get(curr(),_byte);
         return true;
     }
 
@@ -77,22 +81,20 @@ class TeepromStream : public TparamStream{
     class TparamStringStream : public TparamStream{
         protected:
             dtypes::string Fbuffer;
-            virtual int availableForRead(){ return Fbuffer.length() - curr(); }
+            virtual TstreamLength availableForRead() override { return Fbuffer.length() - curr(); }
 
             bool grow(int _size) override{
                 while(Fbuffer.length() < _size) Fbuffer+='\0';
                 return true;
             }
 
-            bool writeByte(uint8_t _byte) override{
-                grow(curr()+1);
-                Fbuffer[curr(true)] = _byte;
+            bool doWriteByte(uint8_t _byte) override{
+                Fbuffer[curr()] = _byte;
                 return true;
             }
 
-            bool readByte(uint8_t& _byte) override {
-                if (availableForRead() <= 0) return false;
-                _byte = Fbuffer[curr(true)];
+            bool doReadByte(uint8_t& _byte) override {
+                _byte = Fbuffer[curr()];
                 return true;
             }
 
