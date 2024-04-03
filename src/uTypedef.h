@@ -26,14 +26,40 @@ toDo:
 macro expansion
 *************************************************************************************/
 
+#define __SDDS__TOKENPASTE(x, y) x ## y
+#define __SDDS__TOKENPASTE2(x, y) __SDDS__TOKENPASTE(x, y)
+#define SDDS_UNIQUE_NAME(_prefix) __SDDS__TOKENPASTE2(_prefix,__COUNTER__)
+
 #ifdef SDDS_ON_AVR
-    #define on(_var) _var.Fcallbacks = [](void* _self)
+    #define __sdds_storeCallback(_name) *_name = [](void* _self)
 #else
-    #define on(_var) _var.Fcallbacks = [=](void* _self)
+    #define __sdds_storeCallback(_name) *_name = [=](void* _self)
 #endif
+
+#define __sdds_namedOn(_name,_var) \
+    TcallbackWrapper* _name = new TcallbackWrapper(this);\
+    TcallbackWrapper* __SDDS__TOKENPASTE(_name,_local) = _var.callbacks()->addCbw(_name);\
+    __sdds_storeCallback(__SDDS__TOKENPASTE(_name,_local))
+
+#define on(_var) __sdds_namedOn(SDDS_UNIQUE_NAME(__on_var),_var)
 
 #define sdds_self(className) auto self = static_cast<className*>(_self)
 #define sdds_ref(className) static_cast<className*>(_self)
+
+
+/*
+    toDo: Implement static declaration of TcallbackWrapper:
+    variant with static declaration of TcallbackWrapper. The only problem is if an object is 
+    instantiated multiple times we have to detect that, and use dynamic memory allocation 
+    for the second, third, ... object. That could be checked in addCbw.
+Code:
+
+#define __sdds_namedOn(_name,_var) \
+    static TcallbackWrapper _name(this);\
+    TcallbackWrapper* __SDDS__TOKENPASTE(_name,_local) = _var.callbacks().addCbw(_name);\    //in addCbw check if callbackWrapper exists and if so create a new one on heap and return a pointer...
+    __sdds_storeCallback(__SDDS__TOKENPASTE(_name,_local))
+*/
+
 
 /************************************************************************************
 forward declarations and typedefinitions for this unit
@@ -99,13 +125,20 @@ namespace sdds{
 class TcallbackWrapper : public TlinkedListElement{
     private:
         Tcallback Fcallback;
+        void* Fctx = nullptr; 
     public:
-        TcallbackWrapper(Tcallback _cb){
-            Fcallback = _cb;
+        TcallbackWrapper(void* _ctx){
+            Fctx = _ctx;
         }
-        void emit(TmenuHandle* _parent){
+
+        inline TcallbackWrapper* operator=(Tcallback _cb){
+            Fcallback = _cb;
+            return this;
+        }
+
+        void emit(){
             if (Fcallback){
-                Fcallback(_parent);
+                Fcallback(Fctx);
             }
         }
 };
@@ -113,20 +146,18 @@ typedef TlinkedListIterator<TcallbackWrapper> TcallbackIterator;
 
 class Tcallbacks : public TlinkedList<TcallbackWrapper>{
     public:
-        inline void emit(TmenuHandle* _parent){
+        inline void emit(){
             for (auto it = iterator(); it.hasNext();){
-                it.next()->emit(_parent);
+                it.next()->emit();
             }
         }
 
-        inline TcallbackWrapper* add(Tcallback _cb){
-            TcallbackWrapper* res = new TcallbackWrapper(_cb);
-            push_back(res);
-            return res;
+        TcallbackWrapper* addCbw(TcallbackWrapper* _cbw){
+            push_back(_cbw);
+            return _cbw;
         }
-        inline TcallbackWrapper* operator=(Tcallback _cb){
-            return add(_cb);
-        }
+
+        TcallbackWrapper* addCbw(TcallbackWrapper& _cbw){ return addCbw(&_cbw); }
 };
 
 
@@ -135,18 +166,21 @@ Tdescr - abstract class for all types
 *************************************************************************************/
 
 class Tdescr : public TlinkedListElement{
+    friend class TmenuHandle;
+
     private:
         TmenuHandle* Fparent = nullptr;
+        Tcallbacks Fcallbacks;
 
     public:
         #if MARKI_DEBUG_PLATFORM == 1
         int createNummber;
         #endif
         
-        void signalEvents();
         Tdescr();
-        Tcallbacks Fcallbacks;
-        friend class TmenuHandle;
+
+        Tcallbacks* callbacks(){ return &Fcallbacks; }
+        void signalEvents();
 
         TmenuHandle* findRoot();
 
@@ -703,16 +737,15 @@ void handleTimerEvent(Tevent* _timerEv);
 
 class Ttimer : public Tevent{
     typedef dtypes::TsystemTime Ttime;
-    TmenuHandle* Fstruct = nullptr;
-
+    Tcallbacks Fcallbacks;
     public:
-        Tcallbacks Fcallbacks;
-        Ttimer();
+        Tcallbacks* callbacks(){ return &Fcallbacks; }
+        Ttimer() : Tevent(&handleTimerEvent) {};
 
         void start(Ttime _waitTime){ setTimeEvent(_waitTime); }
         void stop(){ Tevent::reclaim(); }
         bool running(){ return linked(); }
-        void onTimerElapsed(){ Fcallbacks.emit(Fstruct); }
+        void onTimerElapsed(){ Fcallbacks.emit(); }
 };
 
 
