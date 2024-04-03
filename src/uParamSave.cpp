@@ -247,7 +247,7 @@ bool TparamStreamer::load(TmenuHandle* s, TparamStream* _stream){
 
 TparamSaveMenu::TparamSaveMenu(){
     on(action){
-        auto self = static_cast<TparamSaveMenu*>(_self);
+        sdds_self(TparamSaveMenu);
         TenLoadSave::dtype action = self->action;
         if (action != TenLoadSave::e::___){
             TmenuHandle* root = self->findRoot();
@@ -270,6 +270,7 @@ TparamSaveMenu::TparamSaveMenu(){
     };
 
     on(sdds::setup()){
+        sdds_self(TparamSaveMenu);
         #if USE_EEPROM == 1
             #if SDDS_EEPROM_BEGIN_WITH_SIZE == 1
                 EEPROM.begin(SDDS_EEPROM_SIZE);
@@ -277,7 +278,6 @@ TparamSaveMenu::TparamSaveMenu(){
                 EEPROM.begin();
             #endif
         #endif
-        auto self = static_cast<TparamSaveMenu*>(_self);
         self->action = Taction::load;
     };
 }
