@@ -177,7 +177,6 @@ class TparamStreamer{
 sdds_enum(___,load,save) TenLoadSave;
 
 class TparamSaveMenu : public TmenuHandle{
-    Ttimer timer;
     public:
         typedef TenLoadSave::e Taction;
         sdds_struct(
