@@ -1,6 +1,7 @@
 #include "uStrings.h"
 #include "uTypedef.h"
 
+
 /************************************************************************************
 TstructStack
 *************************************************************************************/
@@ -102,21 +103,25 @@ class __attribute__ ((packed)) TstructStack{
                 si->mh->addDescr(_d);
             }
         }
-} structStack;
+};
 
+TstructStack* structStack(){ 
+    static TstructStack s;
+    return &s;
+}
 
 TstartMenuDefinition::TstartMenuDefinition(){
-    structStack.enterSds();
+    structStack()->enterSds();
 }
 
 TfinishMenuDefinition::TfinishMenuDefinition(){
-    structStack.leaveSds();
+    structStack()->leaveSds();
 }
 
 TmenuHandle::TmenuHandle(){
     DEBUGCODE(getVariableName(createNummber))
     Fvalue = this;
-    structStack.setLastCreateStruct(this);
+    structStack()->setLastCreateStruct(this);
 };
 
 
@@ -124,15 +129,11 @@ TmenuHandle::TmenuHandle(){
 Tdescr - abstract class for all types
 *************************************************************************************/
 
-Ttimer::Ttimer() : Tevent(&handleTimerEvent){
-    Fstruct = structStack.lastCreatedStruct();
-}
-
 Tdescr::Tdescr(){
     #if MARKI_DEBUG_PLATFORM == 1
     createNummber = __createNummber++;
     #endif
-    structStack.addDescr(this);
+    structStack()->addDescr(this);
 }
 
 TmenuHandle* Tdescr::findRoot(){
@@ -144,7 +145,7 @@ TmenuHandle* Tdescr::findRoot(){
 }
 
 void Tdescr::signalEvents(){
-    Fcallbacks.emit(Fparent);
+    Fcallbacks.emit();
     if (Fparent){
         Fparent->signalEvents(this);
     }
@@ -232,14 +233,23 @@ Tdescr* TmenuHandle::find(const char* _name){
 
 
 void handleTimerEvent(Tevent* _timerEv){
-    //((Ttimer1*)_timerEv)->onTimerElapsed();
     static_cast<Ttimer*>(_timerEv)->onTimerElapsed();
 }
 
 namespace sdds{
     Ttimer& setup(){
-        static Ttimer __setup;
-        __setup.start(0);
-        return __setup;
+        /*
+        For some fucking reason, on TEENSY 3.2 and probably on other ARM CPU's
+        this static object creation does not work. The constructor is not called!!!
+        Fuck C++!!! This is the worst programming language I know. Even the most primitive
+        thing like global variables does not work with this freaking bullshit!!!! Fuck C++!!!!!!
+        */        
+        //static TsetupTimer __setup;
+        static Ttimer* __setup = nullptr;
+        if (!__setup){
+            __setup = new Ttimer;
+            __setup->start(0);
+        }
+        return *__setup;
     }
 }
