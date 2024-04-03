@@ -13,5 +13,7 @@
   "version": "0.0.0",
   "frameworks": "arduino",
   "platforms": "*",
-  "dependencies": []
+  "dependencies": [
+    { "name":"EEPROM", "platforms":"*" }
+  ]
 }
