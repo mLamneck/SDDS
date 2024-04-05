@@ -1,11 +1,12 @@
 # SDDS (Self-Describing-Data-Structure)
-A lightweight, dependency-free C++ library to write event-driven processes with self-generating user interfaces.
+A lightweight, dependency-free C++ library to write event-driven processes with self-generating user interfaces primarily for Arduino.
 
 ## Table of contents
 - [Why use this library](#why-use-this-library)
 - [Installation](#installation)
   - [Arduino](#arduino)
   - [PlatformIO](#platformio)
+    - [Coding with PlatformIO](#coding-platformIO)
 - [Supported platforms](#supported-platforms)
 - [Example for this documentation](#example-for-this-documentation)
 - [Coding the example](#coding-the-example)
@@ -44,9 +45,9 @@ A lightweight, dependency-free C++ library to write event-driven processes with 
   - [Write Documentation](#write-documentation)
   - [Help to organize the repository](#help-to-organization-of-the-repository)
   - [Code new Spikes](#code-new-spikes)
+  - [Build SDDS Client application](#build-sdds-client-application)
   - [Develop components](#develop-components-for-our-public-component-library)
   - [Test and feedback](#test-and-give-feedback)
-
 
 ## Why use this library
 In our opinion, one of the most annoying things in software development is that one has to spend more time providing ways to interact with the software compared to what the program actually does. The time needed to develop and test things like the following is massive:
@@ -60,7 +61,7 @@ In our opinion, one of the most annoying things in software development is that 
 
 The purpose of this library is to get rid of all that and focus on what's really important: the functionality that has to be implemented. This is done by completely separating the business logic and providing standard interfaces. This way, all the points mentioned above have to be done only once in a generic way for all of our projects in what we call [Spikes](#spikes). If you are not sure what we are talking about, check out our [Coding a full-featured WiFi Manager in 120 lines](https://github.com/mLamneck/SDDS_ESP_Extension?tab=readme-ov-file#coding-a-full-featured-wifi-manager-in-120-lines) where we showcase how you can tremendously speed up your development process with SDDS.
 
-Another goal of this library is to keep it as simple as possible. We want to declare and use variables like we are used to in regular C++, but gain the benefits on the other hand for free.
+Another goal of this library is to keep it as simple as possible. We want to declare and use variables like we are used to in regular C++, but gain the benefits of Runtime Type Information (RTTI) and self-generating user interfaces on the other hand for free.
 
 
 ## Installation
@@ -68,24 +69,36 @@ Another goal of this library is to keep it as simple as possible. We want to dec
 ### Arduino
 Clone this repository into your library folder, and you are ready to go. If you want to use ESP-only features like [web spikes](#web-spike), you also need to install the [ESP Extension](https://github.com/mLamneck/SDDS_ESP_Extension).
 
-
 ### PlatformIO
-Add the github link to this repository as a lib dependency to your platformio.ini like in the following example.
-```
-[env:myEnv]
-platform = ...
-board = ...
+[PlatformIO](http://platformio.org) is an open source ecosystem for IoT development with cross platform build system and library manager. It works on the popular host OS: Mac OS X, Windows, Linux 32/64, Linux ARM (like Raspberry Pi, BeagleBone, CubieBoard).
+
+1. Install [PlatformIO IDE](http://platformio.org/platformio-ide)
+2. Create new project using "PlatformIO Home > New Project"
+3. Add "SDDS" to project using [Project Configuration File `platformio.ini`](http://docs.platformio.org/page/projectconf.html) and [lib_deps](http://docs.platformio.org/page/projectconf/section_env_library.html#lib-deps) option:
+
+```ini
+[env:teensy31]
+platform = teensy
+board = teensy31
 framework = arduino
 lib_deps = https://github.com/mLamneck/SDDS.git
 ```
+ 4. Happy coding with PlatformIO!
+
 If you want to use ESP-only features like [web spikes](#webspike) you want to add the [Esp Extension](https://github.com/mLamneck/SDDS_ESP_Extension) instead. This will automatically add the SDDS core library.
-```
-[env:myEspEnv]
-platform = espressif32
-board = esp32dev
+
+```ini
+[env:d1_mini_lite]
+platform = espressif8266
+board = d1_mini_lite
 framework = arduino
-lib_deps = https://github.com/mLamneck/SDDS_ESP_Extension
+lib_deps = https://github.com/mLamneck/SDDS_ESP_Extension.git
 ```
+<!-- declaring unique labels with anchor tags  -->
+#### <a id="coding-platformIO"></a> Coding with PlatformIO
+We provide some useful snippets to further speed up your development process and avoid typing errors. Just place the file [code snippets](examples/PlatformIO/led/.vscode/sdds.code-snippets) in your `.vscode` folder.
+
+![Alt Text](assets/sddsSnippets.gif)
 
 ## Supported platforms
 
@@ -504,7 +517,10 @@ Here we have declared one variable called `cnt` of type `uint8`. We install an e
 - `incByValue(Tuint8 _val)`
 - `incByValueMoreEfficient(Tuint8::dtype _val)`
 
-They receive the variable `_val` by value (a copy of it). The main difference between the two is that the first one receives a copy of an object which controls the access to the underlying datatype, i.e., uint8, while the latter one takes the underlying data type uint8 directly. It's not much of a difference. In the first case, a copy constructor has to be called, which just makes a copy of the underlying data type. However, it uses more stack because it has to create a copy of the object `cnt`, which is not necessary here. So if you want to have it most efficient, use the latter one, but it's not much of a difference. Instead of `Tuint8::dtype`, you could use `uint8_t`, but it's neat to use it like this.
+They receive the variable `_val` by value (a copy of it). The main difference between the two is that the first one receives a copy of an object which controls the access to the underlying datatype, i.e., uint8, while the latter one takes the underlying data type uint8 directly. It's not much of a difference. In the first case, a copy constructor has to be called, which just makes a copy of the underlying data type. However, it uses more stack because it has to create a copy of the object `cnt`, which is not necessary here. So if you want to have it most efficient, use the latter one, but it's not much of a difference. Instead of `Tuint8::dtype`, you could use `uint8_t`, but it's neat to use it like this. Note that even though the first function receives a copy of the object, no event handlers (`on`) will be called.
+
+The third function `void incByRef(Tuint8& _val)`, as expected, receives a reference to the variable and thus modifying the value has the same effect as it would outside of the function.
+
 
 ### Calling Funtions with SDDS Enums
 
@@ -553,7 +569,7 @@ class TuserStruct : public TmenuHandle{
             changeEnumByRef(mySwitch);
 
             //this will log "off" again
-            passEnumConstAndLog(mySwitch);
+            passEnumConstAndLog(TonOff::e::off);
         }
 } userStruct;
 ```
@@ -579,6 +595,46 @@ However, the `TonOff` type we have declared with `sdds_enum` is smart enough to 
 ```C++ 
 TonOff::c_str(_enum)
 ```
+This can be very useful for status or error reports. We use this, for example, internally in the [plain protocol handler](#plain-protocol) for error responses. This way, we can send the error code along with a more readable description. See the following example from our library.
+
+
+```C++
+//defined in uPlainCommErrors.h
+namespace plainComm{
+    sdds_enumClass(Terror
+        ,___
+        ,portParseErr   //1
+        ,pathNotFound   //2
+        ,pathNoStruct   //3
+        ,pathNullPtr    //4
+        ,invPort        //5
+        ,invFunc        //6
+    )
+}
+
+//...
+
+//somewhere in uPlainCommHandler.cpp
+bool TplainCommHandler::sendError(Terror::e _errCode, Tport _port){
+    Fstream->write("E ");
+    Fstream->write(_port);
+    Fstream->write(' ');
+    Fstream->write(plainComm::Terror::ord(_errCode));
+    Fstream->write(' ');
+    Fstream->write(plainComm::Terror::c_str(_errCode));
+    Fstream->flush();
+    return false;
+}
+
+//...
+
+sendError(Terror::e::pathNotFound,Fport);
+//For a given Fport 12 this will create the following error msg.
+//E 12 2 pathNotFound
+```
+
+Note that we use the more primitive `sdds_enumClass` instead of `sdds_enum` because we don't need to store it in a struct. Instead, we only pass const values to a function.
+
 
 ### Data Types
 SDDS provides primitive types as well as composed types and enums.
@@ -813,6 +869,12 @@ Coding a [Spike](#spikes) is usually straightforward, especially if you can use 
 - `displaySpikes`
 
 just to name a few.
+
+## Build SDDS Client application
+
+Most importantly, we need to develop client applications to make use of the power unleashed by this library. We've already created the web-based minimal GUI for ESP boards. The repository can be found [here](https://github.com/mLamneck/SDDS_minimalBrowser). It should be possible to use the core of this  project located in the `system` folder to build a React app on top, for example.
+
+We can also consider QT-based applications. Python is also a good choice. Feel free to contribute with a software based on your favorite language.
 
 ## Develop Components for Our Public Component Library
 
