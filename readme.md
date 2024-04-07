@@ -665,7 +665,23 @@ We support the usual primitive data types as displayed in the following table. T
 | Enum      | 0x31        | 49          |
 
 #### Ttime
-to be done... 
+Internally, time is stored in a `timeval` structure with microsecond resolution, and you can work with it using the corresponding functions from the C library. The `stringToTime` function is used to parse values provided as strings into the internal structure. The following formats are valid:
+
+- Date and Time
+  - "28.11.2023 19:12:30"
+  - "28.11.2023 19:12:30.765"
+  - "01.01.1970T19:12:30"
+  - "05/30/2020 19:12:30"
+- Date
+  - "10.10.2023"
+- Time
+  - "19:12:30"
+
+You can use this function to provide default values for a `Ttime` variable.
+
+```C++
+sdds_var(Ttime,myTime,0,stringToTime("28.11.2023 19:12:30"))
+```
 
 #### Strings
 There's not much to say about strings. Under the hood, a dynamic string representation is used. However, the parameter save is limited to a 255-byte length.
