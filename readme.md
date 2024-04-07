@@ -4,7 +4,7 @@ A lightweight, dependency-free C++ library to write event-driven processes with 
 ## Table of contents
 - [Why use this library](#why-use-this-library)
 - [Installation](#installation)
-  - [Arduino](#arduino)
+  - [Arduino IDE](#arduino-ide)
   - [PlatformIO](#platformio)
     - [Coding with PlatformIO](#coding-platformIO)
 - [Supported platforms](#supported-platforms)
@@ -66,7 +66,7 @@ Another goal of this library is to keep it as simple as possible. We want to dec
 
 ## Installation
 
-### Arduino
+### Arduino IDE
 Clone this repository into your library folder, and you are ready to go. If you want to use ESP-only features like [web spikes](#web-spike), you also need to install the [ESP Extension](https://github.com/mLamneck/SDDS_ESP_Extension).
 
 ### PlatformIO
@@ -83,7 +83,9 @@ board = teensy31
 framework = arduino
 lib_deps = https://github.com/mLamneck/SDDS.git
 ```
- 4. Happy coding with PlatformIO!
+4. PlatformIO has a built-in serial monitor. However, it's missing the ability to send messages so far. If you want to use it as you are used to in Arduino IDE, you can install [this].
+(https://marketplace.visualstudio.com/items?itemName=ms-vscode.vscode-serial-monitor) extension.
+ 5. Happy coding with PlatformIO!
 
 If you want to use ESP-only features like [web spikes](#webspike) you want to add the [Esp Extension](https://github.com/mLamneck/SDDS_ESP_Extension) instead. This will automatically add the SDDS core library.
 
@@ -285,6 +287,8 @@ It's time to finally play around and have fun...
 ### Build and Upload the Code
 If you are using Arduino IDE, you can just open the example.
 
+If you choose to test with PlatformIO, you can download the full example project [here](/examples/platformIO/led/). Also make sure to install an extension for the serial monitor as explained in the [installation](#platformio) chapter.
+
 ```File->Examples->SDDS->Led```
 ### Full Example Code
 You can also copy and paste the following complete example.
@@ -399,10 +403,13 @@ The serial spike uses the [Plain protocol](#plain-protocol) specified in the doc
 8. You can also try to unsubscribe from notifications with the command "U 1" and try if the set commands still work.
 
 #### Save Parameters
-9. Let's try to save parameters. Turn on the periodic blinking of the LED. Enter the command ```L 2 params``` to enable change notifications for the params menu. This is not necessary but in order to see a response we better do it. Enter ```params.action=save``` in the serial console. The response will look something like the following. The first ```___``` is the action variable which you have set to ```save``` with your command. This triggers the save of the menu and when the command is done, it is set back to ```___``` by the `TparamSaveMenu` component. The second ```___``` means no error occurred and the third value is the number of bytes that have been saved to the non-volatile memory, in this case 8 (2x1 byte for the ledSwitch/blinkSwitch, 2x2 bytes for on/offTime, and 2 bytes for internal management). Read more about [Parameter Saving](#parameter-save) in the Documentation. The response will look like this:
+9. Let's try to save parameters. Turn on the periodic blinking of the LED. Enter the command ```L 2 params``` to enable change notifications for the params menu. This is not necessary but in order to see a response we better do it. Enter ```params.action=save``` in the serial console. The response will look something like the following. 
+
  ```
 l 2 0 ["___","___",8]
  ```
+
+The first ```___``` is the action variable which you have set to ```save``` with your command. This triggers the save of the menu and when the command is done, it is set back to ```___``` by the `TparamSaveMenu` component. The second ```___``` means no error occurred and the third value is the number of bytes that have been saved to the non-volatile memory, in this case 8 (2x1 byte for the ledSwitch/blinkSwitch, 2x2 bytes for on/offTime, and 2 bytes for internal management). Read more about [Parameter Saving](#parameter-save) in the Documentation.
  
 ## Documentation
 
@@ -733,7 +740,7 @@ class TderivedStruct : public TmyStruct{
 ```
 
 ### Parameter Save
-In most applications, you will find the need to store some of the parameters you are using to a non-volatile memory to be available after a restart. In SDDS, this is quite simple. Just specify the `saveval` when declaring a variable and include the built-in `TparamSaveMenu` somewhere in your [tree](#the-data-structure), and you are ready to go. This way, whenever you trigger a parameter save (`params.action=save`), all parameters you have flagged for save are stored and automatically reloaded after a power-up. A full example can be found in the [Putting it all together section](#putting-it-all-together).
+In most applications, you will find the need to store some of the parameters you are using to a non-volatile memory to be available after a restart. In SDDS, this is quite simple. Just specify the `saveval` flag in the option when declaring a variable and include the built-in `TparamSaveMenu` somewhere in your [tree](#the-data-structure), and you are ready to go. This way, whenever you trigger a parameter save (`params.action=save`), all parameters you have flagged for save are stored and automatically reloaded after a power-up. A full example can be found in the [Putting it all together section](#putting-it-all-together).
 
 #### Changes in Structure
 You can always add/remove variables or restructure your components. Just be aware that you probably lose your saved values after you change the tree. You can use the `T` command to retrieve the current state of your tree before you flash a new version to have a copy of your old version.
