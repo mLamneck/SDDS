@@ -19,13 +19,14 @@
 		"prefix": "sdStruct",
 		"body": [
 			"class ${1:TclassName} : public TmenuHandle{"
+				,"\t${2:Ttimer timer;}"
 				,"\tpublic:"
 				,"\t\tsdds_struct("
-				,	"\t\t\t${2}"
+				,	"\t\t\t${3}"
 				,"\t\t)"
 				,"\t\tpublic:"
 				,"\t\t\t${1:TclassName}(){"
-				,"\t\t\t\t//you code here..."
+				,"\t\t\t\t${4}"
 				,"\t\t\t}"
 
 			"};",
@@ -38,6 +39,23 @@
 			"sdds_var(${1|Tuint8,Tuint16,Tuint32,Tint8,Tint16,Tint32,Tfloat32,Ttime,Tstring|},${2:varName})${3}"
 		],
 		"description": "struct template with constructor"
-	} 
+	},
+	"on":{
+		"prefix": "sdOn",
+		"body": [
+			"on(${1:varName}){"
+				,"\t${2}"
+			,"};"
+		],
+		"description": "create an event handler (on)"
+	},
+	"enum":{
+		"prefix": "sdEnum",
+		"body": [
+			"sdds_enum(${1:en1,en2,...}) ${2:enumName};"
+		],
+		"description": "create an enum"
+	}
+
  
 }
