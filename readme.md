@@ -83,9 +83,8 @@ board = teensy31
 framework = arduino
 lib_deps = https://github.com/mLamneck/SDDS.git
 ```
-4. PlatformIO has a built-in serial monitor. However, it's missing the ability to send messages so far. If you want to use it as you are used to in Arduino IDE, you can install [this].
-(https://marketplace.visualstudio.com/items?itemName=ms-vscode.vscode-serial-monitor) extension.
- 5. Happy coding with PlatformIO!
+4. PlatformIO has a built-in serial monitor. However, it's missing the ability to send messages so far. If you want to use it as you are used to in Arduino IDE, you can install [this](https://marketplace.visualstudio.com/items?itemName=ms-vscode.vscode-serial-monitor) extension.
+5. Happy coding with PlatformIO!
 
 If you want to use ESP-only features like [web spikes](#webspike) you want to add the [Esp Extension](https://github.com/mLamneck/SDDS_ESP_Extension) instead. This will automatically add the SDDS core library.
 
