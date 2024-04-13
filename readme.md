@@ -97,7 +97,7 @@ lib_deps = https://github.com/mLamneck/SDDS_ESP_Extension.git
 ```
 <!-- declaring unique labels with anchor tags  -->
 #### <a id="coding-platformIO"></a> Coding with PlatformIO
-We provide some useful snippets to further speed up your development process and avoid typing errors. Just place the file [code snippets](examples/PlatformIO/led/.vscode/sdds.code-snippets) in your `.vscode` folder.
+We provide some useful snippets to further speed up your development process and avoid typing errors. Just place the file [code snippets](examples/platformIO/led/.vscode/sdds.code-snippets) in your `.vscode` folder.
 
 <p align="center">
   <img src="assets/sddsSnippets.gif">
@@ -369,12 +369,14 @@ The serial spike uses the [Plain protocol](#plain-protocol) specified in the doc
      
        ```t 0 [{"type":66,"opt":0,"name":"led","value":[{"type":49,"opt":0,"name":"ledSwitch","value":"OFF","enums":["OFF","ON"]},...```
     
-    Without specifying a path after the ```T```, you get the whole data structure. You can also ask more specifically, i.e., ```T led```, which will give you the description of the component we've created.
+      Without specifying a path after the ```T```, you get the whole data structure. You can also ask more specifically, i.e., ```T led```, which will give you the description of the component we've created. You can also specify an arbitrary number after the `T`, i.e., `T 88 led`, if you want to do multiple without waiting for the individual responses. If you do not specify a number, you will find a `0` in the response like in the above example.
+
 
 #### Subscribe to change notification
 
 4. Send the command ```L 1 led```.
-   * This command is used to subscribe to the LED structure, so that whenever a value changes, we get a notification in the serial console. The initial response contains basically all values from our `Tled` structure:
+   * This command is used to subscribe to the LED structure, so that whenever a value changes, we get a notification in the serial console. If you wonder about the "parameter" `1`, it is an arbitrary number that will be in the same place in the response to associate it with the request. You need this if you subscribe to multiple structures at the same time in order to read the data in the right struct when processing the response. The initial response contains basically all values from our `Tled` structure:
+
 
      ```l 1 0 ["OFF","OFF",500,500]```
 
@@ -402,7 +404,8 @@ The serial spike uses the [Plain protocol](#plain-protocol) specified in the doc
 8. You can also try to unsubscribe from notifications with the command "U 1" and try if the set commands still work.
 
 #### Save Parameters
-9. Let's try to save parameters. Turn on the periodic blinking of the LED. Enter the command ```L 2 params``` to enable change notifications for the params menu. This is not necessary but in order to see a response we better do it. Enter ```params.action=save``` in the serial console. The response will look something like the following. 
+9. Let's try to save parameters. Turn on the periodic blinking of the LED. Enter the command ```L 2 params``` to enable change notifications for the params menu. This is not necessary, but in order to see a response, we better do it. Here we use `2` as a second parameter to keep the subscription established in step 4 alive. If we choose to go for `1`, it will automatically unsubscribe from the `led` structure. Enter ```params.action=save``` in the serial console. The response will look something like the following.
+
 
  ```
 l 2 0 ["___","___",8]
