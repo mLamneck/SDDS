@@ -11,7 +11,7 @@
     "url": "https://github.com/mLamneck/SDDS"
   },
   "version": "0.0.0",
-  "frameworks": "arduino",
+  "frameworks": "*",
   "platforms": "*",
   "dependencies": [
     { "name":"EEPROM", "platforms":"*" }
