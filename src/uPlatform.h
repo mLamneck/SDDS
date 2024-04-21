@@ -9,6 +9,7 @@
 #endif
 
 #if defined(__MINGW64__) || defined(WIN32)      //__MINGW64__ works in VS_Code, WIN32 in codeBlocks
+    #include <stdint.h>                         //uint8_t, ...
     #include <sys/time.h>
     
     #define MARKI_DEBUG_PLATFORM 1
