@@ -157,10 +157,7 @@ TobjectEvent
 *************************************************************************************/
 
 void __TobjectEvent::afterDispatch(){
-    auto ctx = context();
-    if (ctx){
-        static_cast<TobjectEvent*>(ctx)->afterDispatch();
-    }
+    FobjectEvent->afterDispatch();
 }
 
 void TobjectEvent::afterDispatch(){
@@ -183,9 +180,8 @@ void TobjectEvent::signal(TrangeItem _first, TrangeItem _last){
 }
 
 
-TobjectEvent::TobjectEvent(Tthread* _owner) : Fevent(_owner){
+TobjectEvent::TobjectEvent(Tthread* _owner) : Fevent(_owner,this){
     afterDispatch();
-    Fevent.setContext(this);
 }
 
 void TobjectEventList::signal(TrangeItem _first){
@@ -229,11 +225,6 @@ Tdescr* TmenuHandle::find(const char* _name){
         }
     }
     return nullptr;
-}
-
-
-void handleTimerEvent(Tevent* _timerEv){
-    static_cast<Ttimer*>(_timerEv)->onTimerElapsed();
 }
 
 namespace sdds{

@@ -36,8 +36,15 @@ macro expansion
     #define __sdds_storeCallback(_name) *_name = [=](void* _self)
 #endif
 
+/*
+    old version: TcallbackWrapper* _name = new TcallbackWrapper(this);
+
+    variant with static declaration of TcallbackWrapper. The only problem is if an object is 
+    instantiated multiple times we have to detect that, and use dynamic memory allocation 
+    for the second, third, ... object. This is done in addCbw.
+*/
 #define __sdds_namedOn(_name,_var) \
-    TcallbackWrapper* _name = new TcallbackWrapper(this);\
+    static TcallbackWrapper _name(this);\
     TcallbackWrapper* __SDDS__TOKENPASTE(_name,_local) = _var.callbacks()->addCbw(_name);\
     __sdds_storeCallback(__SDDS__TOKENPASTE(_name,_local))
 
@@ -45,20 +52,6 @@ macro expansion
 
 #define sdds_self(className) auto self = static_cast<className*>(_self)
 #define sdds_ref(className) static_cast<className*>(_self)
-
-
-/*
-    toDo: Implement static declaration of TcallbackWrapper:
-    variant with static declaration of TcallbackWrapper. The only problem is if an object is 
-    instantiated multiple times we have to detect that, and use dynamic memory allocation 
-    for the second, third, ... object. That could be checked in addCbw.
-Code:
-
-#define __sdds_namedOn(_name,_var) \
-    static TcallbackWrapper _name(this);\
-    TcallbackWrapper* __SDDS__TOKENPASTE(_name,_local) = _var.callbacks().addCbw(_name);\    //in addCbw check if callbackWrapper exists and if so create a new one on heap and return a pointer...
-    __sdds_storeCallback(__SDDS__TOKENPASTE(_name,_local))
-*/
 
 
 /************************************************************************************
@@ -117,19 +110,20 @@ namespace sdds{
 }
 
 
-
 /************************************************************************************
 //callbacks for SCDSs
 *************************************************************************************/
 
 class TcallbackWrapper : public TlinkedListElement{
     private:
-        Tcallback Fcallback;
+        Tcallback Fcallback = nullptr;
         void* Fctx = nullptr; 
     public:
         TcallbackWrapper(void* _ctx){
             Fctx = _ctx;
         }
+
+        void* ctx() { return Fctx; }
 
         inline TcallbackWrapper* operator=(Tcallback _cb){
             Fcallback = _cb;
@@ -153,6 +147,14 @@ class Tcallbacks : public TlinkedList<TcallbackWrapper>{
         }
 
         TcallbackWrapper* addCbw(TcallbackWrapper* _cbw){
+            /*
+                here we have to check if the given callback wrapper is already in use,
+                and if so we have to dynamically allocate one. This happens if a sdds_struct
+                is instantiated multiple times
+            */
+            if (_cbw->linked()){
+                _cbw = new TcallbackWrapper(_cbw->ctx());
+            }
             push_back(_cbw);
             return _cbw;
         }
@@ -597,8 +599,14 @@ class TobjectEventList;
 
 class __TobjectEvent : public Tevent{
     void afterDispatch() override;
+    TobjectEvent* FobjectEvent;
 public:
-    using Tevent::Tevent;
+    __TobjectEvent(Tthread* _owner, TobjectEvent* _oe) 
+        : Tevent(_owner)
+        ,FobjectEvent(_oe)
+    {
+    }
+    TobjectEvent* objectEvent(){ return FobjectEvent; }
 };
 
 typedef dtypes::uint8 TrangeItem;
@@ -625,6 +633,11 @@ class TobjectEvent : public TlinkedListElement{
         void signal(TrangeItem _first = 0, TrangeItem _last = TrangeItem_max);
 
         TobjectEvent(Tthread* _owner);
+
+        static TobjectEvent* retrieve(Tevent* _ev){
+            auto __oe = static_cast<__TobjectEvent*>(_ev);
+            return __oe->objectEvent();
+        }
 };
 
 
@@ -733,20 +746,28 @@ class TmenuHandle : public Tstruct{
 Ttimer
 *************************************************************************************/
 
-void handleTimerEvent(Tevent* _timerEv);
-
-class Ttimer : public Tevent{
+template <class eventType>
+class TcallbackEvent: public eventType{
     typedef dtypes::TsystemTime Ttime;
     Tcallbacks Fcallbacks;
+    void execute() override{ Fcallbacks.emit(); }
     public:
+        TcallbackEvent(): eventType() {}
         Tcallbacks* callbacks(){ return &Fcallbacks; }
-        Ttimer() : Tevent(&handleTimerEvent) {};
+};
 
+class Ttimer: public TcallbackEvent<Tevent>{
+    typedef dtypes::TsystemTime Ttime;
+    public:
         void start(Ttime _waitTime){ setTimeEvent(_waitTime); }
         void stop(){ Tevent::reclaim(); }
         bool running(){ return linked(); }
-        void onTimerElapsed(){ Fcallbacks.emit(); }
 };
+
+typedef TcallbackEvent<multask::TisrEvent> TisrEvent;
+
+template <uint8_t qsize, typename dtype=dtypes::uint8>
+class TisrEventDataQ : public TcallbackEvent<multask::TisrEventDataQ<qsize,dtype>>{};
 
 
 /************************************************************************************
