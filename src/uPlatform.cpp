@@ -25,8 +25,15 @@ dtypes::TsystemTime millis(){
     return _millis() - startTime;
 }
 
+void disableISR(){}
+void enableISR(){}
+
 #else
 
 void debug::log(const char* _fmt...){}
+
+void disableISR(){ noInterrupts(); }
+void enableISR(){ interrupts(); }
+
 
 #endif

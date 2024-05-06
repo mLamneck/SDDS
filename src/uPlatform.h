@@ -22,6 +22,7 @@
     constexpr int LED_BUILTIN = 1;
     constexpr int OUTPUT = 1;
     void digitalWrite(int pin, int out);
+    inline int digitalRead(int pin) { return 1; };
     inline void pinMode(int pin, int mode) {};
     template <typename T>
     inline const char* pcTaskGetName(T taskHandle) { return "debugTask"; }
@@ -86,5 +87,8 @@ namespace dtypes{
 namespace debug{
     void log(const char* _fmt...);
 }
+
+void disableISR();
+void enableISR();
 
 #endif
