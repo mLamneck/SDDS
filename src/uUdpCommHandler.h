@@ -142,4 +142,6 @@ class TudpCommHandler : public Tthread{
         }
 };
 
+typedef TudpCommHandler TudpSpike;
+
 #endif //UUDP_H
