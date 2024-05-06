@@ -104,7 +104,7 @@ void TplainCommHandler::handleCommand(Tcmd _cmd, TstringRef& _msg){
     {
         case 'T':
             if (_msg.parseValue(Fport)){
-                if (_msg.next() != ' '){
+                if (_msg.hasNext() && _msg.next() != ' '){
                     sendError(Terror::e::portParseErr);
                     return;
                 }
@@ -172,7 +172,8 @@ void TplainCommHandler::handleMessage(TstringRef& msg){
 
 void TplainCommHandler::execute(Tevent* _ev){ 
     if (!isTaskEvent(_ev)){
-        TobjectEvent* oe= static_cast<TobjectEvent*>(_ev->context());
+        TobjectEvent* oe= TobjectEvent::retrieve(_ev);
+        
         auto first = oe->first();
         auto last = oe->last();
 
