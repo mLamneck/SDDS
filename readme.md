@@ -38,6 +38,11 @@ A lightweight, dependency-free C++ library to write event-driven processes with 
      - [Serial Spike](#serial-spike)
      - [Web Spike](#web-spike)
      - [UDP Spike](#udp-spike)
+  - [Interrupts](#interrupts)
+     - [Guidelines](#interrupt-guidelines)
+     - [Interrupts are evil](#interrupts-are-evil)
+     - [How to use interrupts with SDDS](#how-to-use-interrupts-with-sdds)
+
 - [Known Issues](#known-issues)
   - [Boards with AVR CPU's](#boards-with-avr-cpus)
     - [Reacting to state changes on AVR](#reacting-to-state-changes-on-avr)
@@ -817,6 +822,96 @@ Web Spikes are only available on ESP platforms with the [SDDS_ESP_EXTENSION](htt
 #### UDP Spike
 
 At the moment not implemented for ESP. We use it for debugging when running SDDS on Windows with MinGW.
+
+### Interrupts
+
+When it comes to interrupt handling, there is a lot to consider. One of the main guidelines is to keep the executed code in an ISR (interrupt service routine) as short as possible. This is simply because an interrupt is intended to be executed as fast as possible when a certain condition is met, i.e., a change of a logical level on an input pin. While one ISR is executed, usually other interrupts are blocked. In turn, if you write a long ISR, you prevent other ISRs from executing during that time. That's why you should only do what's really necessary in the ISR and send a notification to perform heavy calculations outside of the ISR. Here are some guidelines:
+
+#### Interrupt Guidelines
+* ISRs should be as short as possible.
+* Send a notification to do the work outside of the interrupt.
+* Never access variables declared with `static` from an ISR.
+* Never access any variable that is used somewhere else and is not protected against multiple accesses.
+
+#### Interrupts are evil
+
+Imagine the following scenario: You declare a 32-bit integer variable and initialize it with zero. Sometime later, you set the variable in your regular code.
+
+```C++
+myVar = -1  //in hex 0xFFFFFFFF
+```
+Depending on the platform, this is a non-atomic action. For example, on an 8-bit AVR CPU, the code might look like the following:
+```
+ldi r18,0xFF
+sts myVar+0,r18
+sts myVar+1,r18
+sts myVar+2,r18
+sts myVar+3,r18
+```
+An interrupt can occur between any of the above lines. Now, imagine the interrupt would occur after the third line `sts myVar+1,r18`, and you now read myVar from within the interrupt. In this case, you would read the value `0x0000FFFF` and perhaps make some decisions based on this value, but after the interrupt returns, the last 2 lines of the above code are executed and finally set the value to what it's supposed to be `0xFFFFFFFF`. So in your interrupt, you made a decision based on an invalid value.
+
+It can also be the other way around. You are setting the value from within the interrupt, i.e., `myVar=0`. When your interrupt has been finished, again the rest of the above code will be executed and your value now will be `0xFFFF0000`.
+
+This is the simplest issue that occurs with an ordinary 32-bit integer variable. You might imagine that `ssds_var's` are more sophisticated and handle all the event handlers behind the scenes.
+
+Now you might be asking: Why don't we just disable the interrupts when we set variables? SDDS could easily do this behind the scenes for you and everything would be safe. But this is not what we want. Interrupts are there for the purpose of being executed as fast as possible. Every time you disable the interrupts, you potentially delay the execution of a pending one. And note that we would have to disable all interrupts, not just the one where you access the variable. On the other hand, enable/disable interrupts is not for free as well. And in most cases, it is not necessary, because most of the variables will not be shared with an interrupt.
+
+#### How to use interrupts with SDDS
+
+Okay, so far we have learned that interrupts are evil and you should always avoid them! No, actually, interrupts are beautiful. You just have to know how to deal with them. In the following example, we implement an interrupt-driven readout for a button that can have the states `up` or `down`.
+
+First, we declare a global instance of a `TisrEvent`. This is a special event that can be safely signaled from within an ISR. Next, we implement the actual interrupt service routine.
+
+```C++
+TisrEvent evISR; 
+void pinChangeISR(){ evISR.signal(); };
+```
+
+In the interrupt handler, we just signal our global interrupt-safe event. On the other side, in some `sdds_struct`, we install a predefined interrupt handler on a specific PIN and listen for the event to be sent:
+
+```C++
+  ...
+  attachInterrupt(digitalPinToInterrupt(BTN_PIN),pinChangeISR,CHANGE);
+  on(evISR){
+      btn = digitalRead(BTN_PIN) ? TbtnState::e::up : TbtnState::e::down;
+  };
+```
+
+The final code might look like this:
+```C++
+TisrEvent evISR; 
+void pinChangeISR(){ evISR.signal(); };
+
+sdds_enum(down,up) TbtnState;
+
+class TuserStruct : public TmenuHandle{
+    const int BTN_PIN1 = 22;
+    const int BTN_PIN2 = 23;
+    public:
+        sdds_struct(
+            sdds_var(TbtnState,btn1)
+            sdds_var(TbtnState,btn2)
+        )
+        TuserStruct(){
+          pinMode(BTN_PIN1,INPUT);
+          attachInterrupt(digitalPinToInterrupt(BTN_PIN1),pinChangeISR,CHANGE);
+          pinMode(BTN_PIN2,INPUT);
+          attachInterrupt(digitalPinToInterrupt(BTN_PIN2),pinChangeISR,CHANGE);
+          on(evISR){
+              btn1 = digitalRead(BTN_PIN1) ? TbtnState::e::up : TbtnState::e::down;
+              btn2 = digitalRead(BTN_PIN2) ? TbtnState::e::up : TbtnState::e::down;
+          };
+
+} userStruct;
+```
+
+Note how we use the same event and ISR to handle interrupts on 2 pins. Normally, you will have one event and one ISR for each interrupt, but in this scenario it perhaps makes sense to share the resources because the only cost is 1 unnecessary readout in the event handler.
+
+Let's finally check if we followed the guidelines mentioned in the interrupt introduction.
+* Our ISR is as short as possible.
+* We don't access unprotected variables from within the interrupt.
+* We do the actual work outside of the interrupt.
+
 
 ## Known issues
 ### Boards with AVR CPU's
