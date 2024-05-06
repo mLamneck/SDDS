@@ -3,6 +3,7 @@
     #include <windows.h>
 #endif
 
+using namespace multask;
 
 /************************************************************************************
 TtaskHandler
@@ -15,6 +16,12 @@ TtaskHandler& taskHandler(){
 
 void TtaskHandler::signalEvent(Tevent* _ev){
     FprocQ.push_first(_ev);
+}
+
+void TtaskHandler::signalEventISR(Tevent* _ev){
+    disableISR();
+    FinterruptQ.push_first(_ev);
+    enableISR();
 }
 
 void TtaskHandler::setTimeEvent(Tevent* _ev, TsystemTime _relTime){
@@ -41,16 +48,10 @@ void TtaskHandler::reclaimEvent(Tevent* _ev){
 
 void TtaskHandler::dispatchEvent(Tevent* _ev){
     FcurrTask = _ev->Fowner;
-    if (_ev->Fcallback){
-        _ev->beforeDispatch();
-        _ev->Fcallback(_ev);
-        _ev->afterDispatch();
-    }
-    else if (_ev->Fowner){
-        _ev->beforeDispatch();
-        _ev->Fowner->execute(_ev);
-        _ev->afterDispatch();
-    }
+    _ev->beforeDispatch();
+    if (_ev->Fowner) _ev->Fowner->execute(_ev);
+    else _ev->execute();
+    _ev->afterDispatch();
     FcurrTask = nullptr;
 }
 
@@ -62,8 +63,20 @@ void TtaskHandler::calcTime(){
 }
 
 bool TtaskHandler::_handleEvent(){
+    Tevent* ev = nullptr;
+
+    if (FinterruptQ.hasElements()){
+        disableISR();
+        ev = FinterruptQ.pop();
+        enableISR();
+        if (ev){
+            dispatchEvent(ev);
+            return true;
+        }
+    }
+
     calcTime();
-    auto ev = FtimerQ.first();
+    ev = FtimerQ.first();
     if (ev){
         TsystemTime delTime = ev->deliveryTime();
         if (sysTime() >= delTime){
@@ -121,6 +134,10 @@ void Tevent::setTimeEvent(TsystemTime _relTime){
 
 void Tevent::reclaim(){
     taskHandler().reclaimEvent(this);
+}
+
+void TisrEvent::signal(){
+    taskHandler().signalEventISR(this);
 }
 
 

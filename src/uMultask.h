@@ -25,12 +25,11 @@ class Tevent : public TlinkedListElement{
     friend class Tthread;
     friend class TtaskHandler;
     private:
-        Tthread* Fowner;
+        Tthread* Fowner = nullptr;
         TsystemTime FdeliveryTime;
-        TeventProc Fcallback = nullptr;
-        void* Fcontext;
     protected:
         virtual void beforeDispatch(){};
+        virtual void execute(){};
         virtual void afterDispatch(){};
     public:
         #if MULTASK_DEBUG
@@ -44,47 +43,99 @@ class Tevent : public TlinkedListElement{
         void setTimeEvent(TsystemTime _relTime);
         void reclaim();
 
-        void setContext(void* _ctx){ Fcontext = _ctx; }
-        void* context(){ return Fcontext; }
-
+        Tevent(){};
         Tevent(Tthread* _owner);
-        Tevent(TeventProc _cb): Fcallback{_cb} {}
         Tevent(Tthread* _owner, const char* _name) : Tevent(_owner){
             #if MULTASK_DEBUG
                 Fname = _name;
             #endif
         };
-
 };
+
+namespace multask{
+
+    /**
+     * @brief TisrEvent event to be used to notify the application that an interrupt occured
+     * 
+     * This type of event can be used to send the application a notification from withing an 
+     * interrupt. We hide methods derived from Tevent in a private section, because these are
+     * not allowed to be called.
+     */
+    class TisrEvent : public Tevent{
+        private:
+            using Tevent::signal;
+            using Tevent::setTimeEvent;
+            using Tevent::reclaim;
+        public:
+            using Tevent::Tevent;
+            void signal();
+    };
+
+    /**
+     * @brief TisrEventDataQ
+     * 
+     * this is not tested and fully implemented yet. But the idea is to have a ring buffer
+     * That acts like a fifo and can be in one direction, sending data from an interrupt
+     * to the application. It's limited to 255 elements of a given type.
+     * 
+     * @tparam qsize number of elments that can fit into the ringbuffer
+     * @tparam dtype the datatype of each element. If not specified this will be byte.
+     */
+    template <dtypes::uint8 qsize, typename dtype=dtypes::uint8>
+    class TisrEventDataQ : TisrEvent{
+        dtype Fqueue[qsize];
+        dtypes::uint8 Fhead;
+        dtypes::uint8 Ftail;
+        
+        public:
+            using TisrEvent::signal;
+            
+            bool read(dtype& _out){
+                if (Fhead == Ftail) return false;
+                dtypes::uint8 tail = Ftail++;
+                _out = Fqueue[Ftail];
+                Ftail = (tail >= qsize) ? 0 : tail;
+                return true;
+            }
+
+            bool write(dtype _data){
+                dtypes::uint8 head = Fhead >= qsize? 0 : Fhead+1;
+                if (head == Ftail) return false;
+                Fqueue[head] = _data;
+                Fhead = head;
+                return true;
+            }
+    };
 
 
 /************************************************************************************
 TeventQ - only for debuggin purpose print/remove
 *************************************************************************************/
 
-class TeventQ : public TlinkedList<Tevent>{
-    public:
-        void print(){
-            #if MULTASK_DEBUG
-            auto it = iterator();
-            while (it.hasNext()){
-                auto ev = it.next();
-                debug::log("name=%s delTime=%d",ev->Fname,ev->deliveryTime());
+    class TeventQ : public TlinkedList<Tevent>{
+        public:
+            void print(){
+                #if MULTASK_DEBUG
+                auto it = iterator();
+                while (it.hasNext()){
+                    auto ev = it.next();
+                    debug::log("name=%s delTime=%d",ev->Fname,ev->deliveryTime());
+                }
+                #endif
             }
-            #endif
-        }
-        bool remove(Tevent* _ev){
-            #if MULTASK_DEBUG
-                debug::log("--- remove event");
-                print();
-                bool res = TlinkedList<Tevent>::remove(_ev);
-                print();
-                return res;
-            #else
-                return TlinkedList<Tevent>::remove(_ev);
-            #endif
-        }
-};
+            bool remove(Tevent* _ev){
+                #if MULTASK_DEBUG
+                    debug::log("--- remove event");
+                    print();
+                    bool res = TlinkedList<Tevent>::remove(_ev);
+                    print();
+                    return res;
+                #else
+                    return TlinkedList<Tevent>::remove(_ev);
+                #endif
+            }
+    };
+}
 
 
 /************************************************************************************
@@ -94,9 +145,11 @@ TtaskHandler
 class TtaskHandler{
     friend class Tthread;
     friend class Tevent;
+    friend class multask::TisrEvent;
     private:
-        TeventQ FprocQ;
-        TeventQ FtimerQ;
+        multask::TeventQ FinterruptQ;
+        multask::TeventQ FprocQ;
+        multask::TeventQ FtimerQ;
         Tthread* FcurrTask;
         TsystemTime FsysTime = millis();
 
@@ -109,6 +162,7 @@ class TtaskHandler{
         };
 
         void signalEvent(Tevent* _ev);
+        void signalEventISR(Tevent* _ev);
         void setTimeEvent(Tevent* _ev, TsystemTime _relTime);
         void reclaimEvent(Tevent* _ev);
 
