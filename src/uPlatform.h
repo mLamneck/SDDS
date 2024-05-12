@@ -20,10 +20,27 @@
 
     //compatibility with arduino
     constexpr int LED_BUILTIN = 1;
-    constexpr int OUTPUT = 1;
-    void digitalWrite(int pin, int out);
-    inline int digitalRead(int pin) { return 1; };
-    inline void pinMode(int pin, int mode) {};
+    constexpr int PINMODE_OUTPUT = 0;
+    constexpr int PINMODE_INPUT = 0;
+
+    namespace sdds{
+        namespace simul{
+            typedef void(*Tisr)();
+            constexpr int PIN_COUNT = 64;
+            struct Tpin{
+                uint8_t mode = 0;
+                int analogValue = 0;
+                uint8_t digitalValue = 0;
+                Tisr pIsr = nullptr;
+            };
+            inline Tpin pins[PIN_COUNT];
+        }
+    }
+    inline void digitalWrite(int pin, int out) { sdds::simul::pins[pin].digitalValue = out; };
+    inline int  digitalRead(int pin) { return sdds::simul::pins[pin].digitalValue; };
+    inline int  analogRead(int pin) { return sdds::simul::pins[pin].analogValue; };
+    inline void pinMode(int pin, int mode) { sdds::simul::pins[pin].mode = mode; };
+
     template <typename T>
     inline const char* pcTaskGetName(T taskHandle) { return "debugTask"; }
 
