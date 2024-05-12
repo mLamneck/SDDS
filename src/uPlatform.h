@@ -59,6 +59,9 @@
 #else
 	#include <Arduino.h>
 
+    constexpr int PINMODE_OUTPUT = OUTPUT;
+    constexpr int PINMODE_INPUT = INPUT;
+
     //to be checked
     #if defined(ESP32) || defined(ESP8266)
         #define CRC_TAB_IN_PROGMEM 0
