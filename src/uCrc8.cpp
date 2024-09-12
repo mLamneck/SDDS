@@ -3,7 +3,11 @@
 
 namespace crc8{
 	#if CRC_TAB_IN_PROGMEM == 1
+	#if defined(STM32_CUBE)
+	const Tcrc tab[]
+	#else
 	const Tcrc tab[] PROGMEM
+	#endif
 	#else 
 	Tcrc tab[]
 	#endif

@@ -9,7 +9,6 @@
 using namespace dtypes;
 
 class Tevent;
-class Ttask;
 class Tthread;
 class TtaskHandler;
 
@@ -21,11 +20,19 @@ Tevent
 class Tevent;
 typedef void (*TeventProc)(Tevent*);
 
+namespace multask{
+    typedef dtypes::uint8 Tpriority;
+    constexpr int Tpriority_highest = 255;
+}
+
 class Tevent : public TlinkedListElement{
     friend class Tthread;
     friend class TtaskHandler;
+	typedef dtypes::uint8 Ttag;
     private:
         Tthread* Fowner = nullptr;
+        multask::Tpriority Fpriority = 0;
+		Ttag Ftag = 0;
         TsystemTime FdeliveryTime;
     protected:
         virtual void beforeDispatch(){};
@@ -40,11 +47,20 @@ class Tevent : public TlinkedListElement{
         inline TsystemTime deliveryTime() { return FdeliveryTime; }
 
         void signal();
-        void setTimeEvent(TsystemTime _relTime);
+        void signalFromIsr();
+        void setTimeEvent(const TsystemTime _relTime);
+        void setTimeEventTicks(const TsystemTime _relTime);
         void reclaim();
+
+        multask::Tpriority priority() { return Fpriority; }
+        void setPriority(multask::Tpriority _p){ Fpriority = _p; }
+        void setOwner(Tthread* _owner) { Fowner = _owner; }
+		constexpr Ttag tag(){ return Ftag; }
+		constexpr void setTag(const Ttag _val){ Ftag = _val; }
 
         Tevent(){};
         Tevent(Tthread* _owner);
+        Tevent(Tthread* _owner, multask::Tpriority _priority);
         Tevent(Tthread* _owner, const char* _name) : Tevent(_owner){
             #if MULTASK_DEBUG
                 Fname = _name;
@@ -142,6 +158,11 @@ TeventQ - only for debuggin purpose print/remove
 TtaskHandler
 *************************************************************************************/
 
+class A{
+		void foo();
+		void foo() volatile;
+};
+
 class TtaskHandler{
     friend class Tthread;
     friend class Tevent;
@@ -155,6 +176,8 @@ class TtaskHandler{
 
         inline TsystemTime sysTime(){ return FsysTime; }
 
+        void setTaskPriority(Tthread* _thread, multask::Tpriority _priority, bool _transferEvents = true);
+
         void unlinkTimeEvent(Tevent* _ev){
             if (!_ev->linked()) return;
             if (FtimerQ.remove(_ev)) return;
@@ -163,10 +186,10 @@ class TtaskHandler{
 
         void signalEvent(Tevent* _ev);
         void signalEventISR(Tevent* _ev);
-        void setTimeEvent(Tevent* _ev, TsystemTime _relTime);
+        void setTimeEvent(Tevent* _ev, const TsystemTime _relTime);
         void reclaimEvent(Tevent* _ev);
 
-        void dispatchEvent(Tevent* _ev);
+        void dispatchEvent(Tevent* _ev, bool _eventFromIsr);
         void calcTime();
         bool _handleEvent();
         void _handleEvents();
@@ -182,10 +205,17 @@ Tthread
 class Tthread : public Tevent{
     using Tevent::Tevent;
     friend class TtaskHandler;
+
+    multask::Tpriority Fpriority = 0;
+    protected:
+        multask::TeventQ FtaskQ;
     public:
         Tthread();
         Tthread(const char* _name);
         bool isTaskEvent(Tevent* _ev) { return (this==_ev); };
+        Tevent* getTaskEvent() { return this; }
+        void setPriority(multask::Tpriority _priority, bool _transferEvents = true);
+        multask::Tpriority priority() { return Fpriority; }
     protected:
         virtual void execute(Tevent* _ev) = 0;
 };

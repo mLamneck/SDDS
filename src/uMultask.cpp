@@ -14,17 +14,35 @@ TtaskHandler& taskHandler(){
     return taskhandler;
 }
 
+void TtaskHandler::setTaskPriority(Tthread* _thread, multask::Tpriority _priority, bool _transferEvents){
+    if (_transferEvents){
+		if (_priority < _thread->Fpriority){
+			while (_thread->FtaskQ.hasElements()){
+				auto ev = _thread->FtaskQ.pop();
+				signalEvent(ev);
+			}
+		}
+	}
+    _thread->Fpriority = _priority;
+}
+
 void TtaskHandler::signalEvent(Tevent* _ev){
-    FprocQ.push_first(_ev);
+    //FprocQ.push_first(_ev);
+	if (_ev->linked()) return;
+    auto prior = _ev->priority();
+    auto it = FprocQ.iterator();
+    while (it.hasNext()){
+        auto ev = it.next();
+        if (prior > ev->priority()){ break; }
+    }
+    it.insert(_ev);
 }
 
 void TtaskHandler::signalEventISR(Tevent* _ev){
-    disableISR();
     FinterruptQ.push_first(_ev);
-    enableISR();
 }
 
-void TtaskHandler::setTimeEvent(Tevent* _ev, TsystemTime _relTime){
+void TtaskHandler::setTimeEvent(Tevent* _ev, const TsystemTime _relTime){
     unlinkTimeEvent(_ev);
     TsystemTime now = sysTime();
     TsystemTime delTime = now +_relTime;
@@ -46,12 +64,22 @@ void TtaskHandler::reclaimEvent(Tevent* _ev){
     if (FtimerQ.remove(_ev)) return;
 }
 
-void TtaskHandler::dispatchEvent(Tevent* _ev){
+void TtaskHandler::dispatchEvent(Tevent* _ev, bool _eventFromIsr){
     FcurrTask = _ev->Fowner;
-    _ev->beforeDispatch();
-    if (_ev->Fowner) _ev->Fowner->execute(_ev);
-    else _ev->execute();
-    _ev->afterDispatch();
+    if (_ev->Fowner) {
+		//never put an event from isr to the taskQ!!! race condition!!!
+        if ((_ev->Fpriority >= _ev->Fowner->Fpriority) || _eventFromIsr ){
+            _ev->beforeDispatch();
+            _ev->Fowner->execute(_ev);
+            _ev->afterDispatch();
+        } else {
+            _ev->Fowner->FtaskQ.push_first(_ev);
+        }
+    } else {
+        _ev->beforeDispatch();
+        _ev->execute();
+        _ev->afterDispatch();
+    } 
     FcurrTask = nullptr;
 }
 
@@ -66,11 +94,11 @@ bool TtaskHandler::_handleEvent(){
     Tevent* ev = nullptr;
 
     if (FinterruptQ.hasElements()){
-        disableISR();
+        __sdds_isr_disable();
         ev = FinterruptQ.pop();
-        enableISR();
+        __sdds_isr_enable();
         if (ev){
-            dispatchEvent(ev);
+            dispatchEvent(ev,true);
             return true;
         }
     }
@@ -81,14 +109,14 @@ bool TtaskHandler::_handleEvent(){
         TsystemTime delTime = ev->deliveryTime();
         if (sysTime() >= delTime){
             FtimerQ.pop();
-            dispatchEvent(ev);
+            dispatchEvent(ev,false);
             return true;
         }
     }
 
     ev = FprocQ.pop();
     if (ev){
-        dispatchEvent(ev);
+        dispatchEvent(ev,false);
         return true;
     }
 
@@ -124,12 +152,31 @@ Tevent::Tevent(Tthread* _owner){
     //TlinkedListElement();
     Fowner = _owner;
 }
+
+Tevent::Tevent(Tthread* _owner, multask::Tpriority _priority) : 
+    Tevent(_owner)
+{
+    Fpriority = _priority;
+}
+
 void Tevent::signal(){
     taskHandler().signalEvent(this);
 }
 
-void Tevent::setTimeEvent(TsystemTime _relTime){
-    taskHandler().setTimeEvent(this, _relTime);
+void Tevent::signalFromIsr(){
+    taskHandler().signalEventISR(this);
+}
+
+constexpr TsystemTime timeToMilliseconds(const TsystemTime _time){
+	return _time*sdds::sysTime::MILLIS;
+}
+
+void Tevent::setTimeEvent(const TsystemTime _relTime){
+	taskHandler().setTimeEvent(this, timeToMilliseconds(_relTime));
+}
+
+void Tevent::setTimeEventTicks(const TsystemTime _relTime){
+	taskHandler().setTimeEvent(this,_relTime);
 }
 
 void Tevent::reclaim(){
@@ -145,10 +192,16 @@ void TisrEvent::signal(){
 Tthread
 *************************************************************************************/
 
-Tthread::Tthread() : Tevent(this){
+Tthread::Tthread() : Tevent(this,multask::Tpriority_highest){
     taskHandler().FprocQ.push_first(this);
 }
 
 Tthread::Tthread(const char* _name) : Tevent(this, _name){
+    getTaskEvent()->setPriority(multask::Tpriority_highest);
     taskHandler().FprocQ.push_first(this);
 };
+
+void Tthread::setPriority(multask::Tpriority _priority, bool _transferEvents){
+    taskHandler().setTaskPriority(this,_priority,_transferEvents);
+}
+

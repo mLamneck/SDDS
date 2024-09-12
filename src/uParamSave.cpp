@@ -24,7 +24,7 @@ bool TparamStream::writeBytes(const void* _buf, uint8_t _len){
 
 bool TparamStream::readBytes(void* _buf, uint8_t _len){
     auto buf = static_cast<uint8_t*>(_buf);
-    uint8_t byte;
+    uint8_t byte = 0;
     while (_len-- > 0){ 
         if (!readByte(byte)) return false;
         *buf++ = byte;  
@@ -254,7 +254,7 @@ TparamSaveMenu::TparamSaveMenu(){
             TparamStreamer ps;
             #if MARKI_DEBUG_PLATFORM == 1
             TparamFileStream s("c:\\temp\\params.txt",action==TenLoadSave::e::save);
-            #elif USE_EEPROM == 1
+            #else
             //to be done
             TeepromStream s;
             #endif

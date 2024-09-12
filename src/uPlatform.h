@@ -24,6 +24,9 @@
     constexpr int PINMODE_INPUT = 0;
 
     namespace sdds{
+		namespace sysTime{
+			constexpr int SYS_TICK_TIMEBASE = 1000;	//time in us for timeoverflow
+		}
         namespace simul{
             typedef void(*Tisr)();
             constexpr int PIN_COUNT = 64;
@@ -36,6 +39,10 @@
             inline Tpin pins[PIN_COUNT];
         }
     }
+
+    inline void __sdds_isr_disable(){}
+    inline void __sdds_isr_enable(){}
+
     inline void digitalWrite(int pin, int out) { sdds::simul::pins[pin].digitalValue = out; };
     inline int  digitalRead(int pin) { return sdds::simul::pins[pin].digitalValue; };
     inline int  analogRead(int pin) { return sdds::simul::pins[pin].analogValue; };
@@ -56,8 +63,54 @@
 
     dtypes::TsystemTime millis();
 
+#elif defined(STM32_CUBE)
+#define MARKI_DEBUG_PLATFORM 0
+#define CRC_TAB_IN_PROGMEM 0
+
+#include <string>
+//this file has to be created in the project and include the project related hal file i.e stm32c0xx_hal.h
+//#include "stm32_hal.h"
+#include "stm32c0xx_hal.h"
+
+#define __sdds_isr_disable() __disable_irq()
+#define __sdds_isr_enable() __enable_irq()
+#define __sdds_isr_enabled() true;
+
+namespace dtypes {
+	typedef std::string string;
+	typedef uint32_t TsystemTime;
+}
+
+namespace strConv {
+	template<typename valType>
+	inline dtypes::string to_string(valType _val) {
+		return std::to_string(_val);
+	}
+}
+
+namespace sdds{
+	namespace sysTime{
+		constexpr int SYS_TICK_TIMEBASE = 100; //time in us for timeoverflow
+	}
+}
+extern volatile uint32_t uwTick;
+inline dtypes::TsystemTime millis() {
+	return uwTick;
+}
+
 #else
+	#define SDDS_ON_ARDUINO
+
 	#include <Arduino.h>
+
+	namespace sdds{
+		namespace sysTime{
+			constexpr int SYS_TICK_TIMEBASE = 1000; //time in us for timeoverflow
+		}
+	}
+
+	#define __sdds_isr_disable() noInterrupts()
+	#define __sdds_isr_enable() interrupts()
 
     //to be checked
     #if defined(ESP32) || defined(ESP8266)
@@ -83,29 +136,33 @@
 #endif
 
 //available on all compilers?
-namespace dtypes{
-    //signed integers
-    typedef uint8_t uint8;
-    typedef uint16_t uint16;
-    typedef uint32_t uint32;
-    typedef uint64_t uint64;
+namespace dtypes {
+	//signed integers
+	typedef uint8_t uint8;
+	typedef uint16_t uint16;
+	typedef uint32_t uint32;
+	typedef uint64_t uint64;
 
-    //unsigned integers
-    typedef int8_t int8;
-    typedef int16_t int16;
-    typedef int32_t int32;
-    typedef int64_t int64;
+	//unsigned integers
+	typedef int8_t int8;
+	typedef int16_t int16;
+	typedef int32_t int32;
+	typedef int64_t int64;
 
-    //toDo!!! to be checked on each individual compiler and platfom!!!
-    typedef float float32;
-    typedef double float64;
+	//toDo!!! to be checked on each individual compiler and platfom!!!
+	typedef float float32;
+	typedef double float64;
 }
 
-namespace debug{
-    void log(const char* _fmt...);
-}
+namespace sdds{
+	namespace sysTime{
+		constexpr int MILLIS = 1000/SYS_TICK_TIMEBASE;
+	};
+};
 
-void disableISR();
-void enableISR();
+
+namespace debug {
+	void log(const char *_fmt ...);
+}
 
 #endif

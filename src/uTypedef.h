@@ -218,14 +218,14 @@ class Tdescr : public TlinkedListElement{
         //helper funtions
         static bool _strToDouble(const char* _str, double& _res){
             char * pEnd = NULL;
-            _res = strtod(_str, &pEnd);
+            //_res = strtod(_str, &pEnd);
             if (*pEnd){
                 return isspace(*pEnd);
             }
             return !(*pEnd);
         }
         template<typename ValType> static bool _strToNumber(const char* _str, ValType& _val){
-            double d;
+            double d = 0;
             bool result = Tdescr::_strToDouble(_str,d);
             _val = d;
             return result;

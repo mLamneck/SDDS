@@ -5,12 +5,13 @@
 
 #include "uTypedef.h"
 #include "uCrc8.h"
-#if MARKI_DEBUG_PLATFORM == 0
-    #define USE_EEPROM 1
+
+#if SDDS_ON_ARDUINO == 1
+    #include <EEPROM.h>
 #endif
 
-#if USE_EEPROM == 1
-    #include <EEPROM.h>
+#ifndef SDDS_EEPROM_SIZE
+	#define SDDS_EEPROM_SIZE 0
 #endif
 
 enum class TseekMode {start, end, curr};
@@ -46,7 +47,6 @@ class TparamStream{
         TstreamLength high(){ return FhighWater; }
 };
 
-#if USE_EEPROM == 1
 
 #ifndef SDDS_EEPROM_COMMIT 
     #define SDDS_EEPROM_COMMIT 1
@@ -58,22 +58,29 @@ class TeepromStream : public TparamStream{
     virtual TstreamLength availableForRead() override { return SDDS_EEPROM_SIZE - curr(); }
 
     bool doWriteByte(uint8_t _byte) override{
+		#if SDDS_ON_ARDUINO == 1
         EEPROM.put(curr(),_byte);
+		#endif
         return true;
     }
 
     bool doReadByte(uint8_t& _byte) override {
+		#if SDDS_ON_ARDUINO == 1
         EEPROM.get(curr(),_byte);
+		#endif
         return true;
     }
 
     void flush() override {
-        #if SDDS_EEPROM_COMMIT == 1
-        EEPROM.commit();
-        #endif
+		#if SDDS_ON_ARDUINO == 1
+		#if SDDS_EEPROM_COMMIT == 1
+		EEPROM.commit();
+		#endif
+		#endif
     }
 };
 
+#if SDDS_ON_ARDUINO == 1
 #endif
 
 #if MARKI_DEBUG_PLATFORM == 1

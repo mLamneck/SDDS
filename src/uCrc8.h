@@ -6,7 +6,11 @@
 namespace crc8{
 	typedef uint8_t Tcrc;
     #if CRC_TAB_IN_PROGMEM == 1
+		#if defined(STM32_CUBE)
+		extern const Tcrc tab[];
+		#else
 		extern const Tcrc tab[] PROGMEM;
+		#endif
 	#else 
 		extern Tcrc tab[];
 	#endif

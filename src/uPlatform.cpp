@@ -23,15 +23,12 @@ dtypes::TsystemTime millis(){
     return _millis() - startTime;
 }
 
-void disableISR(){}
-void enableISR(){}
+#elif defined(SDDS_ON_ARDUINO)
+
+void debug::log(const char* _fmt...){}
 
 #else
 
 void debug::log(const char* _fmt...){}
-
-void disableISR(){ noInterrupts(); }
-void enableISR(){ interrupts(); }
-
 
 #endif
