@@ -2,6 +2,14 @@
 
 #if MARKI_DEBUG_PLATFORM == 1
 
+void debug::write(const char* _fmt...)
+{
+    va_list argptr;
+    va_start(argptr, _fmt);
+    vfprintf(stderr, _fmt, argptr);
+    va_end(argptr);
+}
+
 void debug::log(const char* _fmt...)
 {
     va_list argptr;
@@ -26,9 +34,12 @@ dtypes::TsystemTime millis(){
 #elif defined(SDDS_ON_ARDUINO)
 
 void debug::log(const char* _fmt...){}
+void debug::write(const char* _fmt...){}
+
 
 #else
 
 void debug::log(const char* _fmt...){}
+void debug::write(const char* _fmt...){}
 
 #endif

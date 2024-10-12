@@ -152,6 +152,18 @@ namespace dtypes {
 	//toDo!!! to be checked on each individual compiler and platfom!!!
 	typedef float float32;
 	typedef double float64;
+
+	template <typename T> constexpr T high();
+	template <> constexpr uint8 high<uint8>() { return 255; } 
+	template <> constexpr uint16 high<uint16>() { return 65535; } 
+	template <> constexpr uint32 high<uint32>() { return 4294967295U; } 
+	template <> constexpr uint64 high<uint64>() { return 18446744073709551615ULL; } 
+	template <> constexpr int8 high<int8>() { return 127; } 
+	template <> constexpr int16 high<int16>() { return 32767; } 
+	template <> constexpr int32 high<int32>() { return 2147483647; } 
+	template <> constexpr int64 high<int64>() { return 9223372036854775807LL; } 
+	template <> constexpr float32 high<float32>() { return 3.402823e+38F; } 
+	template <> constexpr float64 high<float64>() { return 1.7976931348623157e+308; }
 }
 
 namespace sdds{
@@ -162,6 +174,7 @@ namespace sdds{
 
 
 namespace debug {
+	void write(const char *_fmt ...);
 	void log(const char *_fmt ...);
 }
 
