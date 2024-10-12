@@ -86,6 +86,7 @@ namespace sdds{
 
     namespace typeIds{
         constexpr uint8_t size_mask = 0x0F; 
+		constexpr uint8_t first_compose_type = 0x42;
     }
 
     enum class Ttype : dtypes::uint8{
@@ -168,6 +169,7 @@ Tdescr - abstract class for all types
 *************************************************************************************/
 
 class Tdescr : public TlinkedListElement{
+	typedef dtypes::TdateTime TdateTime;
     friend class TmenuHandle;
 
     private:
@@ -181,6 +183,8 @@ class Tdescr : public TlinkedListElement{
         
         Tdescr();
 
+		Tdescr* next() { return static_cast<Tdescr*>(TlinkedListElement::next()); }
+		
         Tcallbacks* callbacks(){ return &Fcallbacks; }
         void signalEvents();
 
@@ -193,6 +197,7 @@ class Tdescr : public TlinkedListElement{
         virtual const char* name(){return ""; };
         virtual sdds::Toption option(){return 0; };
         virtual dtypes::uint8 valSize() { return static_cast<uint8_t>(type()) & sdds::typeIds::size_mask; }
+		
         virtual void* pValue() { return nullptr; };
 
         sdds::Toption showOption(){ return (option() & sdds::opt::mask_show); }
@@ -609,6 +614,9 @@ public:
     TobjectEvent* objectEvent(){ return FobjectEvent; }
 };
 
+//toDo: adjust TrangeItem according to platform to support maximum value
+//on platforms where 16bit values for TrangeItem are available, use 16 bit here
+//as we are not limited in memory there.
 typedef dtypes::uint8 TrangeItem;
 constexpr dtypes::uint8 TrangeItem_max = 255;
 
@@ -632,15 +640,19 @@ class TobjectEvent : public TlinkedListElement{
         Tevent* event();
         void signal(TrangeItem _first = 0, TrangeItem _last = TrangeItem_max);
 
-        TobjectEvent(Tthread* _owner);
+		void cleanup();
+		
+		void setOwner(Tthread* _thread){ Fevent.setOwner(_thread); }
+		TobjectEvent(Tthread* _owner) : Fevent(_owner,this){
+			afterDispatch();
+		}
+		TobjectEvent() : TobjectEvent(nullptr) {};
 
         static TobjectEvent* retrieve(Tevent* _ev){
             auto __oe = static_cast<__TobjectEvent*>(_ev);
             return __oe->objectEvent();
         }
 };
-
-
 
 class TobjectEventList : public TlinkedList<TobjectEvent>{
     public:
@@ -660,6 +672,7 @@ TmenuHandle - base class to be used to declare a structure with descriptive elem
 /**
  */
 class TmenuHandle : public Tstruct{
+	friend class TobjectEvent;
     public:
         typedef TlinkedListIterator<Tdescr> Titerator;
     private:
@@ -674,7 +687,7 @@ class TmenuHandle : public Tstruct{
 
         TobjectEventList* events() { return &FobjectEvents; }
 
-        void* pValue() override { return nullptr; };
+        //void* pValue() override { return nullptr; };
 
         void signalEvents(Tdescr* _sender){
             if (events()->hasElements()){
@@ -696,16 +709,43 @@ class TmenuHandle : public Tstruct{
         Tdescr* find(const char* _name);
 
         template <class _TstringRef>
-        Tdescr* find(_TstringRef _name){
-            for (auto it = FmenuItems.iterator(); it.hasNext();){
+        int find(_TstringRef _name, Tdescr*& _descr){
+			_descr = nullptr;
+			int idx = 0;
+            for (auto it = FmenuItems.iterator(); it.hasNext(); idx++){
                 auto descr = it.next();
                 if (_name == descr->name()){
-                    return descr;
+					_descr = descr;
+			        return idx;
                 };
             }
             //throw Exception(_name + " not found");
-            return nullptr;
+            return -1;
         }
+
+        template <class _TstringRef>
+        Tdescr* find(_TstringRef _name){
+			Tdescr* descr;
+			find(_name,descr);
+			return descr;
+        }
+
+		Tdescr* get(int _idx){
+			Tdescr* res = nullptr;
+			auto it = iterator();
+			while (_idx-- >= 0){
+				if (!it.hasNext()) return nullptr;
+				res = it.next();
+			}
+			return res;
+		}
+
+		Tdescr* last(){
+			Tdescr* res = nullptr;
+			auto it = iterator();
+			while (it.hasNext()) res = it.next();
+			return res;
+		}
 
         #if (MARKI_DEBUG_PLATFORM == 1)
         void log(dtypes::string _pre = ""){
@@ -791,7 +831,7 @@ class Tokenizer{
             while (Fstr.hasNext()){
                 char c = Fstr.next();
                 Fcurr = c;
-                if ((c == '/') || (c == '.') || (c=='=') || (c=='?')){
+                if ((c == '/') || (c=='-') || (c == '.') || (c=='=') || (c=='?')){
                     return TsubStringRef(pStart,Fstr.pCurr()-1);
                 }
             }
@@ -838,6 +878,67 @@ class Tlocator{
             }
             return false;
         }
+};
+
+template<typename t_path_length, typename t_path_entry>
+class TbinLocator{
+    private:
+        Tdescr* Fresult = nullptr;
+		TmenuHandle* Fmenu = nullptr;
+		Tdescr* FfirstItem = nullptr;
+		Tdescr* FlastItem = nullptr;
+		t_path_entry FfirstItemIdx = 0;
+		t_path_entry FlastItemIdx = 0;
+	public:
+		static int constexpr MAX_ENTRY = dtypes::high<t_path_entry>();
+
+		TmenuHandle* menu() { return Fmenu; }
+		Tdescr* firstItem() { return FfirstItem; }
+		Tdescr* lastItem() { return FlastItem; }
+		t_path_entry firstItemIdx() { return FfirstItemIdx; }
+		t_path_entry lastItemIdx() { return FlastItemIdx; }
+		
+		template <class TmemoryStream>
+        bool locate(TmemoryStream& _ms, TmenuHandle* _root){
+			t_path_length length = 0;
+			t_path_entry entry = 0;
+			if (!_ms.readVal(length)) return false;
+			if (length < 2) return false;
+
+            TmenuHandle* parent = _root;
+			while (length-- > 0){
+				if (!_ms.readVal(entry)) return false;
+				Tdescr* d;
+				if (length > 1){
+					d = parent->get(entry);
+					if (!d) return false;
+					if (!d->isStruct()) return false;
+					parent = static_cast<Tstruct*>(d)->value();
+				}
+				else if (length == 1){
+					d = parent->get(entry);
+					if (!d) return false;
+					FfirstItemIdx = entry;
+					FfirstItem = d;
+				}
+				else{
+					//if (entry == 2^(8*sizeof(t_path_entry))-1) 
+					if (entry < MAX_ENTRY){
+						if (dtypes::uint32(entry + FfirstItemIdx - 1) > MAX_ENTRY) return false;
+						entry = entry + FfirstItemIdx - 1;
+						d = parent->get(entry);
+					} 
+					else
+						d = parent->last();
+					if (!d) return false;
+					FlastItemIdx = entry;
+					FlastItem = d;
+				}
+			}
+			Fmenu = parent;
+            return true;
+        }
+
 };
 
 /*

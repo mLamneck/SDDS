@@ -179,9 +179,10 @@ void TobjectEvent::signal(TrangeItem _first, TrangeItem _last){
     event()->signal();
 }
 
-
-TobjectEvent::TobjectEvent(Tthread* _owner) : Fevent(_owner,this){
-    afterDispatch();
+void TobjectEvent::cleanup(){
+	if (!Fstruct) return;
+	Fstruct->events()->remove(this);
+	Fevent.reclaim();
 }
 
 void TobjectEventList::signal(TrangeItem _first){
@@ -190,6 +191,9 @@ void TobjectEventList::signal(TrangeItem _first){
         ev->signal(_first,_first);
     }
 }
+
+
+
 
 
 /************************************************************************************
