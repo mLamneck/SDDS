@@ -114,6 +114,7 @@ class TsubStringRef : public TstringRef{
 			//if _length=1 -> Fend=Fstr+1 
 			//Fend = _str + (_length > 0? _length-1 : 0);
 			Fend = _str + (_length > 0? _length : 0);
+			initIterate();
         }
 		void init(const void* _str, const int _length){
 			const char* str = static_cast<const char*>(_str);
@@ -121,6 +122,7 @@ class TsubStringRef : public TstringRef{
 			//BUGFIX 06.09.2024 see comment above
             //Fend = str + (_length > 0? _length-1 : 0);
 			Fend = str + (_length > 0? _length : 0);
+			initIterate();
 		}
 
 		int length() { return (Fend - Fstr); }
