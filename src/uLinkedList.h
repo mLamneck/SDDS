@@ -140,6 +140,7 @@ template<class elementType> class TlinkedList : public _TlinkedList{
         elementType* first() { return (elementType*)_TlinkedList::first(); };
         elementType* pop() { return (elementType*)_TlinkedList::pop(); }
         void push_back(elementType* _element){ _TlinkedList::push_back(_element); };
+        void push_first(elementType* _element){ _TlinkedList::push_first(_element); };
 };
 
 
