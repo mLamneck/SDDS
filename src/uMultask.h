@@ -6,8 +6,6 @@
 #include "uPlatform.h"
 #include "uLinkedList.h"
 
-using namespace dtypes;
-
 class Tevent;
 class Tthread;
 class TtaskHandler;
@@ -26,19 +24,31 @@ namespace multask{
 }
 
 class Tevent : public TlinkedListElement{
+	typedef dtypes::TsystemTime TsystemTime;
+
     friend class Tthread;
     friend class TtaskHandler;
-	typedef dtypes::uint8 Ttag;
     private:
         Tthread* Fowner = nullptr;
-        multask::Tpriority Fpriority = 0;
-		Ttag Ftag = 0;
         TsystemTime FdeliveryTime;
+        multask::Tpriority Fpriority = 0;
     protected:
         virtual void beforeDispatch(){};
         virtual void execute(){};
         virtual void afterDispatch(){};
     public:
+		union{
+			struct{
+				dtypes::uint8 byte0;
+				dtypes::uint8 byte1;
+				dtypes::uint8 byte2;
+				dtypes::uint8 byte3;
+			};
+			struct{
+				dtypes::uint16 word0;
+				dtypes::uint16 word1;
+			};
+		} args;
         #if MULTASK_DEBUG
         const char* Fname;
         #endif
@@ -55,8 +65,6 @@ class Tevent : public TlinkedListElement{
         multask::Tpriority priority() { return Fpriority; }
         void setPriority(multask::Tpriority _p){ Fpriority = _p; }
         void setOwner(Tthread* _owner) { Fowner = _owner; }
-		constexpr Ttag tag(){ return Ftag; }
-		constexpr void setTag(const Ttag _val){ Ftag = _val; }
 
         Tevent(){};
         Tevent(Tthread* _owner);
@@ -158,12 +166,13 @@ TeventQ - only for debuggin purpose print/remove
 TtaskHandler
 *************************************************************************************/
 
-class A{
-		void foo();
-		void foo() volatile;
-};
+namespace multask{
+	typedef dtypes::TsystemTime TsystemTime;
+}
 
 class TtaskHandler{
+	typedef multask::TsystemTime TsystemTime;
+
     friend class Tthread;
     friend class Tevent;
     friend class multask::TisrEvent;
