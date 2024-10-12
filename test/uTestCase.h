@@ -10,6 +10,7 @@ namespace unitTest{
 }
 
 class TtestCase{
+	typedef dtypes::uint8 uint8;
     private:
         const char* FtestUnit;
         char FlogBuffer[1024];
@@ -24,10 +25,25 @@ class TtestCase{
             for (auto i = 0; i<size; i++){
                 run += sprintf(&FlogBuffer[run],"0x%.2X ",buf[i]);
             }
+			FlogBuffer[run]=0;
             return &FlogBuffer[0];
         }
 
         char* binToHex(dtypes::string _str){ return binToHex(_str.data(),_str.length()); }
+
+		void logStruct(TmenuHandle& s1, dtypes::string _pre = ""){
+			for (auto it=s1.iterator(); it.hasNext();){
+				auto d = it.next();
+				if (d->isStruct()){
+					TmenuHandle* mh1 = static_cast<Tstruct*>(d)->value();
+					debug::log("%s-> %s",_pre.c_str(),d->name());
+					logStruct(*mh1,_pre + "  ");
+					debug::log("%s<- %s",_pre.c_str(),d->name());
+				} else {
+					debug::log("%s%s=%s",_pre.c_str(),d->name(),d->to_string().c_str());
+				}
+			}
+		}
 
         void doTest(TtestProc _tp, const char* _name){
             debug::log("--------------- running test %s",_name);
@@ -66,6 +82,43 @@ class TtestCase{
 };
 
 namespace unitTest{
+	class TtestData: public TmenuHandle{
+		public:
+			class TstructAllTypes : public TmenuHandle{
+			public:
+				sdds_struct(
+					sdds_var(Tuint8,Fuint8,sdds::opt::saveval,0)
+					sdds_var(Tuint16,Fuint16,sdds::opt::saveval,0)
+					sdds_var(Tuint32,Fuint32,sdds::opt::saveval,0)
+
+					sdds_var(Tint8,Fint8,sdds::opt::saveval,0)
+					sdds_var(Tint16,Fint16,sdds::opt::saveval,0)
+					sdds_var(Tint32,Fint32,sdds::opt::saveval,0)
+
+					sdds_var(Tfloat32,Ffloat32,sdds::opt::saveval,0)
+
+					sdds_var(Ttime,Ftime,sdds::opt::saveval,stringToTime("10:00:00"))
+
+					sdds_var(Tstring,Fstr,sdds::opt::saveval)
+				)
+		};
+
+		class TnestedStruct : public TmenuHandle{
+			public:
+			sdds_struct(
+				sdds_var(Tuint8,Fuint8);
+				sdds_var(TstructAllTypes,allTypes)
+			)
+		};
+
+		sdds_struct(
+			sdds_var(Tuint8,var1)
+			sdds_var(TstructAllTypes,allTypes)
+			sdds_var(TnestedStruct,sub)
+			sdds_var(Tuint8,var2)
+		)
+	};
+
     int FnTests;
     static TtestCase* Ftests[MAX_TESTS];
     int Ffailed;
