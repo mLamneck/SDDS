@@ -58,7 +58,7 @@ bool TplainCommHandler::prepareConnRelatedMsg(TstringRef& _msg){
     //find port
     for (auto it = Fconnections.iterator(); it.hasNext(); ){
         auto lconn = it.next();
-        if (lconn->FobjEvent.Ftag == Fport){
+        if (getPort(&lconn->FobjEvent) == Fport){
             Fconn = lconn;
             TmenuHandle* lmh = Fconn->menuHandle();
             lmh->events()->remove(&Fconn->FobjEvent);
@@ -79,7 +79,7 @@ void TplainCommHandler::linkPath(TstringRef& _msg){
         Fconnections.push_first(conn);
     }
     conn->FobjEvent.Fstruct = Fmh;
-    conn->FobjEvent.Ftag = Fport;
+    setPort(&conn->FobjEvent,Fport);
     Fmh->events()->push_first(&conn->FobjEvent);
     conn->FobjEvent.signal();
 }
@@ -178,7 +178,7 @@ void TplainCommHandler::execute(Tevent* _ev){
         auto last = oe->last();
 
         Fstream->write("l ");
-        Fstream->write(oe->Ftag);
+        Fstream->write(getPort(oe));
         Fstream->write(" ");
         Fstream->write(first);
         Fstream->write(" ");

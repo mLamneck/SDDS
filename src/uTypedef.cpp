@@ -161,8 +161,8 @@ void __TobjectEvent::afterDispatch(){
 }
 
 void TobjectEvent::afterDispatch(){
-    Ffirst = TrangeItem_max;
-    Flast = 0;
+    FchangedRange.Ffirst = sdds::TrangeItem_max;
+    FchangedRange.Flast = 0;
 }
 
 Tevent* TobjectEvent::event(){
@@ -170,11 +170,15 @@ Tevent* TobjectEvent::event(){
 }
 
 void TobjectEvent::signal(TrangeItem _first, TrangeItem _last){
-    if (_first < Ffirst){
-        Ffirst = _first;
+	Trange newRange(_first,_last);
+	if (!newRange.intersection(FobservedRange)) 
+		return;
+
+    if (newRange.Ffirst < FchangedRange.Ffirst){
+        FchangedRange.Ffirst = newRange.Ffirst;
     }
-    if (_last > Flast){
-        Flast = _last;
+    if (newRange.Flast > FchangedRange.Flast){
+        FchangedRange.Flast = newRange.Flast;
     }
     event()->signal();
 }
@@ -185,11 +189,15 @@ void TobjectEvent::cleanup(){
 	Fevent.reclaim();
 }
 
-void TobjectEventList::signal(TrangeItem _first){
-    for (auto it = iterator(); it.hasNext(); ){
-        auto ev = it.next();
-        ev->signal(_first,_first);
-    }
+void TobjectEventList::signal(TrangeItem _first, int _n, dtypes::uint16 _port){
+	if (_n <= 0) return;
+
+	for (auto it = iterator(); it.hasNext(); ){
+		auto ev = it.next();
+		if ((_port != 0) && (_port == ev->Fevent.args.word1))
+			continue;
+		ev->signal(_first,_first+_n-1);
+	}
 }
 
 

@@ -87,6 +87,8 @@ namespace sdds{
     namespace typeIds{
         constexpr uint8_t size_mask = 0x0F; 
 		constexpr uint8_t first_compose_type = 0x42;
+
+        constexpr uint8_t time = 0x06; 
     }
 
     enum class Ttype : dtypes::uint8{
@@ -94,7 +96,7 @@ namespace sdds{
         UINT16  = 0x02,
         UINT32  = 0x04,
 
-        TIME    = 0x06,
+        TIME    = typeIds::time,
 
         INT8    = 0x11,
         INT16   = 0x12,
@@ -614,34 +616,68 @@ public:
     TobjectEvent* objectEvent(){ return FobjectEvent; }
 };
 
-//toDo: adjust TrangeItem according to platform to support maximum value
-//on platforms where 16bit values for TrangeItem are available, use 16 bit here
-//as we are not limited in memory there.
-typedef dtypes::uint8 TrangeItem;
-constexpr dtypes::uint8 TrangeItem_max = 255;
+namespace sdds{
+	//toDo: adjust TrangeItem according to platform to support maximum value
+	//on platforms where 16bit values for TrangeItem are available, use 16 bit here
+	//as we are not limited in memory there.
+	typedef dtypes::uint8 TrangeItem;
+	constexpr static dtypes::uint8 TrangeItem_max = dtypes::high<TrangeItem>();
+
+	struct Trange {
+		TrangeItem Ffirst;
+		TrangeItem Flast;
+
+		Trange(TrangeItem _first, TrangeItem _last){
+			Ffirst = _first;
+			Flast = _last;
+		}
+
+		Trange() : Trange(0,TrangeItem_max){
+		
+		}
+
+		bool intersection(const Trange& _r) {
+			TrangeItem newFirst = std::max(Ffirst, _r.Ffirst);
+			TrangeItem newLast = std::min(Flast, _r.Flast);
+			if (newFirst > newLast) return false;
+
+			Ffirst = newFirst;
+			Flast = newLast;
+			return true;
+		}
+	};
+}
 
 class TobjectEvent : public TlinkedListElement{
+	typedef sdds::Trange Trange;
+	typedef sdds::TrangeItem TrangeItem;
+	 
     friend class __TobjectEvent;
     friend class TobjectEventList;
     private:
         __TobjectEvent Fevent;
-        const char* Fname;
-        TrangeItem Ffirst;
-        TrangeItem Flast;
+		Trange FobservedRange;
+		Trange FchangedRange;
     public:
         TmenuHandle* Fstruct;
-        dtypes::uint8 Ftag;
 
         void afterDispatch();
 
         TmenuHandle* menuHandle() { return Fstruct; }
-        TrangeItem first() { return Ffirst; }
-        TrangeItem last() { return Flast; }
+        TrangeItem first() { return FchangedRange.Ffirst; }
+        TrangeItem last() { return FchangedRange.Flast; }
         Tevent* event();
-        void signal(TrangeItem _first = 0, TrangeItem _last = TrangeItem_max);
+        void signal(TrangeItem _first = 0, TrangeItem _last = sdds::TrangeItem_max);
 
 		void cleanup();
-		
+
+		template <class _Tlocator>
+		void setObservedRange(_Tlocator& _l){
+			Fstruct = _l.menu();
+			FobservedRange.Ffirst = _l.firstItemIdx();
+			FobservedRange.Flast = _l.lastItemIdx();
+		}
+
 		void setOwner(Tthread* _thread){ Fevent.setOwner(_thread); }
 		TobjectEvent(Tthread* _owner) : Fevent(_owner,this){
 			afterDispatch();
@@ -655,13 +691,15 @@ class TobjectEvent : public TlinkedListElement{
 };
 
 class TobjectEventList : public TlinkedList<TobjectEvent>{
+	typedef TobjectEvent::TrangeItem TrangeItem;
+
     public:
         void signal(){
             for (auto it = iterator(); it.hasNext(); ){
                 it.next()->event()->signal();
             }
         }
-        void signal(TrangeItem _first);
+        void signal(TrangeItem _first, int _n = 1, dtypes::uint16 _port = 0);
 };
 
 
@@ -672,6 +710,8 @@ TmenuHandle - base class to be used to declare a structure with descriptive elem
 /**
  */
 class TmenuHandle : public Tstruct{
+	typedef sdds::TrangeItem TrangeItem;
+
 	friend class TobjectEvent;
     public:
         typedef TlinkedListIterator<Tdescr> Titerator;

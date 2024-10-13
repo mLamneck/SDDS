@@ -14,7 +14,9 @@ namespace dtypes{
         struct TdateTime
         {
             time_t tv_sec;
-            dtypes::uint16 tv_usec;
+            //16 bit is not enough! 1sec = 1000*1000us
+			//dtypes::uint16 tv_usec;
+            dtypes::uint32 tv_usec;
         };
     #else
         typedef timeval TdateTime;
