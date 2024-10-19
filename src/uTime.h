@@ -8,10 +8,8 @@
 #ifdef SDDS_ON_AVR
 #endif
 
-#if defined(STM32_CUBE)
-#define SDDS_UTIME_CAN_PARSE_TEXT 0
-#else
-#define SDDS_UTIME_CAN_PARSE_TEXT 1
+#ifndef __SDDS_UTIME_CAN_PARSE_TEXT
+	#define __SDDS_UTIME_CAN_PARSE_TEXT 1
 #endif
 
 namespace dtypes{
@@ -144,7 +142,7 @@ class TdateTimeParser{
          *
          */
         bool parse(){
-#if SDDS_UTIME_CAN_PARSE_TEXT == 1
+#if __SDDS_UTIME_CAN_PARSE_TEXT == 1
           Ftm = {};
           Ftm.tm_hour = 1;    //if not time is parsed, hour has to be 1
           Fmillisecs = 0;
