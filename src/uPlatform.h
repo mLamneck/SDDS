@@ -67,6 +67,9 @@
 #define MARKI_DEBUG_PLATFORM 0
 #define CRC_TAB_IN_PROGMEM 0
 
+#define __SDDS_UTYPEDEF_COMPILE_VALTOSTRING 0
+#define __SDDS_UTIME_CAN_PARSE_TEXT 0
+
 #include <string>
 //this file has to be created in the project and include the project related hal file i.e stm32c0xx_hal.h
 //#include "stm32_hal.h"
