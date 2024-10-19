@@ -11,6 +11,37 @@ void string_sub(const char* _src, char* _dest, const char* _pSrcStart, const cha
 const char* string_find(const char* _str, const char _c);
 inline bool string_cmp(const char* _s1, const char* _s2){ return (strcmp(_s1,_s2)==0); }
 
+namespace uStrings{
+	/**
+	 * @brief Get the String N object from an array of char in the 
+	 * form "str1\0str2\0...stringN\0\0"
+	 * 
+	 * @param _inp 
+	 * @param _n nth string to return. 0 returns _inp
+	 * @return if (_n<strings in input) return the nTh string in fromArray, nullptr otherwise.
+	 */
+	inline const char* getStringN(const char* _inp, int _n){
+		while (_n-- > 0){
+			while (*_inp != '\0') _inp++;
+			if (*(++_inp) == '\0') return nullptr;  
+		}
+		return _inp;
+	}
+
+	struct TstringArrayIterator{
+		const char* FcurrStr;
+		TstringArrayIterator(const char* _s){
+			FcurrStr = _s;
+		}
+		bool hasNext(){ return FcurrStr; }
+		const char* next(){
+			auto temp = FcurrStr;
+			FcurrStr = getStringN(FcurrStr,1);
+			return temp;
+		}
+	};
+}
+
 template <class _TstringRef>
 bool string_cmp(_TstringRef& _s1, const char* _s2){
 	if (_s1.isNil() || !_s2) return false;
