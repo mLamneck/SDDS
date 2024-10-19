@@ -15,6 +15,10 @@ toDo:
 #include "uEnumMacros.h"
 #include "uTime.h"
 
+#ifndef __SDDS_UTYPEDEF_COMPILE_STRCONV
+	#define __SDDS_UTYPEDEF_COMPILE_STRCONV 1
+#endif
+
 #ifdef SDDS_ON_AVR
     //functional not available in AVR-gcc
 #else
@@ -204,6 +208,7 @@ class Tdescr : public TlinkedListElement{
 
         sdds::Toption showOption(){ return (option() & sdds::opt::mask_show); }
         inline bool saveval() { return ((option() & sdds::opt::saveval) > 0); }
+		inline bool readonly() { return ((option() & sdds::opt::readonly) > 0); }
 
         //propably compare default value to current and only save if different
         inline bool shouldBeSaved(){ return saveval(); }
@@ -222,10 +227,12 @@ class Tdescr : public TlinkedListElement{
         functions for type conversion used by derived types
         *************************************************************************************/
 
+#if __SDDS_UTYPEDEF_COMPILE_STRCONV
+
         //helper funtions
         static bool _strToDouble(const char* _str, double& _res){
             char * pEnd = NULL;
-            //_res = strtod(_str, &pEnd);
+            _res = strtod(_str, &pEnd);
             if (*pEnd){
                 return isspace(*pEnd);
             }
@@ -233,9 +240,9 @@ class Tdescr : public TlinkedListElement{
         }
         template<typename ValType> static bool _strToNumber(const char* _str, ValType& _val){
             double d = 0;
-            bool result = Tdescr::_strToDouble(_str,d);
+            if (!Tdescr::_strToDouble(_str,d)) return false;
             _val = d;
-            return result;
+            return true;
         }
 
         //********* convert internal values to string ***************
@@ -276,6 +283,7 @@ class Tdescr : public TlinkedListElement{
         ;}
 
         static bool _strToValue(const char* _str, TmenuHandle*& _value){return true;}
+#endif
 
 };
 
@@ -305,15 +313,18 @@ template <class ValType, sdds::Ttype _type_id> class TdescrTemplate: public Tdes
         void* pValue() override { return &Fvalue; };
 
         bool setValue(const char* _str) override {
+#if __SDDS_UTYPEDEF_COMPILE_STRCONV
             if (_strToValue(_str,Fvalue)){
                 signalEvents();
                 return true;
             }
+#endif
             return false;
         }
 
+#if __SDDS_UTYPEDEF_COMPILE_STRCONV
         TrawString to_string() override { return Tdescr::_valToStr(Fvalue); };
-
+#endif
         inline ValType value(){return Fvalue; }
 
         operator ValType() const
@@ -391,8 +402,11 @@ Enums
 class TenumBase : public Tdescr{
     public:
         TenumBase(){}
+		virtual uStrings::TstringArrayIterator iterator() = 0;
         virtual int enumCnt() { return 0; };
         virtual const char* getEnum(int _idx) { return ""; };
+        virtual int enumBufferSize() { return 0; };
+        virtual const char* enumBuffer() { return nullptr; };
 };
 
 template <typename ValType, sdds::Ttype _type_id=sdds::Ttype::ENUM> class TenumTemplate: public TenumBase{
@@ -418,8 +432,11 @@ template <typename ValType, sdds::Ttype _type_id=sdds::Ttype::ENUM> class TenumT
         dtypes::uint8 valSize() override { return sizeof(dtype); }
         void* pValue() override { return &Fvalue.Fvalue; };
 
+		uStrings::TstringArrayIterator iterator() override { return Fvalue.iterator(); }
         int enumCnt() override { return ValType::COUNT; };
         const char* getEnum(int _idx) override { return Fvalue.getEnum(_idx); }
+        int enumBufferSize() override { return Fvalue.enumBufferSize(); };
+        const char* enumBuffer() override { return Fvalue.enumBuffer(); };
 
         bool setValue(const char* _str) override {
             if (Fvalue.strToVal(_str)){
@@ -448,7 +465,7 @@ template <typename ValType, sdds::Ttype _type_id=sdds::Ttype::ENUM> class TenumT
 };
 
 #define __sdds_namedEnum(_name, ...) \
-    ENUM_CLASS(_name,__VA_ARGS__);\
+    sdds_enumClass(_name,__VA_ARGS__);\
     typedef TenumTemplate<_name>
 
 //do not use anymore use sdds_enum
