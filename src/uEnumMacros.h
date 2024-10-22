@@ -2,6 +2,7 @@
 #define UENUMMACROS_h
 
 #include "uSpookyMacros.h"
+#include "uStrings.h"
 
 #define ENUM__TOKENPASTE(x, y) x ## y
 #define ENUM__TOKENPASTE2(x, y) ENUM__TOKENPASTE(x, y)
@@ -64,22 +65,22 @@ namespace sdds{
 /**
  * @brief 
  * notes:
- * 	ENUM_STRS_NAME(_name): is a string containing all enums in form en1\0en2\0...enM\0\0 with an additional \0 at the
+ * 	ENUM_STRS_NAME(_name): is a string containing all enums in form \0en1\0en2\0...enM\0\0 with an additional \0 at the
  * 		very end. That's why we return sizeof(ENUM_BUFFER)-1 in enumBufferSize
  */
 #define ENUM_CLASS(_name,...)\
-constexpr static const char ENUM_STRS_NAME(_name)[] = SP_FOR_EACH_PARAM_CALL_MACRO_WITH_PARAM(__SDDS_SM_ENUM_STR,__VA_ARGS__);   \
+constexpr static const char ENUM_STRS_NAME(_name)[] = "\0" SP_FOR_EACH_PARAM_CALL_MACRO_WITH_PARAM(__SDDS_SM_ENUM_STR,__VA_ARGS__);   \
 enum class __ENUM_RAWTYPE_NAME(_name) : uint8_t {__VA_ARGS__};\
 class _name : public sdds::metaTypes::TenumClaseBase<__ENUM_RAWTYPE_NAME(_name),SP_COUNT_VARARGS(__VA_ARGS__)>{                \
     public: \
 		constexpr static dtype ENUM_BUFFER_SIZE = sizeof(ENUM_STRS_NAME(_name))-1; \
         void operator=(ENUM_TYPE_NAME _value){Fvalue = _value;}                                                        \
-        static const char* c_str(ENUM_TYPE_NAME _v){ return _c_str(_v,ENUM_STRS_NAME(_name)); }\
-        bool strToVal(const char* _str){ return _strToVal(ENUM_STRS_NAME(_name),_str); }\
-		uStrings::TstringArrayIterator iterator() { return uStrings::TstringArrayIterator(ENUM_STRS_NAME(_name)); }\
+        static const char* c_str(ENUM_TYPE_NAME _v){ return _c_str(_v,ENUM_STRS_NAME(_name)+1); }\
+        bool strToVal(const char* _str){ return _strToVal(ENUM_STRS_NAME(_name)+1,_str); }\
+		uStrings::TstringArrayIterator iterator() { return uStrings::TstringArrayIterator(ENUM_STRS_NAME(_name)+1); }\
 		constexpr const char* enumBuffer(){ return ENUM_STRS_NAME(_name); }\
 		constexpr int enumBufferSize(){ return ENUM_BUFFER_SIZE; }\
-        const char* getEnum(int _idx) { return uStrings::getStringN(ENUM_STRS_NAME(_name),_idx); } \
+        const char* getEnum(int _idx) { return uStrings::getStringN(ENUM_STRS_NAME(_name)+1,_idx); } \
         const char* c_str(){ return _name::c_str(Fvalue); }                                       \
 };
 #define sdds_enumClass ENUM_CLASS

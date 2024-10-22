@@ -72,8 +72,11 @@
 
 #include <string>
 //this file has to be created in the project and include the project related hal file i.e stm32c0xx_hal.h
-//#include "stm32_hal.h"
-#include "stm32c0xx_hal.h"
+#ifdef STM32C031xx
+    #include "stm32c0xx_hal.h"
+#else
+		#include "stm32g4xx_hal.h"
+#endif
 
 #define __sdds_isr_disable() __disable_irq()
 #define __sdds_isr_enable() __enable_irq()
@@ -93,7 +96,11 @@ namespace strConv {
 
 namespace sdds{
 	namespace sysTime{
+#ifdef STM32C031xx
 		constexpr int SYS_TICK_TIMEBASE = 100; //time in us for timeoverflow
+#else
+		constexpr int SYS_TICK_TIMEBASE = 1000; //time in us for timeoverflow
+#endif
 	}
 }
 extern volatile uint32_t uwTick;

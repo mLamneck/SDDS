@@ -8,6 +8,12 @@
 #ifndef MHAL_UART_H_
 #define MHAL_UART_H_
 
+#ifdef __STM32G474xx_H
+	#define RCC_USART1CLKSOURCE RCC_USART1CLKSOURCE_PCLK2
+#else
+	#define RCC_USART1CLKSOURCE RCC_USART1CLKSOURCE_PCLK1
+#endif
+
 template<uintptr_t UART_BASE_ADDR>
 class ThUart{
 		constexpr static USART_TypeDef* pUart(){ return (USART_TypeDef*)UART_BASE_ADDR; }
@@ -25,7 +31,7 @@ class ThUart{
 		  /** Initializes the peripherals clocks */
 		  if (UART_BASE_ADDR == USART1_BASE){
 				PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART1;
-				PeriphClkInit.Usart1ClockSelection = RCC_USART1CLKSOURCE_PCLK1;
+				PeriphClkInit.Usart1ClockSelection = RCC_USART1CLKSOURCE;
 		  }
 		  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
 		  {
@@ -34,22 +40,36 @@ class ThUart{
 
 		  /* Peripheral clock enable */
 		  LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_USART1);
+#ifdef __STM32G474xx_H
+		  LL_AHB2_GRP1_EnableClock(LL_AHB2_GRP1_PERIPH_GPIOC);
+#else
 		  LL_IOP_GRP1_EnableClock(LL_IOP_GRP1_PERIPH_GPIOB);
+#endif
 
+#ifdef __STM32G474xx_H
+		  GPIO_InitStruct.Pin = LL_GPIO_PIN_4;
+		  GPIO_InitStruct.Alternate = LL_GPIO_AF_7;
+#else
 		  GPIO_InitStruct.Pin = LL_GPIO_PIN_6;
+		  GPIO_InitStruct.Alternate = LL_GPIO_AF_0;
+#endif
 		  GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
 		  GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_VERY_HIGH;
 		  GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
 		  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
-		  GPIO_InitStruct.Alternate = LL_GPIO_AF_0;
 		  LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
+#ifdef __STM32G474xx_H
+		  GPIO_InitStruct.Pin = LL_GPIO_PIN_5;
+		  GPIO_InitStruct.Alternate = LL_GPIO_AF_7;
+#else
 		  GPIO_InitStruct.Pin = LL_GPIO_PIN_7;
+		  GPIO_InitStruct.Alternate = LL_GPIO_AF_0;
+#endif
 		  GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
 		  GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_VERY_HIGH;
 		  GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
 		  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
-		  GPIO_InitStruct.Alternate = LL_GPIO_AF_0;
 		  LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
 		  NVIC_SetPriority(uart_irq_type(), 0);

@@ -8,6 +8,14 @@
 #ifndef MHAL_GPIO_H_
 #define MHAL_GPIO_H_
 
+#include "uPlatform.h"
+
+#ifdef __STM32G474xx_H
+	#define EXTI0_IRQ EXTI0_IRQn
+#else
+	#define EXTI0_IRQ EXTI0_1_IRQn
+#endif
+
 template<uintptr_t GPIO_BASE_ADDR, uint32_t GPIO_PIN>
 class TgpioPin {
 public:
@@ -38,7 +46,7 @@ public:
 					break;
 				case PIN_MODE::it_rising_falling:
 				  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
-				  HAL_NVIC_SetPriority(EXTI0_1_IRQn, 2, 0);  // Priorität des Interrupts setzen
+				  HAL_NVIC_SetPriority(EXTI0_IRQ, 2, 0);  // Priorität des Interrupts setzen
 				  //HAL_NVIC_EnableIRQ(EXTI0_1_IRQn);  // Interrupt aktivieren
 					break;
 
