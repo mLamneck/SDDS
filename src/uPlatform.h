@@ -1,12 +1,21 @@
-//never comment this in in production, as it leats to terrible exceptions especially on esp!!!
-//#pragma pack (push, 1)
-
 #ifndef UPLATFORM_H
 #define UPLATFORM_H
 
 #ifdef __AVR__
     #define SDDS_ON_AVR
 #endif
+
+#ifndef STM32_CUBE
+	#if defined(STM32C031xx) || defined(STM32G474xx)
+		#define STM32_CUBE 1
+	#endif
+#endif
+
+/************************************************************************************
+ * MARKI_DEBUG_PLATFORM
+ *
+ * used for development on windows machines
+*************************************************************************************/
 
 #if defined(__MINGW64__) || defined(WIN32)      //__MINGW64__ works in VS_Code, WIN32 in codeBlocks
     #include <stdint.h>                         //uint8_t, ...
@@ -63,7 +72,13 @@
 
     dtypes::TsystemTime millis();
 
+
 #elif defined(STM32_CUBE)
+
+/************************************************************************************
+ * STM32 Cube
+*************************************************************************************/
+
 #define MARKI_DEBUG_PLATFORM 0
 #define CRC_TAB_IN_PROGMEM 0
 
@@ -96,11 +111,7 @@ namespace strConv {
 
 namespace sdds{
 	namespace sysTime{
-#ifdef STM32C031xx
 		constexpr int SYS_TICK_TIMEBASE = 100; //time in us for timeoverflow
-#else
-		constexpr int SYS_TICK_TIMEBASE = 1000; //time in us for timeoverflow
-#endif
 	}
 }
 extern volatile uint32_t uwTick;
@@ -109,7 +120,13 @@ inline dtypes::TsystemTime millis() {
 }
 
 #else
-	#define SDDS_ON_ARDUINO
+
+
+/************************************************************************************
+ * Arduino
+*************************************************************************************/
+
+#define SDDS_ON_ARDUINO
 
 	#include <Arduino.h>
 

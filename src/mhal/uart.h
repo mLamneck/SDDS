@@ -46,31 +46,33 @@ class ThUart{
 		  LL_IOP_GRP1_EnableClock(LL_IOP_GRP1_PERIPH_GPIOB);
 #endif
 
+		  GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
+		  GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_VERY_HIGH;
+		  GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
+		  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
 #ifdef __STM32G474xx_H
 		  GPIO_InitStruct.Pin = LL_GPIO_PIN_4;
 		  GPIO_InitStruct.Alternate = LL_GPIO_AF_7;
+		  LL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 #else
 		  GPIO_InitStruct.Pin = LL_GPIO_PIN_6;
 		  GPIO_InitStruct.Alternate = LL_GPIO_AF_0;
+		  LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 #endif
+
 		  GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
 		  GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_VERY_HIGH;
 		  GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
 		  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
-		  LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
 #ifdef __STM32G474xx_H
 		  GPIO_InitStruct.Pin = LL_GPIO_PIN_5;
 		  GPIO_InitStruct.Alternate = LL_GPIO_AF_7;
+		  LL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 #else
 		  GPIO_InitStruct.Pin = LL_GPIO_PIN_7;
 		  GPIO_InitStruct.Alternate = LL_GPIO_AF_0;
-#endif
-		  GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
-		  GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_VERY_HIGH;
-		  GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
-		  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
 		  LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+#endif
 
 		  NVIC_SetPriority(uart_irq_type(), 0);
 		  isr_enable();
@@ -89,7 +91,9 @@ class ThUart{
 		  LL_USART_EnableFIFO(pUart());
 		  LL_USART_ConfigAsyncMode(pUart());
 
-		  LL_USART_EnableIT_RXNE_RXFNE(pUart());  // Enable RXNE interrupt
+		  //toDo: remove this block!!! this is for debugging
+		  rto_setRxTimeout(20);
+		  rto_enableRxTimeout();
 
 		  LL_USART_Enable(pUart());
 		  while((!(LL_USART_IsActiveFlag_TEACK(pUart()))) || (!(LL_USART_IsActiveFlag_REACK(pUart()))))
@@ -131,6 +135,10 @@ class ThUart{
 		constexpr static void isr_rxne_enable() { LL_USART_EnableIT_RXNE_RXFNE(pUart()); }
 		constexpr static void isr_rxne_disable(){ LL_USART_DisableIT_RXNE_RXFNE(pUart()); }
 		constexpr static auto isr_rxne_enabled(){ return LL_USART_IsEnabledIT_RXNE(pUart()); }
+
+		constexpr static void rto_setRxTimeout(dtypes::uint32 _bits) { LL_USART_SetRxTimeout(pUart(),_bits); }
+		constexpr static void rto_enableRxTimeout() { LL_USART_EnableRxTimeout(pUart()); }
+		constexpr static void rto_disableRxTimeout() { LL_USART_DisableRxTimeout(pUart()); }
 
 		//Receiver Timeout
 		constexpr static void isr_rto_enable() { LL_USART_EnableIT_RTO(pUart()); }

@@ -19,7 +19,9 @@
 template<uintptr_t GPIO_BASE_ADDR, uint32_t GPIO_PIN>
 class TgpioPin {
 public:
-		enum class PIN_MODE {input,output,it_rising_falling};
+		static_assert(GPIO_PIN <= LL_GPIO_PIN_15,"asjdfklasd");
+
+  	enum class PIN_MODE {input,output,it_rising_falling};
 
 		constexpr static GPIO_TypeDef* _PORT(){ return (GPIO_TypeDef*)GPIO_BASE_ADDR; }
 
@@ -56,25 +58,88 @@ public:
 		  HAL_GPIO_Init(_PORT(), &GPIO_InitStruct);
 		}
 
-    static void high(){
-    	//LL_GPIO_SetOutputPin(GPIOx, PinMask)
-  		_PORT()->BSRR = GPIO_PIN;
+    constexpr static void high(){
+    	LL_GPIO_SetOutputPin(_PORT(), GPIO_PIN);
+    	/*
+    	_PORT()->BSRR = GPIO_PIN;
       __NOP();
+     	*/
     }
 
-    static void low(){
+    constexpr static void low(){
+    	LL_GPIO_ResetOutputPin(_PORT(), GPIO_PIN);
+    	/*
     	_PORT()->BRR = GPIO_PIN;
       __NOP();
+     	 */
     }
 
-    static void pulse() {
+    constexpr static void pulse() {
     	high();
       low();
     }
 
-    static void toggle(){
-      uint32_t odr = _PORT()->ODR;
-      _PORT()->BSRR = ((odr & GPIO_PIN) << (16U)) | (~odr & GPIO_PIN);
+    constexpr static void toggle(){ HAL_GPIO_TogglePin(_PORT(), GPIO_PIN); }
+
+    constexpr static void exti_clearFlag(const dtypes::uint32 _line){
+#ifdef __STM32G474xx_H
+			LL_EXTI_ClearFlag_0_31 (_line);
+#else
+			LL_EXTI_ClearFallingFlag_0_31 (_line);
+			LL_EXTI_ClearRisingFlag_0_31(_line);
+#endif
+    }
+
+    constexpr static dtypes::uint32 exti_readFlag(const dtypes::uint32 _line){
+#ifdef __STM32G474xx_H
+			return LL_EXTI_ReadFlag_0_31 (_line);
+#else
+			return (LL_EXTI_ReadFallingFlag_0_31(_line) > 0)
+				|| (LL_EXTI_ReadRisingFlag_0_31(_line) > 0);
+#endif
+    }
+
+    constexpr static void exti_clearFlag(){
+    	switch(GPIO_PIN){
+				case LL_GPIO_PIN_0: return exti_clearFlag(LL_EXTI_LINE_0);
+				case LL_GPIO_PIN_1: return exti_clearFlag(LL_EXTI_LINE_1);
+				case LL_GPIO_PIN_2: return exti_clearFlag(LL_EXTI_LINE_2);
+				case LL_GPIO_PIN_3: return exti_clearFlag(LL_EXTI_LINE_3);
+				case LL_GPIO_PIN_4: return exti_clearFlag(LL_EXTI_LINE_4);
+				case LL_GPIO_PIN_5: return exti_clearFlag(LL_EXTI_LINE_5);
+				case LL_GPIO_PIN_6: return exti_clearFlag(LL_EXTI_LINE_6);
+				case LL_GPIO_PIN_7: return exti_clearFlag(LL_EXTI_LINE_7);
+				case LL_GPIO_PIN_8: return exti_clearFlag(LL_EXTI_LINE_8);
+				case LL_GPIO_PIN_9: return exti_clearFlag(LL_EXTI_LINE_9);
+				case LL_GPIO_PIN_10: return exti_clearFlag(LL_EXTI_LINE_10);
+				case LL_GPIO_PIN_11: return exti_clearFlag(LL_EXTI_LINE_11);
+				case LL_GPIO_PIN_12: return exti_clearFlag(LL_EXTI_LINE_12);
+				case LL_GPIO_PIN_13: return exti_clearFlag(LL_EXTI_LINE_13);
+				case LL_GPIO_PIN_14: return exti_clearFlag(LL_EXTI_LINE_14);
+				case LL_GPIO_PIN_15: return exti_clearFlag(LL_EXTI_LINE_15);
+    	}
+    }
+
+    constexpr static dtypes::uint32 exti_readFlag(){
+    	switch(GPIO_PIN){
+				case LL_GPIO_PIN_0 : return exti_readFlag(LL_EXTI_LINE_0);
+				case LL_GPIO_PIN_1 : return exti_readFlag(LL_EXTI_LINE_1);
+				case LL_GPIO_PIN_2 : return exti_readFlag(LL_EXTI_LINE_2);
+				case LL_GPIO_PIN_3 : return exti_readFlag(LL_EXTI_LINE_3);
+				case LL_GPIO_PIN_4 : return exti_readFlag(LL_EXTI_LINE_4);
+				case LL_GPIO_PIN_5 : return exti_readFlag(LL_EXTI_LINE_5);
+				case LL_GPIO_PIN_6 : return exti_readFlag(LL_EXTI_LINE_6);
+				case LL_GPIO_PIN_7 : return exti_readFlag(LL_EXTI_LINE_7);
+				case LL_GPIO_PIN_8 : return exti_readFlag(LL_EXTI_LINE_8);
+				case LL_GPIO_PIN_9 : return exti_readFlag(LL_EXTI_LINE_9);
+				case LL_GPIO_PIN_10: return exti_readFlag(LL_EXTI_LINE_10);
+				case LL_GPIO_PIN_11: return exti_readFlag(LL_EXTI_LINE_11);
+				case LL_GPIO_PIN_12: return exti_readFlag(LL_EXTI_LINE_12);
+				case LL_GPIO_PIN_13: return exti_readFlag(LL_EXTI_LINE_13);
+				case LL_GPIO_PIN_14: return exti_readFlag(LL_EXTI_LINE_14);
+				case LL_GPIO_PIN_15: return exti_readFlag(LL_EXTI_LINE_15);
+    	}
+    	return 0;
     }
 };
 
