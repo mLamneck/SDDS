@@ -32,7 +32,7 @@ class Tevent : public TlinkedListElement{
         Tthread* Fowner = nullptr;
         TsystemTime FdeliveryTime;
         multask::Tpriority Fpriority = 0;
-    protected:
+    public:
         virtual void beforeDispatch(){};
         virtual void execute(){};
         virtual void afterDispatch(){};

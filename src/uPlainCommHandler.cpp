@@ -78,8 +78,12 @@ void TplainCommHandler::linkPath(TstringRef& _msg){
         conn = new Tconnection(this);
         Fconnections.push_first(conn);
     }
-    conn->FobjEvent.Fstruct = Fmh;
-    setPort(&conn->FobjEvent,Fport);
+	/***
+	 * this change is due to the implementation of Arrays for vbusSpike. It is not tested, but should work
+	 * conn->FobjEvent.Fstruct = Fmh; 
+	 */
+    conn->FobjEvent.setObservedObj(Fmh);
+	setPort(&conn->FobjEvent,Fport);
     Fmh->events()->push_first(&conn->FobjEvent);
     conn->FobjEvent.signal();
 }
@@ -182,7 +186,13 @@ void TplainCommHandler::execute(Tevent* _ev){
         Fstream->write(" ");
         Fstream->write(first);
         Fstream->write(" ");
-        TjsonSerializer::serializeValues(Fstream,oe->Fstruct,first,last);
+
+		/***
+		 * this change is due to the implementation of Arrays for vbusSpike. It is not tested, but should work
+
+		//TjsonSerializer::serializeValues(Fstream,oe->Fstruct,first,last);
+		*/
+        TjsonSerializer::serializeValues(Fstream,oe->menuHandle1(),first,last);
         Fstream->flush();
     }
     else{

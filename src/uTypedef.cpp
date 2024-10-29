@@ -184,8 +184,16 @@ void TobjectEvent::signal(TrangeItem _first, TrangeItem _last){
 }
 
 void TobjectEvent::cleanup(){
-	if (!Fstruct) return;
-	Fstruct->events()->remove(this);
+	auto observedObj = FobservedObj;
+	if (!observedObj) return;
+
+	FobservedObj = nullptr; 
+	if (!observedObj->isStruct()){
+		arrayToDo();
+		return;
+	}
+	auto mh = static_cast<Tstruct*>(observedObj)->value(); 
+	mh->events()->remove(this);
 	Fevent.reclaim();
 }
 

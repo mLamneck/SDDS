@@ -79,18 +79,28 @@ namespace sdds{
     typedef uint8_t Toption;
     
     namespace opt{
+		typedef dtypes::uint8 Ttype;
+
         constexpr Toption nothing   = 0;
         constexpr Toption readonly  = 0x01;
         constexpr Toption saveval   = 0x80;
 
-        constexpr Toption timerel   = 0x02;
 
-        constexpr Toption mask_show = 0x0E;
+        constexpr Toption mask_show 	= 0x0E;
+        constexpr Toption showHex 		= 0x04;
+        constexpr Toption showBin 		= 0x06;
+        constexpr Toption showString	= 0x08;
+
+        constexpr Toption timeRel   	= 0x02;
+        constexpr Toption timeAbs   	= 0x00;
     }
 
     namespace typeIds{
+		typedef dtypes::uint8 Ttype;
+
         constexpr uint8_t size_mask = 0x0F; 
 		constexpr uint8_t first_compose_type = 0x42;
+		constexpr uint8_t fARRAY = 0x80;
 
         constexpr uint8_t time = 0x06; 
     }
@@ -180,7 +190,10 @@ class Tdescr : public TlinkedListElement{
 
     private:
         TmenuHandle* Fparent = nullptr;
+	protected:
         Tcallbacks Fcallbacks;
+
+		constexpr sdds::opt::Ttype __modifyOption(const sdds::opt::Ttype _opt) { return _opt; }
 
     public:
         #if MARKI_DEBUG_PLATFORM == 1
@@ -198,22 +211,35 @@ class Tdescr : public TlinkedListElement{
 
         //providing type information
         virtual sdds::Ttype type() = 0;
-        virtual dtypes::uint8 typeId(){ return static_cast<dtypes::uint8>(type()); }
-
-        virtual const char* name(){return ""; };
         virtual sdds::Toption option(){return 0; };
+        virtual const char* name(){return ""; };
+
+        dtypes::uint8 typeId(){ return static_cast<dtypes::uint8>(type()); }
         virtual dtypes::uint8 valSize() { return static_cast<uint8_t>(type()) & sdds::typeIds::size_mask; }
 		
         virtual void* pValue() { return nullptr; };
 
         sdds::Toption showOption(){ return (option() & sdds::opt::mask_show); }
         inline bool saveval() { return ((option() & sdds::opt::saveval) > 0); }
-		inline bool readonly() { return ((option() & sdds::opt::readonly) > 0); }
+        inline bool readonly() { return ((option() & sdds::opt::readonly) > 0); }
 
         //propably compare default value to current and only save if different
         inline bool shouldBeSaved(){ return saveval(); }
 
         inline bool isStruct() { return (type()==sdds::Ttype::STRUCT); }
+        inline bool isArray() { return (typeId() & sdds::typeIds::fARRAY) > 0; }
+		template <typename T>
+		T* as() {
+			static_assert(!std::is_base_of<TmenuHandle,T>::value,"hkjh"); 
+			static_assert(std::is_base_of<Tdescr, T>::value,
+						"T must be derived from Tdescr");
+			return static_cast<T*>(this);
+		}
+		template <typename T>
+		typename std::enable_if<std::is_base_of<Tdescr, T>::value, T*>::type
+		as1() {
+			return nullptr;
+		}
 
         inline bool hasChilds() {
             if (!isStruct()) return false;
@@ -223,11 +249,11 @@ class Tdescr : public TlinkedListElement{
         virtual bool setValue(const char* _str) = 0;
         virtual TrawString to_string(){ return ""; }
 
+#if __SDDS_UTYPEDEF_COMPILE_STRCONV
+
         /************************************************************************************
         functions for type conversion used by derived types
         *************************************************************************************/
-
-#if __SDDS_UTYPEDEF_COMPILE_STRCONV
 
         //helper funtions
         static bool _strToDouble(const char* _str, double& _res){
@@ -250,7 +276,7 @@ class Tdescr : public TlinkedListElement{
         template <typename valType>
         TrawString _valToStr(valType _val){return strConv::to_string(_val); }
         TrawString _valToStr(TdateTime _val){
-            if (showOption() == sdds::opt::timerel) return timeToString(_val,"%H:%M:%S");
+            if (showOption() == sdds::opt::timeRel) return timeToString(_val,"%H:%M:%S");
             return timeToString(_val);
         }
         TrawString _valToStr(TrawString _val){return _val; }
@@ -309,8 +335,19 @@ template <class ValType, sdds::Ttype _type_id> class TdescrTemplate: public Tdes
         TdescrTemplate(){};
 
         sdds::Ttype type() override {return _type_id; };
-        dtypes::uint8 valSize() override { return sizeof(Fvalue); }
-        void* pValue() override { return &Fvalue; };
+		/**
+		 * 27.10.2024 valSize has been changed because it gave wrong values for
+		 * arrays i.e. when transfering a string, valSize gives 32. But what we
+		 * want to know here is the size of the data to be transmitted which
+		 * is 1 for a string. This is what valSize() from Tdescr give us.
+		 * 
+		 * hopefully this will not break something but I cannot figure out how,
+		 * because we are not allowed to overwrite Fvalue for complex types 
+		 * like strings or structs anyway.
+		 */
+        //dtypes::uint8 valSize() override { return sizeof(Fvalue); }
+        dtypes::uint8 valSize() override { return (static_cast<uint8_t>(_type_id) & sdds::typeIds::size_mask); }
+		void* pValue() override { return &Fvalue; };
 
         bool setValue(const char* _str) override {
 #if __SDDS_UTYPEDEF_COMPILE_STRCONV
@@ -387,11 +424,10 @@ template <class ValType, sdds::Ttype _type_id> class TdescrTemplate: public Tdes
             return (Fvalue==(*pVal));
         }
 
-        //= operator will not be inherited!!!
-        void operator=(ValType _value){
-            Fvalue=_value;
+		void __setValue(ValType _value){
+			Fvalue=_value;
             signalEvents();
-        }
+		}
 };
 
 
@@ -455,8 +491,12 @@ template <typename ValType, sdds::Ttype _type_id=sdds::Ttype::ENUM> class TenumT
         // behave like a plain class enum
         operator dtype() const{ return Fvalue.Fvalue; }
 
+		void __setValue(dtype _value){
+			Fvalue=_value;
+            signalEvents();
+		}
         void operator=(dtype _value){
-            Fvalue=_value;
+			Fvalue=_value;
             signalEvents();
         }
 
@@ -474,48 +514,6 @@ template <typename ValType, sdds::Ttype _type_id=sdds::Ttype::ENUM> class TenumT
 
 //do not use anymore... use enum::e
 #define ENUMS(_enum) _enum::dtype
-
-
-/************************************************************************************
-Tstring
-*************************************************************************************/
-
-class Tstring : public TdescrTemplate<dtypes::string,sdds::Ttype::STRING>{
-    typedef const char* Tcstr;
-    public:
-        typedef dtypes::string ValType;
-
-        dtypes::int32 length() { return Fvalue.length(); }
-
-        bool operator==(Tstring& _inp){
-            ValType* pVal = static_cast<ValType*>(_inp.pValue());
-            if (!pVal) return false;
-            return (Fvalue==(*pVal));
-        }
-        bool operator==(const char* _inp){ return (Fvalue==_inp); }
-
-        bool operator!=(Tstring& _inp){
-            ValType* pVal = static_cast<ValType*>(_inp.pValue());
-            if (!pVal) return false;
-            return (Fvalue!=(*pVal));
-        }
-        bool operator!=(const char* _inp){ return (Fvalue!=_inp); }
-        
-        void operator+=(Tstring& _inp){
-            ValType* pVal = static_cast<ValType*>(_inp.pValue());
-            if (!pVal) return;
-            Fvalue += (*pVal);
-            signalEvents();
-        }
-
-        template <typename T>
-        void operator+=(T _inp){ Fvalue += _inp; signalEvents(); }
-
-        const char* c_str() { return Fvalue.c_str(); }
-        
-        operator ValType() { return Fvalue; }
-        operator Tcstr(){ return c_str(); }
-};
 
 
 /************************************************************************************
@@ -578,23 +576,22 @@ class TfinishMenuDefinition{
     typedef _class _class##_##_name##_type;\
     class _class##_##_name : public _class{\
         public:\
-            using Tdescr::signalEvents;\
-            _class##_##_name(){\
-                _constructorAssign(_value)\
-            }\
-            sdds::Toption option() override { return _option; }\
-            const char* name() override { return #_name; }\
-            void operator=(_class::dtype _v){\
-                Fvalue = _v;\
-                signalEvents();\
-            }\
+			_constructorAssign(_class,_name,_value)\
+			sdds::Toption option() override { return __modifyOption(_option); }\
+			const char* name() override { return #_name; }\
+			void operator=(_class::dtype _v){ __setValue(_v); }\
+			template<typename T>\
+			void operator=(T _val){__setValue(_val); }\
     } _name;
 
 /**
  * macros to change operator= and constructor based on the number of arguments given
  */
-#define __sdds_constructorAssignValue(_value) Fvalue = _value;
-#define __sdds_constructorEmpty(_value)
+#define __sdds_constructorAssignValue(_class,_name,_value)\
+_class##_##_name(){\
+	Fvalue = _value;\
+}
+#define __sdds_constructorEmpty(_class,_name,_value)
 
 /**
  * implement variable number of arguments for sdds_var
@@ -632,6 +629,10 @@ public:
     }
     TobjectEvent* objectEvent(){ return FobjectEvent; }
 };
+
+inline void arrayToDo(){
+
+}
 
 namespace sdds{
 	//toDo: adjust TrangeItem according to platform to support maximum value
@@ -673,15 +674,25 @@ class TobjectEvent : public TlinkedListElement{
     friend class TobjectEventList;
     private:
         __TobjectEvent Fevent;
+
+		Tdescr* FobservedObj;
 		Trange FobservedRange;
 		Trange FchangedRange;
     public:
-        TmenuHandle* Fstruct;
+        //TmenuHandle* Fstruct;
 
         void afterDispatch();
 
-        TmenuHandle* menuHandle() { return Fstruct; }
-        TrangeItem first() { return FchangedRange.Ffirst; }
+		/**
+		 * at the moment only used by plainCommHandler
+		 * 
+		 *  
+		 */
+	    TmenuHandle* menuHandle1() { return static_cast<Tstruct*>(FobservedObj)->value(); }
+		Tdescr* observedObj() { return FobservedObj; }
+		void setObservedObj(Tdescr* _oo){ FobservedObj = _oo; }
+
+	    TrangeItem first() { return FchangedRange.Ffirst; }
         TrangeItem last() { return FchangedRange.Flast; }
         Tevent* event();
         void signal(TrangeItem _first = 0, TrangeItem _last = sdds::TrangeItem_max);
@@ -690,7 +701,8 @@ class TobjectEvent : public TlinkedListElement{
 
 		template <class _Tlocator>
 		void setObservedRange(_Tlocator& _l){
-			Fstruct = _l.menu();
+			arrayToDo();
+			FobservedObj = _l.parent();
 			FobservedRange.Ffirst = _l.firstItemIdx();
 			FobservedRange.Flast = _l.lastItemIdx();
 		}
@@ -717,6 +729,77 @@ class TobjectEventList : public TlinkedList<TobjectEvent>{
             }
         }
         void signal(TrangeItem _first, int _n = 1, dtypes::uint16 _port = 0);
+};
+
+
+/************************************************************************************
+Tstring
+*************************************************************************************/
+
+class Tarray{
+	public:
+	    TobjectEventList FobjectEvents;
+};
+
+template <class ValType, sdds::Ttype _type_id> class Tarray1: public TdescrTemplate<ValType,_type_id>{
+	public:
+	    TobjectEventList FobjectEvents;
+};
+
+//class Tstring : public TdescrTemplate<dtypes::string,sdds::Ttype::STRING>, public Tarray{
+class Tstring : public Tarray1<dtypes::string,sdds::Ttype::STRING>{
+    typedef const char* Tcstr;
+	protected:
+		constexpr sdds::opt::Ttype __modifyOption(const sdds::opt::Ttype _opt) { return _opt | sdds::opt::showString; }
+    public:
+        typedef dtypes::string ValType;
+
+        dtypes::int32 length() { return Fvalue.length(); }
+
+        bool operator==(Tstring& _inp){
+            ValType* pVal = static_cast<ValType*>(_inp.pValue());
+            if (!pVal) return false;
+            return (Fvalue==(*pVal));
+        }
+        bool operator==(const char* _inp){ return (Fvalue==_inp); }
+
+        bool operator!=(Tstring& _inp){
+            ValType* pVal = static_cast<ValType*>(_inp.pValue());
+            if (!pVal) return false;
+            return (Fvalue!=(*pVal));
+        }
+        bool operator!=(const char* _inp){ return (Fvalue!=_inp); }
+        
+        void operator+=(Tstring& _inp){
+            ValType* pVal = static_cast<ValType*>(_inp.pValue());
+            if (!pVal) return;
+            Fvalue += (*pVal);
+            signalEvents();
+        }
+
+        template <typename T>
+        void operator+=(T _inp){ Fvalue += _inp; signalEvents(); }
+
+        const char* c_str() { return Fvalue.c_str(); }
+        
+        operator ValType() { return Fvalue; }
+        operator Tcstr(){ return c_str(); }
+
+		void setValue(TsubStringRef& _strRef){
+			Fvalue.assign(_strRef.c_str(),_strRef.length());
+			signalEvents();
+		}
+
+		void signalEvents(){
+			Tdescr::signalEvents();
+			FobjectEvents.signal(0,255);
+		}
+
+		template<typename T>
+		void __setValue(T _val){
+			Fvalue = _val;
+			signalEvents();
+		}
 };
 
 
@@ -767,17 +850,17 @@ class TmenuHandle : public Tstruct{
 
         template <class _TstringRef>
         int find(_TstringRef _name, Tdescr*& _descr){
-			_descr = nullptr;
-			int idx = 0;
-            for (auto it = FmenuItems.iterator(); it.hasNext(); idx++){
-                auto descr = it.next();
-                if (_name == descr->name()){
-					_descr = descr;
-			        return idx;
-                };
-            }
-            //throw Exception(_name + " not found");
-            return -1;
+        		_descr = nullptr;
+        		int idx = 0;
+        		for (auto it = FmenuItems.iterator(); it.hasNext(); idx++){
+        			auto descr = it.next();
+        			if (_name == descr->name()){
+        				_descr = descr;
+        				return idx;
+        			};
+        		}
+        		//throw Exception(_name + " not found");
+        		return -1;
         }
 
         template <class _TstringRef>
@@ -937,11 +1020,31 @@ class Tlocator{
         }
 };
 
+/**
+ * @brief Used to find elements in a sdds tree for a given binary path of
+ * 	of the the form |length|entry0|...|entryN|nItems|  
+ * 
+ * @note use locate to resolve the given path. If locate returns true
+ * 	the path is valid and as a result we get:
+ * 		parent: The last struct/array entered.
+ * 		if parent is a struct:
+ * 			firstItem: the first item in the struct
+ * 			lastItem: the last item in the struct
+ * 			firstItemIdx: the numeric idx of the first itme
+ * 			lastItemIdx: the numeric idx of the last itme
+ * 		if parent is an array:
+ * 			firstItem, lastItem: the same as parent
+ * 			firstItemIdx: index to the first array element
+ * 			lastItemIdx: index to the last array element
+ * 
+ * @tparam t_path_length data type of a path entry (uint8 or uint16)
+ * @tparam t_path_entry data type of the path length (uint8 or uint16)
+ */
 template<typename t_path_length, typename t_path_entry>
 class TbinLocator{
     private:
-        Tdescr* Fresult = nullptr;
-		TmenuHandle* Fmenu = nullptr;
+		Tdescr* Fparent = nullptr;
+
 		Tdescr* FfirstItem = nullptr;
 		Tdescr* FlastItem = nullptr;
 		t_path_entry FfirstItemIdx = 0;
@@ -949,7 +1052,11 @@ class TbinLocator{
 	public:
 		static int constexpr MAX_ENTRY = dtypes::high<t_path_entry>();
 
-		TmenuHandle* menu() { return Fmenu; }
+		Tdescr* parent() { return Fparent; }
+		TmenuHandle* menu1() {
+			if (!Fparent->isStruct()) return nullptr;
+			return static_cast<Tstruct*>(Fparent)->value(); 
+		}
 		Tdescr* firstItem() { return FfirstItem; }
 		Tdescr* lastItem() { return FlastItem; }
 		t_path_entry firstItemIdx() { return FfirstItemIdx; }
@@ -962,6 +1069,7 @@ class TbinLocator{
 			if (!_ms.readVal(length)) return false;
 			if (length < 2) return false;
 
+			Tdescr* parentDescr = _root;
             TmenuHandle* parent = _root;
 			while (length-- > 0){
 				if (!_ms.readVal(entry)) return false;
@@ -969,8 +1077,26 @@ class TbinLocator{
 				if (length > 1){
 					d = parent->get(entry);
 					if (!d) return false;
-					if (!d->isStruct()) return false;
-					parent = static_cast<Tstruct*>(d)->value();
+					if (d->isStruct()){
+						parentDescr = d;
+						parent = static_cast<Tstruct*>(d)->value();
+					}
+					else if (d->isArray()){
+						if (length > 2) return false;
+						Fparent = d;
+						FfirstItem = d;
+						FlastItem = d;
+						if (!_ms.readVal(FfirstItemIdx)) return false;
+						if (!_ms.readVal(entry)) return false;
+						if (entry < MAX_ENTRY){
+							if (dtypes::uint32(entry + FfirstItemIdx - 1) > MAX_ENTRY) return false;
+							entry = entry + FfirstItemIdx - 1;
+						} 
+						FlastItemIdx = entry;
+						return true;
+					}
+					else
+						return false;
 				}
 				else if (length == 1){
 					d = parent->get(entry);
@@ -979,7 +1105,6 @@ class TbinLocator{
 					FfirstItem = d;
 				}
 				else{
-					//if (entry == 2^(8*sizeof(t_path_entry))-1) 
 					if (entry < MAX_ENTRY){
 						if (dtypes::uint32(entry + FfirstItemIdx - 1) > MAX_ENTRY) return false;
 						entry = entry + FfirstItemIdx - 1;
@@ -992,10 +1117,9 @@ class TbinLocator{
 					FlastItem = d;
 				}
 			}
-			Fmenu = parent;
+			Fparent = parentDescr;
             return true;
         }
-
 };
 
 /*
