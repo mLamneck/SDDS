@@ -11,12 +11,12 @@
 class Tconnection : public TlinkedListElement{
     public:
         ~Tconnection(){
-            FobjEvent.menuHandle1()->events()->remove(&FobjEvent);
+            FobjEvent.menuHandle()->events()->remove(&FobjEvent);
             FobjEvent.event()->reclaim();
         };
         TobjectEvent FobjEvent;
         Tconnection(Tthread* _owner) : FobjEvent(_owner){}
-        TmenuHandle* menuHandle() { return FobjEvent.menuHandle1(); }
+        TmenuHandle* menuHandle() { return FobjEvent.menuHandle(); }
 };
 
 class TplainCommHandler : public Tthread{

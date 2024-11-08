@@ -209,10 +209,12 @@ class Tdescr : public TlinkedListElement{
 
         TmenuHandle* findRoot();
 
-        //providing type information
+        /** virtual functions to be implemented in each derived class */
         virtual sdds::Ttype type() = 0;
         virtual sdds::Toption option(){return 0; };
         virtual const char* name(){return ""; };
+        virtual bool setValue(const char* _str) = 0;
+        virtual TrawString to_string() { return ""; };
 
         dtypes::uint8 typeId(){ return static_cast<dtypes::uint8>(type()); }
         virtual dtypes::uint8 valSize() { return static_cast<uint8_t>(type()) & sdds::typeIds::size_mask; }
@@ -229,25 +231,15 @@ class Tdescr : public TlinkedListElement{
         inline bool isStruct() { return (type()==sdds::Ttype::STRUCT); }
         inline bool isArray() { return (typeId() & sdds::typeIds::fARRAY) > 0; }
 		template <typename T>
-		T* as() {
-			static_assert(!std::is_base_of<TmenuHandle,T>::value,"hkjh"); 
-			static_assert(std::is_base_of<Tdescr, T>::value,
-						"T must be derived from Tdescr");
+		T* as1() {
+			static_assert(!std::is_base_of<TmenuHandle,T>::value,"T must not be a TmenuHandle"); 
+			static_assert(std::is_base_of<Tdescr, T>::value, "T must be derived from Tdescr");
 			return static_cast<T*>(this);
-		}
-		template <typename T>
-		typename std::enable_if<std::is_base_of<Tdescr, T>::value, T*>::type
-		as1() {
-			return nullptr;
 		}
 
         inline bool hasChilds() {
             if (!isStruct()) return false;
         }
-
-        //interface for generic handling
-        virtual bool setValue(const char* _str) = 0;
-        virtual TrawString to_string(){ return ""; }
 
 #if __SDDS_UTYPEDEF_COMPILE_STRCONV
 
@@ -437,12 +429,21 @@ Enums
 
 class TenumBase : public Tdescr{
     public:
+		struct TenumInfo{
+			const char* buffer;
+			uStrings::TstringArrayIterator iterator;
+			int bufferSize;
+			TenumInfo(uStrings::TstringArrayIterator _iterator, int _bufferSize, const char* _buffer)
+			: buffer(_buffer)
+			, iterator(_iterator)
+			, bufferSize(_bufferSize) 
+			{
+
+			}
+		};
+
         TenumBase(){}
-		virtual uStrings::TstringArrayIterator iterator() = 0;
-        virtual int enumCnt() { return 0; };
-        virtual const char* getEnum(int _idx) { return ""; };
-        virtual int enumBufferSize() { return 0; };
-        virtual const char* enumBuffer() { return nullptr; };
+		virtual TenumInfo enumInfo() = 0;
 };
 
 template <typename ValType, sdds::Ttype _type_id=sdds::Ttype::ENUM> class TenumTemplate: public TenumBase{
@@ -468,11 +469,7 @@ template <typename ValType, sdds::Ttype _type_id=sdds::Ttype::ENUM> class TenumT
         dtypes::uint8 valSize() override { return sizeof(dtype); }
         void* pValue() override { return &Fvalue.Fvalue; };
 
-		uStrings::TstringArrayIterator iterator() override { return Fvalue.iterator(); }
-        int enumCnt() override { return ValType::COUNT; };
-        const char* getEnum(int _idx) override { return Fvalue.getEnum(_idx); }
-        int enumBufferSize() override { return Fvalue.enumBufferSize(); };
-        const char* enumBuffer() override { return Fvalue.enumBuffer(); };
+		TenumInfo enumInfo() override { return TenumInfo(Fvalue.iterator(),Fvalue.enumBufferSize(),Fvalue.enumBuffer()); }
 
         bool setValue(const char* _str) override {
             if (Fvalue.strToVal(_str)){
@@ -572,21 +569,22 @@ class TfinishMenuDefinition{
  * typedef, it shows the correct line and says _class does not name a type and
  * usually suggests the right one... this is what we want!
 */
-#define __sdds_declareField(_class, _name, _option, _value, _constructorAssign) \
+#define __sdds_declareField(_class, _name, _option, _value, _optionAssign, _constructorAssign) \
     typedef _class _class##_##_name##_type;\
     class _class##_##_name : public _class{\
         public:\
 			_constructorAssign(_class,_name,_value)\
-			sdds::Toption option() override { return __modifyOption(_option); }\
+			_optionAssign(_option)\
 			const char* name() override { return #_name; }\
 			void operator=(_class::dtype _v){ __setValue(_v); }\
 			template<typename T>\
 			void operator=(T _val){__setValue(_val); }\
     } _name;
 
-/**
- * macros to change operator= and constructor based on the number of arguments given
- */
+#define __sdds_optionAssignValue(_option)\
+	sdds::Toption option() override { return __modifyOption(_option); }
+#define __sdds_optionEmpty(_option)
+
 #define __sdds_constructorAssignValue(_class,_name,_value)\
 _class##_##_name(){\
 	Fvalue = _value;\
@@ -597,9 +595,9 @@ _class##_##_name(){\
  * implement variable number of arguments for sdds_var
  */
 #define __sdds_declareField_param1(_class) static_assert(false,"Need At Least 2 Parameters" );     //throw error for 1 and 0 parameters to sdds_var
-#define __sdds_declareField_param2(_class,_var) __sdds_declareField(_class,_var,0,0,__sdds_constructorEmpty);
-#define __sdds_declareField_param3(_class,_var,_opt) __sdds_declareField(_class,_var,_opt,0,__sdds_constructorEmpty)
-#define __sdds_declareField_param4(_class,_var,_opt,_value) __sdds_declareField(_class,_var,_opt,_value,__sdds_constructorAssignValue);
+#define __sdds_declareField_param2(_class,_var) __sdds_declareField(_class,_var,0,0,__sdds_optionEmpty,__sdds_constructorEmpty);
+#define __sdds_declareField_param3(_class,_var,_opt) __sdds_declareField(_class,_var,_opt,0,__sdds_optionAssignValue,__sdds_constructorEmpty)
+#define __sdds_declareField_param4(_class,_var,_opt,_value) __sdds_declareField(_class,_var,_opt,_value,__sdds_optionAssignValue,__sdds_constructorAssignValue);
 #define __sdds_get5thArg(_1,_2,_3,_4,_N,...) _N
 #define __sdds_getMacro(...) __sdds_get5thArg(__VA_ARGS__,__sdds_declareField_param4,__sdds_declareField_param3,__sdds_declareField_param2,__sdds_declareField_param1)
 
@@ -688,7 +686,7 @@ class TobjectEvent : public TlinkedListElement{
 		 * 
 		 *  
 		 */
-	    TmenuHandle* menuHandle1() { return static_cast<Tstruct*>(FobservedObj)->value(); }
+	    TmenuHandle* menuHandle() { return static_cast<Tstruct*>(FobservedObj)->value(); }
 		Tdescr* observedObj() { return FobservedObj; }
 		void setObservedObj(Tdescr* _oo){ FobservedObj = _oo; }
 
@@ -701,8 +699,7 @@ class TobjectEvent : public TlinkedListElement{
 
 		template <class _Tlocator>
 		void setObservedRange(_Tlocator& _l){
-			arrayToDo();
-			FobservedObj = _l.parent();
+			FobservedObj = _l.result();
 			FobservedRange.Ffirst = _l.firstItemIdx();
 			FobservedRange.Flast = _l.lastItemIdx();
 		}
@@ -733,26 +730,48 @@ class TobjectEventList : public TlinkedList<TobjectEvent>{
 
 
 /************************************************************************************
+Tarrar
+*************************************************************************************/
+
+/**
+ * toDo: implement gerneric interface for arrays
+ * at the moment we handle only strings and this is implemented in Tstring
+ * 
+ * We have to implement a template class which extend array base and the 
+ * typical functions to extend/shrink the array and access its elements...
+ * 
+ */
+class TarrayBase : public Tdescr{
+	protected:
+		TobjectEventList FobjectEvents;
+	public:
+		TobjectEventList* events() { return &FobjectEvents; }
+};
+
+
+
+/************************************************************************************
 Tstring
 *************************************************************************************/
 
-class Tarray{
-	public:
-	    TobjectEventList FobjectEvents;
-};
-
-template <class ValType, sdds::Ttype _type_id> class Tarray1: public TdescrTemplate<ValType,_type_id>{
-	public:
-	    TobjectEventList FobjectEvents;
-};
-
-//class Tstring : public TdescrTemplate<dtypes::string,sdds::Ttype::STRING>, public Tarray{
-class Tstring : public Tarray1<dtypes::string,sdds::Ttype::STRING>{
+class Tstring : public TarrayBase{
     typedef const char* Tcstr;
+	private:
+        sdds::Ttype type() override { return sdds::Ttype::STRING; };
+		bool setValue(const char* _str) override { 
+			__setValue(_str);
+			return true;
+		};
+		TrawString to_string(){ return Fvalue; }
 	protected:
 		constexpr sdds::opt::Ttype __modifyOption(const sdds::opt::Ttype _opt) { return _opt | sdds::opt::showString; }
+
     public:
         typedef dtypes::string ValType;
+        typedef ValType dtype;
+
+		ValType Fvalue;
+		void* pValue() override { return &Fvalue; }
 
         dtypes::int32 length() { return Fvalue.length(); }
 
@@ -784,6 +803,17 @@ class Tstring : public Tarray1<dtypes::string,sdds::Ttype::STRING>{
         
         operator ValType() { return Fvalue; }
         operator Tcstr(){ return c_str(); }
+
+		template <class TmemoryStream>
+		void setValue(int _firstCharIdx, TmemoryStream& _ms){
+			if (_firstCharIdx == 0){
+				if (!_ms.readOfs(1)) return;
+				Fvalue.assign(reinterpret_cast<const char*>(_ms.buffer()), _ms.bytesAvailableForRead());
+			}
+			else if (_firstCharIdx == static_cast<int>(Fvalue.length())){
+				Fvalue.append(reinterpret_cast<const char*>(_ms.buffer()), _ms.bytesAvailableForRead());
+			}
+		}
 
 		void setValue(TsubStringRef& _strRef){
 			Fvalue.assign(_strRef.c_str(),_strRef.length());
@@ -843,6 +873,13 @@ class TmenuHandle : public Tstruct{
             _descr->Fparent = this;
             push_back(_descr);
         }
+
+		void addDescr(Tdescr* _descr, int _pos){
+			auto it = iterator();
+			while (it.hasNext() && _pos-- > 0) it.next();
+            _descr->Fparent = this;
+			it.insert(_descr);
+		}
 
         void print();
 
@@ -1026,14 +1063,14 @@ class Tlocator{
  * 
  * @note use locate to resolve the given path. If locate returns true
  * 	the path is valid and as a result we get:
- * 		parent: The last struct/array entered.
- * 		if parent is a struct:
+ * 		result: The last struct/array entered.
+ * 		if result is a struct:
  * 			firstItem: the first item in the struct
  * 			lastItem: the last item in the struct
  * 			firstItemIdx: the numeric idx of the first itme
  * 			lastItemIdx: the numeric idx of the last itme
- * 		if parent is an array:
- * 			firstItem, lastItem: the same as parent
+ * 		if result is an array:
+ * 			firstItem, lastItem: the same as result
  * 			firstItemIdx: index to the first array element
  * 			lastItemIdx: index to the last array element
  * 
@@ -1042,8 +1079,10 @@ class Tlocator{
  */
 template<typename t_path_length, typename t_path_entry>
 class TbinLocator{
+	public:
+		enum Tresult { isInvalid, isStruct, isArray};
     private:
-		Tdescr* Fparent = nullptr;
+		Tdescr* Fresult = nullptr;
 
 		Tdescr* FfirstItem = nullptr;
 		Tdescr* FlastItem = nullptr;
@@ -1051,74 +1090,76 @@ class TbinLocator{
 		t_path_entry FlastItemIdx = 0;
 	public:
 		static int constexpr MAX_ENTRY = dtypes::high<t_path_entry>();
-
-		Tdescr* parent() { return Fparent; }
-		TmenuHandle* menu1() {
-			if (!Fparent->isStruct()) return nullptr;
-			return static_cast<Tstruct*>(Fparent)->value(); 
-		}
+				
+		Tdescr* result() { return Fresult; }
 		Tdescr* firstItem() { return FfirstItem; }
 		Tdescr* lastItem() { return FlastItem; }
 		t_path_entry firstItemIdx() { return FfirstItemIdx; }
 		t_path_entry lastItemIdx() { return FlastItemIdx; }
-		
+
+		Tdescr* array(){ return Fresult; }
+		TmenuHandle* menuHandle() { return static_cast<Tstruct*>(Fresult)->value(); }
+	
 		template <class TmemoryStream>
-        bool locate(TmemoryStream& _ms, TmenuHandle* _root){
+        Tresult locate(TmemoryStream& _ms, TmenuHandle* _root){
 			t_path_length length = 0;
 			t_path_entry entry = 0;
-			if (!_ms.readVal(length)) return false;
-			if (length < 2) return false;
+			if (!_ms.readVal(length)) return Tresult::isInvalid;
+			if (length < 2) return Tresult::isInvalid;
 
-			Tdescr* parentDescr = _root;
-            TmenuHandle* parent = _root;
-			while (length-- > 0){
-				if (!_ms.readVal(entry)) return false;
+			if (!_ms.readVal(entry)) return Tresult::isInvalid;
+
+			/** while length > 2 traverse through tree */
+			Tdescr* currContainer = _root;
+            TmenuHandle* currMenuHandle = _root;
+			while (length-- > 2){
 				Tdescr* d;
-				if (length > 1){
-					d = parent->get(entry);
-					if (!d) return false;
-					if (d->isStruct()){
-						parentDescr = d;
-						parent = static_cast<Tstruct*>(d)->value();
-					}
-					else if (d->isArray()){
-						if (length > 2) return false;
-						Fparent = d;
-						FfirstItem = d;
-						FlastItem = d;
-						if (!_ms.readVal(FfirstItemIdx)) return false;
-						if (!_ms.readVal(entry)) return false;
-						if (entry < MAX_ENTRY){
-							if (dtypes::uint32(entry + FfirstItemIdx - 1) > MAX_ENTRY) return false;
-							entry = entry + FfirstItemIdx - 1;
-						} 
-						FlastItemIdx = entry;
-						return true;
-					}
-					else
-						return false;
+				d = currMenuHandle->get(entry);
+				if (!d) return Tresult::isInvalid;
+				if (d->isStruct()){
+					currContainer = d;
+					currMenuHandle = static_cast<Tstruct*>(d)->value();
 				}
-				else if (length == 1){
-					d = parent->get(entry);
-					if (!d) return false;
-					FfirstItemIdx = entry;
+				else if (d->isArray()){
+					if (length > 2) return Tresult::isInvalid;
+					Fresult = d;
 					FfirstItem = d;
-				}
-				else{
-					if (entry < MAX_ENTRY){
-						if (dtypes::uint32(entry + FfirstItemIdx - 1) > MAX_ENTRY) return false;
-						entry = entry + FfirstItemIdx - 1;
-						d = parent->get(entry);
-					} 
-					else
-						d = parent->last();
-					if (!d) return false;
-					FlastItemIdx = entry;
 					FlastItem = d;
+					if (!_ms.readVal(FfirstItemIdx)) return Tresult::isInvalid;
+					if (!_ms.readVal(entry)) return Tresult::isInvalid;
+					if (entry < MAX_ENTRY){
+						if (dtypes::uint32(entry + FfirstItemIdx - 1) > MAX_ENTRY) return Tresult::isInvalid;
+						entry = entry + FfirstItemIdx - 1;
+					} 
+					FlastItemIdx = entry;
+					return Tresult::isArray;
 				}
+				else
+					return Tresult::isInvalid;
+				if (!_ms.readVal(entry)) return Tresult::isInvalid;
 			}
-			Fparent = parentDescr;
-            return true;
+
+			//process firstItem entry of path
+			Tdescr* d = currMenuHandle->get(entry);
+			if (!d) return Tresult::isInvalid;
+			FfirstItemIdx = entry;
+			FfirstItem = d;
+		
+			//process nItems entry of path
+			if (!_ms.readVal(entry)) return Tresult::isInvalid;
+			if (entry < MAX_ENTRY){
+				if (dtypes::uint32(entry + FfirstItemIdx - 1) > MAX_ENTRY) return Tresult::isInvalid;
+				entry = entry + FfirstItemIdx - 1;
+				d = currMenuHandle->get(entry);
+			} 
+			else
+				d = currMenuHandle->last();
+			if (!d) return Tresult::isInvalid;
+			FlastItemIdx = entry;
+			FlastItem = d;
+
+			Fresult = currContainer;
+            return Tresult::isStruct;
         }
 };
 

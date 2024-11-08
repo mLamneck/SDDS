@@ -192,7 +192,7 @@ void TplainCommHandler::execute(Tevent* _ev){
 
 		//TjsonSerializer::serializeValues(Fstream,oe->Fstruct,first,last);
 		*/
-        TjsonSerializer::serializeValues(Fstream,oe->menuHandle1(),first,last);
+        TjsonSerializer::serializeValues(Fstream,oe->menuHandle(),first,last);
         Fstream->flush();
     }
     else{

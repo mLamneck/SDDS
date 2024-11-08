@@ -82,7 +82,7 @@ void TjsonSerializer::serializeTypeDescr(Tdescr* _d){
         Fstream->write(json_key("enums"));
         Fstream->write('[');
         TenumBase* en = static_cast<TenumBase*>(_d);
-        for (auto it=en->iterator();;){
+        for (auto it=en->enumInfo().iterator;;){
 			TjsonSerializer::serializeAsString(Fstream,it.next());
 			if (!it.hasNext()) break;
 			Fstream->write(',');

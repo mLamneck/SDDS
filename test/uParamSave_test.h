@@ -62,7 +62,7 @@ class TtestParamSave : public TtestCase{
         public:
             sdds_struct(
                 sdds_var(Tled,led,sdds::opt::saveval)
-                sdds_var(TparamSaveMenu,params)
+                //sdds_var(TparamSaveMenu,params)
             )
     };
 
