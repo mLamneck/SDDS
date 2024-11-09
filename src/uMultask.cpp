@@ -1,6 +1,7 @@
 #include "uMultask.h"
 #if defined(__MINGW64__)
     #include <windows.h>
+	#include <chrono>
 #endif
 
 using namespace multask;
@@ -130,10 +131,11 @@ void TtaskHandler::_handleEvents(){
     if (ev){
         TsystemTime now = sysTime();
         TsystemTime waitTime = ev->deliveryTime() - now;
-        if (waitTime > 0){
-            Sleep(waitTime);
-            FsysTime += waitTime;
-        }
+		auto start = std::chrono::high_resolution_clock::now();
+		Sleep(waitTime);
+		auto end = std::chrono::high_resolution_clock::now();
+		auto actualWaitTime = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+		FsysTime += actualWaitTime;
     }
     #endif
 }
