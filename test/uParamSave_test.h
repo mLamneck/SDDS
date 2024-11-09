@@ -67,8 +67,8 @@ class TtestParamSave : public TtestCase{
     };
 
     void logStruct(TmenuHandle& s1, dtypes::string _pre = ""){
-        for (auto it=s1.iterator(); it.hasNext();){
-            auto d = it.next();
+        for (auto it=s1.iterator(); it.hasCurrent(); it.jumpToNext()){
+            auto d = it.current();
             if (d->isStruct()){
                 TmenuHandle* mh1 = static_cast<Tstruct*>(d)->value();
                 debug::log("%s-> %s",_pre.c_str(),d->name());
@@ -81,8 +81,8 @@ class TtestParamSave : public TtestCase{
     }
 
     int _calcSize(TmenuHandle& _s, int _size = 0){
-        for (auto it=_s.iterator(); it.hasNext();){
-            auto d = it.next();
+        for (auto it=_s.iterator(); it.hasCurrent(); it.jumpToNext()){
+            auto d = it.current();
             if (d->isStruct()){
                 TmenuHandle* mh1 = static_cast<Tstruct*>(d)->value();
                 _size = _calcSize(*mh1,_size);
@@ -103,8 +103,8 @@ class TtestParamSave : public TtestCase{
 
     bool compareStructs(TmenuHandle& s1, TmenuHandle& s2, dtypes::string _path = ""){
         auto it2 = s2.iterator();
-        for (auto it1 = s1.iterator(); it1.hasNext();){
-            auto d1 = it1.next();
+        for (auto it1 = s1.iterator(); it1.hasCurrent(); it1.jumpToNext()){
+            auto d1 = it1.current();
 
             //d1 has no saveval -> this means it is not saved to eeprom
             //we don't have to compare it

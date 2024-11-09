@@ -32,9 +32,10 @@ void TtaskHandler::signalEvent(Tevent* _ev){
 	if (_ev->linked()) return;
     auto prior = _ev->priority();
     auto it = FprocQ.iterator();
-    while (it.hasNext()){
-        auto ev = it.next();
+    while (it.hasCurrent()){
+        auto ev = it.current();
         if (prior > ev->priority()){ break; }
+		it.jumpToNext();
     }
     it.insert(_ev);
 }
@@ -49,9 +50,10 @@ void TtaskHandler::setTimeEvent(Tevent* _ev, const TsystemTime _relTime){
     TsystemTime delTime = now +_relTime;
     auto it = FtimerQ.iterator();
 
-    while (it.hasNext()){
-        auto ev = it.next();
+    while (it.hasCurrent()){
+        auto ev = it.current();
         if (delTime < ev->deliveryTime()){ break; }
+		it.jumpToNext();
     }
     _ev->FdeliveryTime = delTime;
     #if MULTASK_DEBUG

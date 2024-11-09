@@ -25,14 +25,15 @@ bool _TlinkedList::remove(_TlinkedList::T* _element){
     if (_element == nullptr){ return false; }
     if (!_element->linked()){ return true; }
     auto it = iterator();
-    while (it.hasNext()){
-        auto el = it.next();
+    while (it.hasCurrent()){
+        auto el = it.current();
         if (el == _element){
             auto prev = it.prev();
             prev->Fnext = el->next();
             el->setUnlinked();
             return true;
         }
+		it.jumpToNext();
     }
     return false;
 }
@@ -48,9 +49,10 @@ _TlinkedListIterator _TlinkedList::iterator(int _firstIdx){
 int _TlinkedList::indexOf(_TlinkedList::T* _element)
 {
     int idx = 0;
-    for (auto it = iterator(); it.hasNext(); ){
-        if (it.next() == _element){ return idx; }
+    for (auto it = iterator(); it.hasCurrent(); ){
+        if (it.current() == _element){ return idx; }
         idx++;
+		it.jumpToNext();
     }
     return -1;
 }

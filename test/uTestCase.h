@@ -32,8 +32,8 @@ class TtestCase{
         char* binToHex(dtypes::string _str){ return binToHex(_str.data(),_str.length()); }
 
 		void logStruct(TmenuHandle& s1, dtypes::string _pre = ""){
-			for (auto it=s1.iterator(); it.hasNext();){
-				auto d = it.next();
+			for (auto it=s1.iterator(); it.hasCurrent(); it.jumpToNext()){
+				auto d = it.current();
 				if (d->isStruct()){
 					TmenuHandle* mh1 = static_cast<Tstruct*>(d)->value();
 					debug::log("%s-> %s",_pre.c_str(),d->name());

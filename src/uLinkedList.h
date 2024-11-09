@@ -78,28 +78,24 @@ class _TlinkedListIterator{
         T* Fprev = nullptr;
     public:
         _TlinkedListIterator(T* _list){
-            Fcurr = _list;
-            Fprev = nullptr;
+            Fprev = _list;
+            Fcurr = _list->next();
         }
         _TlinkedListIterator(T* _list, int _startIdx) : _TlinkedListIterator(_list){
-            while (_startIdx-- > 0 && hasNext()) next();
+            while (_startIdx-- > 0 && jumpToNext()) ;
         }
 
-        inline bool hasNext(){
-            bool _hasNext = (Fcurr->next() != nullptr);
-            if (!_hasNext){ Fprev = Fcurr; }
-            return _hasNext;
-        }
+		T* hasCurrent(){ return Fcurr; }
+		T* jumpToNext() { 
+			Fprev = Fcurr;
+			Fcurr = Fcurr->Fnext;
+			return Fcurr;
+		}
 
         // this is not neccessarily the previous element, but could also be the list itself.
         // or the last element in the list.
         T* prev() { return Fprev; };
-
-        T* next() {
-            Fprev = Fcurr;
-            Fcurr = Fcurr->next();
-            return Fcurr;
-        }
+		T* current() { return Fcurr; }
 
         void insert(T* _newElement){
             if (_newElement == nullptr){ return; }
@@ -122,7 +118,7 @@ TlinkedListIterator - with type specification
 template<class elementType> class TlinkedListIterator: public _TlinkedListIterator{
     public:
         using _TlinkedListIterator::_TlinkedListIterator;
-        elementType* next() { return static_cast<elementType*>(_TlinkedListIterator::next()); }
+        elementType* current() { return static_cast<elementType*>(_TlinkedListIterator::current()); }
 
         //this doesn't work because there's not way to detect if prev points to the list itself
         //elementType* prev() { return (Fcurr==Fprev)?nullptr:static_cast<elementType*>(Fprev); }

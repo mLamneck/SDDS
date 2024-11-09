@@ -56,8 +56,8 @@ bool TplainCommHandler::prepareConnRelatedMsg(TstringRef& _msg){
     if (!scanTree(_msg)) return false;
 
     //find port
-    for (auto it = Fconnections.iterator(); it.hasNext(); ){
-        auto lconn = it.next();
+    for (auto it = Fconnections.iterator(); it.hasCurrent(); ){
+        auto lconn = it.current();
         if (getPort(&lconn->FobjEvent) == Fport){
             Fconn = lconn;
             TmenuHandle* lmh = Fconn->menuHandle();
@@ -65,6 +65,7 @@ bool TplainCommHandler::prepareConnRelatedMsg(TstringRef& _msg){
             Fconn->FobjEvent.event()->reclaim();
             break;
         }
+		it.jumpToNext();
     }
     return true;
 }

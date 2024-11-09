@@ -56,8 +56,9 @@ bool TparamStream::seek(TseekMode _mode, int _pos) {
 }
 
 dtypes::uint16 TparamStreamer::_calcCrc(TmenuHandle* s, dtypes::uint16 _cnt){
-    for (auto it = s->iterator(); it.hasNext();){
-        auto descr = it.next();
+    for (auto it = s->iterator(); it.hasCurrent();){
+        auto descr = it.current();
+		it.jumpToNext();
 
         //crc8::calc(Fcrc.rCrc.Fname,descr->name(),strlen(descr->name()));
         if (descr->isStruct()){
@@ -87,8 +88,9 @@ bool TparamStreamer::writeByte(dtypes::uint8 _byte){
 }
 
 bool TparamStreamer::saveStruct(TmenuHandle* s){
-    for (auto it = s->iterator(); it.hasNext();){
-        auto descr = it.next();
+    for (auto it = s->iterator(); it.hasCurrent();){
+        auto descr = it.current();
+		it.jumpToNext();
 
         //crc8::calc(Fcrc.rCrc.Fname,descr->name(),strlen(descr->name()));
         if(descr->type() == sdds::Ttype::STRUCT){
@@ -144,8 +146,9 @@ bool TparamStreamer::readByte(dtypes::uint8& _byte){
 }
 
 bool TparamStreamer::_loadStruct(TmenuHandle* s){
-    for (auto it = s->iterator(); it.hasNext();){
-        auto descr = it.next();
+    for (auto it = s->iterator(); it.hasCurrent();){
+        auto descr = it.current();
+		it.jumpToNext();
 
         if (descr->isStruct()){
             TmenuHandle* mh = static_cast<Tstruct*>(descr)->value();

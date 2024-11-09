@@ -192,8 +192,8 @@ void TobjectEvent::cleanup(){
 void TobjectEventList::signal(TrangeItem _first, int _n, dtypes::uint16 _port){
 	if (_n <= 0) return;
 
-	for (auto it = iterator(); it.hasNext(); ){
-		auto ev = it.next();
+	for (auto it = iterator(); it.hasCurrent(); it.jumpToNext() ){
+		auto ev = it.current();
 		if ((_port != 0) && (_port == ev->Fevent.args.word1))
 			continue;
 		ev->signal(_first,_first+_n-1);
@@ -210,8 +210,9 @@ TmenuHandle - base class to be used to declare a structure with descriptive elem
 
 void TmenuHandle::print(){
     auto it = iterator();
-    while (it.hasNext()){
-        Tdescr* descr = it.next();
+    while (it.hasCurrent()){
+        Tdescr* descr = it.current();
+		it.jumpToNext();
         if (descr->isStruct()){
 
             Tstruct* s = static_cast<Tstruct*>(descr);
@@ -230,8 +231,9 @@ void TmenuHandle::print(){
 
 Tdescr* TmenuHandle::find(const char* _name){
     auto it = iterator();
-    while (it.hasNext()){
-        Tdescr* descr = it.next();
+    while (it.hasCurrent()){
+        Tdescr* descr = it.current();
+		it.jumpToNext();
         if (string_cmp(descr->name(),_name)){
             return descr;
         }

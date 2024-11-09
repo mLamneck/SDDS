@@ -158,8 +158,9 @@ typedef TlinkedListIterator<TcallbackWrapper> TcallbackIterator;
 class Tcallbacks : public TlinkedList<TcallbackWrapper>{
     public:
         inline void emit(){
-            for (auto it = iterator(); it.hasNext();){
-                it.next()->emit();
+            for (auto it = iterator(); it.hasCurrent();){
+                it.current()->emit();
+				it.jumpToNext();
             }
         }
 
@@ -721,8 +722,9 @@ class TobjectEventList : public TlinkedList<TobjectEvent>{
 
     public:
         void signal(){
-            for (auto it = iterator(); it.hasNext(); ){
-                it.next()->event()->signal();
+            for (auto it = iterator(); it.hasCurrent(); ){
+                it.current()->event()->signal();
+				it.jumpToNext();
             }
         }
         void signal(TrangeItem _first, int _n = 1, dtypes::uint16 _port = 0);
@@ -868,16 +870,14 @@ class TmenuHandle : public Tstruct{
             }
         }
 
-        //called by all overloaded constructors through addDescr(_descr,_name,_opt) anyway
         void addDescr(Tdescr* _descr){
             _descr->Fparent = this;
             push_back(_descr);
         }
 
 		void addDescr(Tdescr* _descr, int _pos){
-			auto it = iterator();
-			while (it.hasNext() && _pos-- > 0) it.next();
             _descr->Fparent = this;
+			auto it = iterator(_pos);
 			it.insert(_descr);
 		}
 
@@ -889,8 +889,8 @@ class TmenuHandle : public Tstruct{
         int find(_TstringRef _name, Tdescr*& _descr){
         		_descr = nullptr;
         		int idx = 0;
-        		for (auto it = FmenuItems.iterator(); it.hasNext(); idx++){
-        			auto descr = it.next();
+        		for (auto it = FmenuItems.iterator(); it.hasCurrent(); it.jumpToNext(), idx++){
+        			auto descr = it.current();
         			if (_name == descr->name()){
         				_descr = descr;
         				return idx;
@@ -911,8 +911,9 @@ class TmenuHandle : public Tstruct{
 			Tdescr* res = nullptr;
 			auto it = iterator();
 			while (_idx-- >= 0){
-				if (!it.hasNext()) return nullptr;
-				res = it.next();
+				if (!it.hasCurrent()) return nullptr;
+				res = it.current();
+				it.jumpToNext();
 			}
 			return res;
 		}
@@ -920,14 +921,17 @@ class TmenuHandle : public Tstruct{
 		Tdescr* last(){
 			Tdescr* res = nullptr;
 			auto it = iterator();
-			while (it.hasNext()) res = it.next();
+			while (it.hasCurrent()){
+				res = it.current();
+				it.jumpToNext();
+			} 
 			return res;
 		}
 
         #if (MARKI_DEBUG_PLATFORM == 1)
         void log(dtypes::string _pre = ""){
-            for (auto it=iterator(); it.hasNext();){
-                auto d = it.next();
+            for (auto it=iterator(); it.hasCurrent(); it.jumpToNext()){
+                auto d = it.current();
                 if (d->isStruct()){
                     TmenuHandle* mh1 = static_cast<Tstruct*>(d)->value();
                     debug::log("%s-> %s",_pre.c_str(),d->name());
@@ -939,8 +943,8 @@ class TmenuHandle : public Tstruct{
             }
         }
         void _logCreateAssoc(){
-            for (auto it=iterator(); it.hasNext();){
-                auto d = it.next();
+            for (auto it=iterator(); it.hasCurrent(); it.jumpToNext()){
+                auto d = it.current();
                 debug::log("  case(%d): return \"%s\";",d->createNummber,d->name());
                 if (d->isStruct()){
                     TmenuHandle* mh1 = static_cast<Tstruct*>(d)->value();
