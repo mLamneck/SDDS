@@ -3,14 +3,22 @@
 
 #include "uPlatform.h"
 
+//ToDo: check if CRC_TAB_IN_PROGMEM 1 works for STM32 and 485 uart
+#if defined(SDDS_ON_ARDUINO)
+    #if defined(ESP32) || defined(ESP8266)
+        #define CRC_TAB_IN_PROGMEM 0
+    #else
+        #define CRC_TAB_IN_PROGMEM 1
+    #endif
+#elif MARKI_DEBUG_PLATFORM == 1
+    #define CRC_TAB_IN_PROGMEM 1
+#endif
+
+
 namespace crc8{
 	typedef uint8_t Tcrc;
     #if CRC_TAB_IN_PROGMEM == 1
-		#if defined(STM32_CUBE)
-		extern const Tcrc tab[];
-		#else
 		extern const Tcrc tab[] PROGMEM;
-		#endif
 	#else 
 		extern Tcrc tab[];
 	#endif
