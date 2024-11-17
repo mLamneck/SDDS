@@ -575,7 +575,7 @@ class TfinishMenuDefinition{
     class _class##_##_name : public _class{\
         public:\
 			_constructorAssign(_class,_name,_value)\
-			_optionAssign(_option)\
+			__sdds_optionAssignValue(_option)\
 			const char* name() override { return #_name; }\
 			void operator=(_class::dtype _v){ __setValue(_v); }\
 			template<typename T>\
@@ -618,6 +618,7 @@ class TobjectEvent;
 class TobjectEventList;
 
 class __TobjectEvent : public Tevent{
+	void execute() override;
     void afterDispatch() override;
     TobjectEvent* FobjectEvent;
 public:
@@ -680,6 +681,7 @@ class TobjectEvent : public TlinkedListElement{
     public:
         //TmenuHandle* Fstruct;
 
+		virtual void execute();
         void afterDispatch();
 
 		/**
@@ -703,6 +705,11 @@ class TobjectEvent : public TlinkedListElement{
 			FobservedObj = _l.result();
 			FobservedRange.Ffirst = _l.firstItemIdx();
 			FobservedRange.Flast = _l.lastItemIdx();
+		}
+
+		void setObservedRange(TrangeItem _firstIdx, TrangeItem _lastIdx){
+			FobservedRange.Ffirst = _firstIdx;
+			FobservedRange.Flast = _lastIdx;
 		}
 
 		void setOwner(Tthread* _thread){ Fevent.setOwner(_thread); }
@@ -736,7 +743,7 @@ Tarrar
 *************************************************************************************/
 
 /**
- * toDo: implement gerneric interface for arrays
+ * toDo: implement generic interface for arrays
  * at the moment we handle only strings and this is implemented in Tstring
  * 
  * We have to implement a template class which extend array base and the 
@@ -986,6 +993,7 @@ class Ttimer: public TcallbackEvent<Tevent>{
 };
 
 typedef TcallbackEvent<multask::TisrEvent> TisrEvent;
+typedef TcallbackEvent<TobjectEvent> TcbObjectEvent;
 
 template <uint8_t qsize, typename dtype=dtypes::uint8>
 class TisrEventDataQ : public TcallbackEvent<multask::TisrEventDataQ<qsize,dtype>>{};

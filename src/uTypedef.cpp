@@ -160,9 +160,17 @@ void __TobjectEvent::afterDispatch(){
     FobjectEvent->afterDispatch();
 }
 
+void __TobjectEvent::execute(){
+    FobjectEvent->execute();
+}
+
 void TobjectEvent::afterDispatch(){
     FchangedRange.Ffirst = sdds::TrangeItem_max;
     FchangedRange.Flast = 0;
+}
+
+void TobjectEvent::execute(){
+   
 }
 
 Tevent* TobjectEvent::event(){

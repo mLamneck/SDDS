@@ -22,7 +22,6 @@
     #include <sys/time.h>
     
     #define MARKI_DEBUG_PLATFORM 1
-    #define CRC_TAB_IN_PROGMEM 0
 
     #include <stdarg.h>     /* va_list, va_start, va_arg, va_end */
     #include <string>
@@ -79,9 +78,6 @@
  * STM32 Cube
 *************************************************************************************/
 
-#define MARKI_DEBUG_PLATFORM 0
-#define CRC_TAB_IN_PROGMEM 0
-
 #define __SDDS_UTYPEDEF_COMPILE_STRCONV 0
 #define __SDDS_UTIME_CAN_PARSE_TEXT 0
 
@@ -90,7 +86,7 @@
 #ifdef STM32C031xx
     #include "stm32c0xx_hal.h"
 #else
-		#include "stm32g4xx_hal.h"
+	#include "stm32g4xx_hal.h"
 #endif
 
 #define __sdds_isr_disable() __disable_irq()
@@ -126,7 +122,7 @@ inline dtypes::TsystemTime millis() {
  * Arduino
 *************************************************************************************/
 
-#define SDDS_ON_ARDUINO
+#define SDDS_ON_ARDUINO 1
 
 	#include <Arduino.h>
 
@@ -139,19 +135,6 @@ inline dtypes::TsystemTime millis() {
 	#define __sdds_isr_disable() noInterrupts()
 	#define __sdds_isr_enable() interrupts()
 
-    //to be checked
-    #if defined(ESP32) || defined(ESP8266)
-        #define CRC_TAB_IN_PROGMEM 0
-        #define SDDS_EEPROM_COMMIT 1
-        #define SDDS_EEPROM_SIZE 1024
-        #define SDDS_EEPROM_BEGIN_WITH_SIZE 1
-    #else
-        #define CRC_TAB_IN_PROGMEM 1
-        #define SDDS_EEPROM_COMMIT 0
-        #define SDDS_EEPROM_SIZE 1024
-        #define SDDS_EEPROM_BEGIN_WITH_SIZE 0
-    #endif
-
     namespace dtypes{
         typedef String string;                      //for Arduino this seems to be the best option for dynamic strings
         typedef long int TsystemTime;               //millis on Arduino returns... what is this exactly? unsigned long int?
@@ -160,6 +143,10 @@ inline dtypes::TsystemTime millis() {
         template<typename valType>
         inline dtypes::string to_string(valType _val) { return String(_val); }
     };
+#endif
+
+#if !defined(SDDS_ON_ARDUINO)
+	#define PROGMEM
 #endif
 
 //available on all compilers?

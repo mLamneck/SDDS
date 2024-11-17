@@ -99,7 +99,7 @@ class TtestParamSave : public TtestCase{
         return _size;
     }
     
-    int calcSize(TmenuHandle& _s){ return _calcSize(_s) + sizeof(TparamSaveVersion) + sizeof(TparamHeaderV0); }
+    int calcSize(TmenuHandle& _s){ return _calcSize(_s) + sizeof(sdds::paramSave::TparamSaveVersion) + sizeof(sdds::paramSave::TparamHeaderV0); }
 
     bool compareStructs(TmenuHandle& s1, TmenuHandle& s2, dtypes::string _path = ""){
         auto it2 = s2.iterator();
@@ -158,8 +158,8 @@ class TtestParamSave : public TtestCase{
         ,TparamError::dtype _expLoadError = TparamError::e::___
     )
     {
-        TparamStreamer ps;
-        TparamStringStream s;
+        sdds::paramSave::TparamStreamer ps;
+        sdds::paramSave::TstringStream s;
         bool res = ps.save(s1,&s);
 
         int expSize = calcSize(s1); 
@@ -169,7 +169,7 @@ class TtestParamSave : public TtestCase{
         }
 
         //debug::log(binToHex(s.str()));
-        s.seek(TseekMode::start,0);
+        s.seek(sdds::paramSave::TseekMode::start,0);
         res = ps.load(s2,&s);
         if (_expLoadError != ps.error()){
             debug::log("error='%s'!='%s'=expectedError",ps.error().to_string().c_str(),TparamError::enumClass::c_str(_expLoadError));
