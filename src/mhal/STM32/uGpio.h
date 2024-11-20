@@ -52,13 +52,76 @@ constexpr static uint32_t __mhal_NUMBER_TO_LL_EXTI_LINE() {
 }
 #undef mhal_mIteratePins
 
+template <int GPIO_PIN>
+constexpr static IRQn_Type __mhal_PIN_TO_EXTI_IRQ(){
+	switch(GPIO_PIN){
+		#ifdef __STM32G474xx_H
+			case 0: return EXTI0_IRQn;
+			case 1: return EXTI1_IRQn;
+			case 2: return EXTI2_IRQn;
+			case 3: return EXTI3_IRQn;
+			case 4: return EXTI4_IRQn;
+			default:
+				if (GPIO_PIN <= 9) return EXTI9_5_IRQn;
+				else return EXTI15_10_IRQn;
+		#else
+			//toDo! return real values depending on pin
+			return EXTI0_IRQ EXTI0_1_IRQn
+		#endif
+	}
+}
 
 /***********************************************************
  * Classes
  ***********************************************************/
 
+	class TgpioClockManager {
+	public:
+			constexpr static void enableClock(uintptr_t GPIO_BASE_ADDR) {
+					switch (GPIO_BASE_ADDR) {
+							case GPIOA_BASE:
+									if (!isClockEnabled(GPIOA_BASE)) {
+											LL_AHB2_GRP1_EnableClock(LL_AHB2_GRP1_PERIPH_GPIOA);
+									}
+									break;
+							case GPIOB_BASE:
+									if (!isClockEnabled(GPIOB_BASE)) {
+											LL_AHB2_GRP1_EnableClock(LL_AHB2_GRP1_PERIPH_GPIOB);
+									}
+									break;
+							case GPIOC_BASE:
+									if (!isClockEnabled(GPIOC_BASE)) {
+											LL_AHB2_GRP1_EnableClock(LL_AHB2_GRP1_PERIPH_GPIOC);
+									}
+									break;
+							case GPIOF_BASE:
+									if (!isClockEnabled(GPIOF_BASE)) {
+											LL_AHB2_GRP1_EnableClock(LL_AHB2_GRP1_PERIPH_GPIOF);
+									}
+									break;
+					}
+			}
+
+	private:
+			static bool isClockEnabled(uintptr_t GPIO_BASE_ADDR) {
+					switch (GPIO_BASE_ADDR) {
+							case GPIOA_BASE:
+									return RCC->AHB2ENR & RCC_AHB2ENR_GPIOAEN;
+							case GPIOB_BASE:
+									return RCC->AHB2ENR & RCC_AHB2ENR_GPIOBEN;
+							case GPIOC_BASE:
+									return RCC->AHB2ENR & RCC_AHB2ENR_GPIOCEN;
+							case GPIOF_BASE:
+									return RCC->AHB2ENR & RCC_AHB2ENR_GPIOFEN;
+							default:
+									return false;
+					}
+			}
+	};
+
 	/**
-	 *
+	 * toDo: implement methods to enable interrupts. Implement all modes
+	 *	- switch from HAL to LL to get rid of this stupid magic in HAL_GPIO_INIT
 	 */
 	template<uintptr_t GPIO_BASE_ADDR, uint32_t _GPIO_PIN>
 	class TgpioPin {
@@ -66,21 +129,15 @@ constexpr static uint32_t __mhal_NUMBER_TO_LL_EXTI_LINE() {
 			static_assert(_GPIO_PIN <= 15,"GPIO_PIN must be <= 15");
 			constexpr static uint32_t GPIO_PIN = __mhal_NUMBER_TO_LL_GPIO_PIN<_GPIO_PIN>();
 			constexpr static uint32_t EXTI_LINE = __mhal_NUMBER_TO_LL_EXTI_LINE<_GPIO_PIN>();
-			constexpr static GPIO_TypeDef* _PORT(){ return (GPIO_TypeDef*)GPIO_BASE_ADDR; }
+			constexpr static IRQn_Type EXTI_IRQ = __mhal_PIN_TO_EXTI_IRQ<_GPIO_PIN>();
+			constexpr static GPIO_TypeDef* PORT(){ return (GPIO_TypeDef*)GPIO_BASE_ADDR; }
+
+			constexpr static void enableClock(){
+				TgpioClockManager::enableClock(GPIO_BASE_ADDR);
+			}
 
 			constexpr static void init(PIN_MODE _mode = PIN_MODE::output){
-				/*
-					LL_USART_InitTypeDef USART_InitStruct = {0};
-					GPIO_InitStruct.Pin = LL_GPIO_PIN_6;
-					GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
-					GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_VERY_HIGH;
-					GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
-					GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
-					GPIO_InitStruct.Alternate = LL_GPIO_AF_0;
-					LL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-				 */
-				/*
-				*/
+				enableClock();
 				GPIO_InitTypeDef GPIO_InitStruct = {0};
 				GPIO_InitStruct.Pin = GPIO_PIN;
 				switch(_mode){
@@ -91,19 +148,19 @@ constexpr static uint32_t __mhal_NUMBER_TO_LL_EXTI_LINE() {
 						break;
 					case PIN_MODE::it_rising_falling:
 						GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING_FALLING;
-						HAL_NVIC_SetPriority(EXTI0_IRQ, 2, 0);
-						//HAL_NVIC_EnableIRQ(EXTI0_1_IRQn);
+						//there is no need to set the priority here.
+						//implement a method to setup the interrupt
+						HAL_NVIC_SetPriority(EXTI_IRQ, 2, 0);
 						break;
-
 				}
 				GPIO_InitStruct.Pull = GPIO_NOPULL;
 				GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-				HAL_GPIO_Init(_PORT(), &GPIO_InitStruct);
+				HAL_GPIO_Init(PORT(), &GPIO_InitStruct);
 			}
 
-			constexpr static void high(){ LL_GPIO_SetOutputPin(_PORT(), GPIO_PIN); }
-			constexpr static void low(){ LL_GPIO_ResetOutputPin(_PORT(), GPIO_PIN); }
-			constexpr static void toggle(){ LL_GPIO_TogglePin(_PORT(), GPIO_PIN); }
+			constexpr static void high(){ LL_GPIO_SetOutputPin(PORT(), GPIO_PIN); }
+			constexpr static void low(){ LL_GPIO_ResetOutputPin(PORT(), GPIO_PIN); }
+			constexpr static void toggle(){ LL_GPIO_TogglePin(PORT(), GPIO_PIN); }
 
 			constexpr static void pulse() {
 				high();

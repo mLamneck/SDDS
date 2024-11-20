@@ -8,6 +8,8 @@
 #ifndef MHAL_UPWM_H_
 #define MHAL_UPWM_H_
 
+#include "uPlatform.h"
+
 namespace mhal{
 
 	#if defined(STM32_CUBE)
