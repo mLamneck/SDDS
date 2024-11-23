@@ -43,7 +43,7 @@
 /*****************************************************************************/
 
 sdds_enum(___,crc,invStrLen,outOfMem,invVers) TparamError;
-sdds_enum(___,load,save) TenLoadSave;
+sdds_enum(___,save,load) TenLoadSave;
 
 
 namespace sdds{
