@@ -571,8 +571,7 @@ class TfinishMenuDefinition{
  * usually suggests the right one... this is what we want!
 */
 #define __sdds_declareField(_class, _name, _option, _value, _optionAssign, _constructorAssign) \
-    typedef _class _class##_##_name##_type;\
-    class _class##_##_name : public _class{\
+    class Tclass##_##_name : public _class{\
         public:\
 			_constructorAssign(_class,_name,_value)\
 			__sdds_optionAssignValue(_option)\
@@ -587,7 +586,7 @@ class TfinishMenuDefinition{
 #define __sdds_optionEmpty(_option)
 
 #define __sdds_constructorAssignValue(_class,_name,_value)\
-_class##_##_name(){\
+Tclass##_##_name(){\
 	Fvalue = _value;\
 }
 #define __sdds_constructorEmpty(_class,_name,_value)
