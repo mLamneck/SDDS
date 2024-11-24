@@ -1,3 +1,4 @@
+#include <uTypedef.h>
 #include "uTestCase.h"
 #include "uJsonSerializer.h"
 

@@ -1,6 +1,8 @@
 #ifndef UTESTCASE_H
 #define UTESTCASE_H
 
+#include <uTypedef.h>
+
 typedef std::function<bool()> TtestProc;
 typedef bool (*TtestProcSimple)(Tdescr*);
 
