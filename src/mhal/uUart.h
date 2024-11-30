@@ -61,9 +61,9 @@ namespace mhal{
 				GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_VERY_HIGH;
 				GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
 				GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
-				GPIO_InitStruct.Pin = UART_485_RX::GPIO_PIN;
+				GPIO_InitStruct.Pin = RX_PIN::GPIO_PIN;
 				GPIO_InitStruct.Alternate = __mhal_UART_AF;
-				LL_GPIO_Init(UART_485_RX::PORT(), &GPIO_InitStruct);
+				LL_GPIO_Init(RX_PIN::PORT(), &GPIO_InitStruct);
 
 				NVIC_SetPriority(uart_irq_type(), 0);
 				isr_enable();

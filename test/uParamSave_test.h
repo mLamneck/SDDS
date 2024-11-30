@@ -211,6 +211,13 @@ class TtestParamSave : public TtestCase{
         },"TstructAllTypes");
 
         doTest([this](){
+            TstructAllTypes struct1;
+            TstructAllTypes struct11;
+            struct1.Fstr = "";
+            return test2structs(struct1,struct11);
+        },"Test Menu with empty string");
+
+        doTest([this](){
             TnestedStruct struct1;
             TnestedStruct struct11;
             struct1.Fuint8 = 12;
