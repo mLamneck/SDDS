@@ -870,7 +870,7 @@ public:
 		void setValue(int _firstCharIdx, TmemoryStream& _ms){
 			if (_firstCharIdx == 0){
 				if (!_ms.readOfs(1)) return;
-				uStrings::assign(Fvalue,_ms.buffer(),_ms.bytesAvailableForRead());
+				uStrings::assign(Fvalue,reinterpret_cast<const char*>(_ms.buffer()),_ms.bytesAvailableForRead());
 			}
 			else if (_firstCharIdx == static_cast<int>(Fvalue.length())){
 				uStrings::append(Fvalue,reinterpret_cast<const char*>(_ms.buffer()),_ms.bytesAvailableForRead());
