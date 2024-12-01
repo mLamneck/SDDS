@@ -38,13 +38,18 @@ implementation
 
 
 procedure TForm1.bGenerateClick(Sender: TObject);
-var list : TstringList; n,i : integer; line : string;
+var list : TstringList; n,i : integer; line, concatArg, concatCode : string;
 var GET_NTH_NAME : string;
 const
-  FE_NAME = '__rmc_';
-  cGET_NTH_NAME = '__SP_GET_ARG_%d';
-  COUNT_ARG_NAME = 'SP_COUNT_VARARGS';
-  FOR_EACH_NAME = 'SP_FOR_EACH_PARAM_CALL_MACRO_WITH_PARAM';
+  cGET_NTH_NAME = '__sdds_SM_GET_ARG_%d';
+
+  COUNT_ARG_NAME = 'sdds_SM_COUNT_VARARGS';
+
+  FE_NAME = '__sdds_SM_RMC_';
+  FOR_EACH_NAME = 'sdds_SM_ITERATE';
+
+  CONCAT_N_NAME = '__sdds_SM_CONCAT';
+  CONCAT_NAME = 'sdds_SM_CONCAT';
 begin
   n := strToInt(eMaxParams.text);
   GET_NTH_NAME := format(cGET_NTH_NAME,[n+2]);
@@ -75,6 +80,12 @@ begin
   list.add(#9#9'for param in ... do x(param) where param is a single value',[n]);
   list.add(#9#9'example: given a macro: #define to_comma_sep_list(_a) _a,',[]);
   list.add(#9#9#9'%s(to_comma_sep_list, A, B, C) -> A,B,C,',[FOR_EACH_NAME]);
+
+  list.add('');
+  list.add(#9'III. %s(...):',[CONCAT_NAME]);
+  list.add(#9#9'concatenate all params in ... (for up to %d arguments)',[n]);
+  list.add(#9#9'example:',[]);
+  list.add(#9#9#9'%s(A,B,C) -> ABC,',[CONCAT_NAME]);
   list.add('************************************************************************************/');
   list.add('');
 
@@ -154,6 +165,39 @@ begin
     list.add(format('#define ' + FE_NAME + '%d(_call, x, ...) _call(x) ' + FE_NAME + '%d(_call, __VA_ARGS__)',[i,i-1]));
   end;
   list.add('');
+
+
+  //****************************************************************************
+  //helper macros for concat
+  //****************************************************************************
+
+  list.add('');
+  list.add('/************************************************************************************');
+  list.add('concat all params ');
+  list.add('************************************************************************************/');
+  list.add('');
+
+  //#define __sdds__SM_CONCAT_i(x0,x1,...,xi) x0##x1## ... ##xn
+  concatArg := 'x0';
+  concatCode := 'x0';
+  for i := 1 to n do begin
+    list.add(format('#define ' + CONCAT_N_NAME + '_%d(%s) %s',[i,concatArg,concatCode]));
+    concatArg := format('%s,x%d',[concatArg,i]);
+    concatCode := format('%s##x%d',[concatCode,i]);
+  end;
+  list.add('');
+
+  list.Add('');
+  list.Add(format('#define %s(...) %s(__VA_ARGS__ \',[CONCAT_NAME,GET_NTH_NAME]));
+  line := #9;
+  for i := n downto 1 do begin
+    if (i mod 32 = 0) then begin
+       list.add(line + ' \');
+       line := #9;
+    end;
+    line := line + ',' + CONCAT_N_NAME + '_' + intToStr(i);
+  end;
+  list.add(line + ')(__VA_ARGS__)');
 
   //****************************************************************************
   //count parameters of variadic macros

@@ -44,7 +44,7 @@
                 uint8_t digitalValue = 0;
                 Tisr pIsr = nullptr;
             };
-            inline Tpin pins[PIN_COUNT];
+            extern Tpin pins[PIN_COUNT];
         }
     }
 
@@ -191,5 +191,9 @@ namespace debug {
 	void write(const char *_fmt ...);
 	void log(const char *_fmt ...);
 }
+
+#ifndef __SDDS_UTYPEDEF_COMPILE_STRCONV
+	#define __SDDS_UTYPEDEF_COMPILE_STRCONV 1
+#endif
 
 #endif

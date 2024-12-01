@@ -15,6 +15,9 @@ toDo:
 #include "uEnumMacros.h"
 #include "uTime.h"
 
+#ifndef SDDS_USE_META
+	#define SDDS_USE_META 1
+#endif
 #ifndef __SDDS_UTYPEDEF_COMPILE_STRCONV
 	#define __SDDS_UTYPEDEF_COMPILE_STRCONV 1
 #endif
@@ -197,6 +200,13 @@ class Tdescr : public TlinkedListElement{
 		constexpr sdds::opt::Ttype __modifyOption(const sdds::opt::Ttype _opt) { return _opt; }
 
     public:
+		struct Tmeta{
+			sdds::Ttype type;
+			sdds::Toption option;
+			const char* name;
+			dtypes::uint8 typeId() {return static_cast<dtypes::uint8>(type);}
+			dtypes::uint8 valSize() { return static_cast<uint8_t>(type) & sdds::typeIds::size_mask; }
+		};
         #if MARKI_DEBUG_PLATFORM == 1
         int createNummber;
         #endif
@@ -211,33 +221,48 @@ class Tdescr : public TlinkedListElement{
         TmenuHandle* findRoot();
 
         /** virtual functions to be implemented in each derived class */
+#if SDDS_USE_META == 1
+        sdds::Ttype type(){ return meta().type; };
+        sdds::Toption option(){return meta().option; };
+        const char* name(){return meta().name; };
+        virtual Tmeta meta() = 0;
+		sdds::Toption showOption(){ return (meta().option & sdds::opt::mask_show); }
+        bool saveval() { return ((meta().option & sdds::opt::saveval) > 0); }
+        bool readonly() { return ((meta().option & sdds::opt::readonly) > 0); }
+#else
         virtual sdds::Ttype type() = 0;
         virtual sdds::Toption option(){return 0; };
         virtual const char* name(){return ""; };
+		sdds::Toption showOption(){ return (option() & sdds::opt::mask_show); }
+        inline bool saveval() { return ((option() & sdds::opt::saveval) > 0); }
+    	inline bool readonly() { return ((option() & sdds::opt::readonly) > 0); }
+#endif
+        dtypes::uint8 typeId(){ return static_cast<dtypes::uint8>(type()); }
+        dtypes::uint8 valSize() { return static_cast<uint8_t>(type()) & sdds::typeIds::size_mask; }
+
+#if __SDDS_UTYPEDEF_COMPILE_STRCONV == 1
         virtual bool setValue(const char* _str) = 0;
         virtual TrawString to_string() { return ""; };
-
-        dtypes::uint8 typeId(){ return static_cast<dtypes::uint8>(type()); }
-        virtual dtypes::uint8 valSize() { return static_cast<uint8_t>(type()) & sdds::typeIds::size_mask; }
+#else
+        bool setValue(const char* _str){ return false; }
+        TrawString to_string() { return ""; };
+#endif
 		
-        virtual void* pValue() { return nullptr; };
-
-        sdds::Toption showOption(){ return (option() & sdds::opt::mask_show); }
-        inline bool saveval() { return ((option() & sdds::opt::saveval) > 0); }
-        inline bool readonly() { return ((option() & sdds::opt::readonly) > 0); }
+        virtual void* pValue() = 0;
 
         //propably compare default value to current and only save if different
         inline bool shouldBeSaved(){ return saveval(); }
 
         inline bool isStruct() { return (type()==sdds::Ttype::STRUCT); }
         inline bool isArray() { return (typeId() & sdds::typeIds::fARRAY) > 0; }
-		template <typename T>
-		T* as1() {
-			static_assert(!std::is_base_of<TmenuHandle,T>::value,"T must not be a TmenuHandle"); 
+/*
+        template <typename T>
+		T* as() {
+			static_assert(!std::is_base_of<TmenuHandle,T>::value,"T must not be a TmenuHandle");
 			static_assert(std::is_base_of<Tdescr, T>::value, "T must be derived from Tdescr");
 			return static_cast<T*>(this);
 		}
-
+*/
         inline bool hasChilds() {
             if (!isStruct()) return false;
         }
@@ -318,6 +343,11 @@ template <class ValType, sdds::Ttype _type_id> class TdescrTemplate: public Tdes
     public:
         friend class TmenuHandle;
         typedef ValType dtype;
+        constexpr static sdds::Ttype TYPE_ID = _type_id;
+#if SDDS_USE_META == 0
+#else
+		Tmeta meta() override { return Tmeta{TYPE_ID,0,""}; }
+#endif
 
         /* override copy constructor to avoid a deep copy of the object
          * including callbacks and events
@@ -326,8 +356,9 @@ template <class ValType, sdds::Ttype _type_id> class TdescrTemplate: public Tdes
             Fvalue = _src.Fvalue;
         };
         TdescrTemplate(){};
-
+#if SDDS_USE_META == 0
         sdds::Ttype type() override {return _type_id; };
+#endif
 		/**
 		 * 27.10.2024 valSize has been changed because it gave wrong values for
 		 * arrays i.e. when transfering a string, valSize gives 32. But what we
@@ -339,20 +370,17 @@ template <class ValType, sdds::Ttype _type_id> class TdescrTemplate: public Tdes
 		 * like strings or structs anyway.
 		 */
         //dtypes::uint8 valSize() override { return sizeof(Fvalue); }
-        dtypes::uint8 valSize() override { return (static_cast<uint8_t>(_type_id) & sdds::typeIds::size_mask); }
+        //dtypes::uint8 valSize() override { return (static_cast<uint8_t>(_type_id) & sdds::typeIds::size_mask); }
 		void* pValue() override { return &Fvalue; };
 
+#if __SDDS_UTYPEDEF_COMPILE_STRCONV == 1
         bool setValue(const char* _str) override {
-#if __SDDS_UTYPEDEF_COMPILE_STRCONV
             if (_strToValue(_str,Fvalue)){
                 signalEvents();
                 return true;
             }
-#endif
             return false;
         }
-
-#if __SDDS_UTYPEDEF_COMPILE_STRCONV
         TrawString to_string() override { return Tdescr::_valToStr(Fvalue); };
 #endif
         inline ValType value(){return Fvalue; }
@@ -430,6 +458,7 @@ Enums
 
 class TenumBase : public Tdescr{
     public:
+
 		struct TenumInfo{
 			const char* buffer;
 			uStrings::TstringArrayIterator iterator;
@@ -453,6 +482,7 @@ template <typename ValType, sdds::Ttype _type_id=sdds::Ttype::ENUM> class TenumT
         ValType Fvalue;
     public:
         friend class TmenuHandle;
+		constexpr static sdds::Ttype TYPE_ID = _type_id;
 
         typedef ValType enumClass;
         typedef typename ValType::e dtype;
@@ -466,23 +496,27 @@ template <typename ValType, sdds::Ttype _type_id=sdds::Ttype::ENUM> class TenumT
         };
         TenumTemplate(){}
 
+#if SDDS_USE_META == 0
         sdds::Ttype type() override {return _type_id; };
-        dtypes::uint8 valSize() override { return sizeof(dtype); }
+#else
+		Tmeta meta() override { return Tmeta{TYPE_ID,0,""}; }
+#endif
         void* pValue() override { return &Fvalue.Fvalue; };
 
-		TenumInfo enumInfo() override { return TenumInfo(Fvalue.iterator(),Fvalue.enumBufferSize(),Fvalue.enumBuffer()); }
+		TenumInfo enumInfo() override { return TenumInfo(Fvalue.iterator(),ValType::ENUM_BUFFER_SIZE,Fvalue.enumBuffer()); }
 
-        bool setValue(const char* _str) override {
-            if (Fvalue.strToVal(_str)){
+#if __SDDS_UTYPEDEF_COMPILE_STRCONV == 1
+		bool setValue(const char* _str) override {
+        	if (Fvalue.strToVal(_str)){
                 signalEvents();
                 return true;
             }
             return false;
         }
-
-        static const char* c_str(dtype _enum){ return ValType::c_str(_enum); };
+        static const char* c_str(dtype _enum){ return ValType::c_str(_enum); }
         const char* c_str() { return ValType::c_str(Fvalue); }
         TrawString to_string() override { return Fvalue.c_str(); };
+#endif
 
         inline ValType value(){ return Fvalue; }
 
@@ -506,12 +540,7 @@ template <typename ValType, sdds::Ttype _type_id=sdds::Ttype::ENUM> class TenumT
     sdds_enumClass(_name,__VA_ARGS__);\
     typedef TenumTemplate<_name>
 
-//do not use anymore use sdds_enum
-#define ENUM(...) __sdds_namedEnum(ENUM_UNIQUE_NAME(),__VA_ARGS__)
-#define sdds_enum(...) __sdds_namedEnum(ENUM_UNIQUE_NAME(),__VA_ARGS__)
-
-//do not use anymore... use enum::e
-#define ENUMS(_enum) _enum::dtype
+#define sdds_enum(...) __sdds_namedEnum(sdds_SM_CONCAT(Tenum,__VA_ARGS__),__VA_ARGS__)
 
 
 /************************************************************************************
@@ -569,7 +598,22 @@ class TfinishMenuDefinition{
  * error messages when using declare with a none existing class. With this
  * typedef, it shows the correct line and says _class does not name a type and
  * usually suggests the right one... this is what we want!
+			Tmeta meta() override { Tmeta m; return m; }\
 */
+#if SDDS_USE_META == 1
+
+#define __sdds_declareField(_class, _name, _option, _value, _optionAssign, _constructorAssign) \
+    class Tclass##_##_name : public _class{\
+        public:\
+			_constructorAssign(_class,_name,_value)\
+			Tmeta meta() override { return Tmeta{_class::TYPE_ID,__modifyOption(_option),#_name}; }\
+			void operator=(_class::dtype _v){ __setValue(_v); }\
+			template<typename T>\
+			void operator=(T _val){__setValue(_val); }\
+    } _name;
+
+#else
+
 #define __sdds_declareField(_class, _name, _option, _value, _optionAssign, _constructorAssign) \
     class Tclass##_##_name : public _class{\
         public:\
@@ -580,6 +624,7 @@ class TfinishMenuDefinition{
 			template<typename T>\
 			void operator=(T _val){__setValue(_val); }\
     } _name;
+#endif
 
 #define __sdds_optionAssignValue(_option)\
 	sdds::Toption option() override { return __modifyOption(_option); }
@@ -763,14 +808,23 @@ Tstring
 *************************************************************************************/
 
 class Tstring : public TarrayBase{
+public:
+    constexpr static sdds::Ttype TYPE_ID =  sdds::Ttype::STRING;
+
     typedef const char* Tcstr;
 	private:
+
+#if SDDS_USE_META == 0
         sdds::Ttype type() override { return sdds::Ttype::STRING; };
+#endif
+
+#if __SDDS_UTYPEDEF_COMPILE_STRCONV == 1
 		bool setValue(const char* _str) override { 
 			__setValue(_str);
 			return true;
 		};
 		TrawString to_string(){ return Fvalue; }
+#endif
 	protected:
 		constexpr sdds::opt::Ttype __modifyOption(const sdds::opt::Ttype _opt) { return _opt | sdds::opt::showString; }
 
@@ -864,8 +918,6 @@ class TmenuHandle : public Tstruct{
         TlinkedListIterator<Tdescr> iterator(TrangeItem _first) { return FmenuItems.iterator(_first); }
 
         TobjectEventList* events() { return &FobjectEvents; }
-
-        //void* pValue() override { return nullptr; };
 
         void signalEvents(Tdescr* _sender){
             if (events()->hasElements()){

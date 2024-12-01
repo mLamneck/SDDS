@@ -21,8 +21,8 @@ class TtestCase{
         int Fsucc = 0;
 
     protected:
-        char* binToHex(void* _buf, int size){
-            uint8* buf = reinterpret_cast<uint8*>(_buf); 
+        char* binToHex(const void* _buf, int size){
+            const uint8* buf = reinterpret_cast<const uint8*>(_buf); 
             int run = 0;
             for (auto i = 0; i<size; i++){
                 run += sprintf(&FlogBuffer[run],"0x%.2X ",buf[i]);
