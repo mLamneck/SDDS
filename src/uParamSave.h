@@ -3,6 +3,10 @@
 
 #define uParamSave_debug 0
 
+#include "uPlatform.h"
+#include "uTypedef.h"
+#include "uCrc8.h"
+
 #if defined(SDDS_ON_ARDUINO)
     //to be checked
     #if defined(ESP32) || defined(ESP8266)
@@ -17,9 +21,6 @@
 #ifndef SDDS_PS_MAX_SIZE
 	#define SDDS_PS_MAX_SIZE 2048
 #endif
-
-#include "uTypedef.h"
-#include "uCrc8.h"
 
 /*****************************************************************************/
 //includes depending on platform
@@ -98,6 +99,7 @@ namespace sdds{
 
 				bool doReadByte(uint8_t& _byte) override {
 					EEPROM.get(curr(),_byte);
+					return true;
 				}
 
 				void flush() override {

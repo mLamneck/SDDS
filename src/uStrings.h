@@ -12,6 +12,23 @@ const char* string_find(const char* _str, const char _c);
 inline bool string_cmp(const char* _s1, const char* _s2){ return (strcmp(_s1,_s2)==0); }
 
 namespace uStrings{
+	inline void assign(dtypes::string& _target, const char* _buf, int _nBytes){
+		#if SDDS_ON_ARDUINO == 1
+			_target = "";
+			_target.concat(_buf,_nBytes);		
+		#else
+			_target.assign(_buf, _nBytes);
+		#endif
+	}
+
+	inline void append(dtypes::string& _target, const char* _buf, int _nBytes){
+		#if SDDS_ON_ARDUINO == 1
+			_target.concat(reinterpret_cast<const char*>(_buf),_nBytes);		
+		#else
+			_target.assign(reinterpret_cast<const char*>(_buf), _nBytes);
+		#endif
+	}
+
 	/**
 	 * @brief Get the String N object from an array of char in the 
 	 * form "str1\0str2\0...stringN\0\0"

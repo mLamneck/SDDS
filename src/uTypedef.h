@@ -870,15 +870,15 @@ public:
 		void setValue(int _firstCharIdx, TmemoryStream& _ms){
 			if (_firstCharIdx == 0){
 				if (!_ms.readOfs(1)) return;
-				Fvalue.assign(reinterpret_cast<const char*>(_ms.buffer()), _ms.bytesAvailableForRead());
+				uStrings::assign(Fvalue,_ms.buffer(),_ms.bytesAvailableForRead());
 			}
 			else if (_firstCharIdx == static_cast<int>(Fvalue.length())){
-				Fvalue.append(reinterpret_cast<const char*>(_ms.buffer()), _ms.bytesAvailableForRead());
+				uStrings::append(Fvalue,reinterpret_cast<const char*>(_ms.buffer()),_ms.bytesAvailableForRead());
 			}
 		}
 
 		void setValue(TsubStringRef& _strRef){
-			Fvalue.assign(_strRef.c_str(),_strRef.length());
+			uStrings::assign(Fvalue,_strRef.c_str(),_strRef.length());
 			signalEvents();
 		}
 
