@@ -17,6 +17,44 @@
  * used for development on windows machines
 *************************************************************************************/
 
+#ifdef configUSE_PREEMPTION
+	#define SDDS__WITH_RTOS 1
+	#define __sdds_isr_critical(_code) do{\
+		portENTER_CRITICAL()
+		_code\
+		portEXIT_CRITICAL()
+	} while(0);
+#endif
+
+#if defined(ESP32) || defined(ESP8266)
+	//#define __sdds_isr_disable() __disable_irq()
+	//#define __sdds_isr_enable() __enable_irq()
+	#define __sdds_isr_critical(_code)\
+		auto __isrStatus = xPortSetInterruptMaskFromISR();\
+		_code\
+		vPortClearInterruptMaskFromISR(__isrStatus);
+
+	#define ISR_CRITICAL(_code) do {                                 \
+		auto __isrStatus = xPortSetInterruptMaskFromISR();           \
+		_code                                                        \
+		vPortClearInterruptMaskFromISR(__isrStatus);                 \
+	} while (0)
+
+	#define TASK_CRITICAL(_code) do {                                \
+		taskENTER_CRITICAL();                                        \
+		_code                                                        \
+		taskEXIT_CRITICAL();                                         \
+	} while (0)
+
+//8266
+#define XT_CRITICAL_SECTION(_code) do {        \
+    uint32_t state = xt_rsil(15);             /* Alle Interrupts maskieren */ \
+    _code                                     \
+    xt_wsr_ps(state);                        /* Zustand wiederherstellen */   \
+} while (0)
+
+#endif
+
 #if defined(__MINGW64__) || defined(WIN32)      //__MINGW64__ works in VS_Code, WIN32 in codeBlocks
     #include <stdint.h>                         //uint8_t, ...
     #include <sys/time.h>
@@ -91,7 +129,14 @@
 
 #define __sdds_isr_disable() __disable_irq()
 #define __sdds_isr_enable() __enable_irq()
-#define __sdds_isr_enabled() true;
+#ifndef __sdds_isr_critical
+	#define __sdds_isr_critical(_code) do{\
+		auto __isrStatus = __get_PRIMASK();\
+		__sdds_isr_disable();\
+		_code\
+		if (!__isrStatus) __sdds_isr_enable();\
+	} while(0);
+#endif
 
 namespace dtypes {
 	typedef std::string string;
@@ -134,6 +179,12 @@ inline dtypes::TsystemTime millis() {
 
 	#define __sdds_isr_disable() noInterrupts()
 	#define __sdds_isr_enable() interrupts()
+	#ifndef __sdds_isr_critical
+		#define __sdds_isr_critical(_code)\
+			__sdds_isr_disable();\
+			_code\
+			__sdds_isr_enable();
+	#endif
 
     namespace dtypes{
         typedef String string;                      //for Arduino this seems to be the best option for dynamic strings

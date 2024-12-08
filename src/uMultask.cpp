@@ -41,7 +41,9 @@ void TtaskHandler::signalEvent(Tevent* _ev){
 }
 
 void TtaskHandler::signalEventISR(Tevent* _ev){
-    FinterruptQ.push_first(_ev);
+	__sdds_isr_critical(
+		FinterruptQ.push_first(_ev);
+	)
 }
 
 void TtaskHandler::setTimeEvent(Tevent* _ev, const TsystemTime _relTime){
@@ -97,9 +99,9 @@ bool TtaskHandler::_handleEvent(){
     Tevent* ev = nullptr;
 
     if (FinterruptQ.hasElements()){
-        __sdds_isr_disable();
-        ev = FinterruptQ.pop();
-        __sdds_isr_enable();
+    	__sdds_isr_critical(
+    		ev = FinterruptQ.pop();
+    	)
         if (ev){
             dispatchEvent(ev,true);
             return true;

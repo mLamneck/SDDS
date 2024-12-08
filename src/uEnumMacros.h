@@ -20,7 +20,7 @@ namespace sdds{
 				typedef uint8_t enumOrdType;
 
 				typedef typename Tinfo::enum_type e;
-				constexpr static int ENUM_BUFFER_SIZE = sizeof(Tinfo::enum_str())-1;
+				constexpr static int ENUM_BUFFER_SIZE = Tinfo::ENUM_BUFFER_SIZE;
 				constexpr static const int COUNT = Tinfo::COUNT;
 
 				typename Tinfo::enum_type Fvalue;  
@@ -64,8 +64,8 @@ namespace sdds{
 /**
  * @brief 
  * notes:
- * 	ENUM_STR: is a string containing all enums in form \0en1\0en2\0...enM\0\0 with an additional \0 at the
- * 		very end. That's why we return sizeof(ENUM_BUFFER)-1 in enumBufferSize
+ * 	enum_str(): returns a string containing all enums in form \0en1\0en2\0...enM\0\0 with an additional \0 at the
+ * 		very end. That's why we set ENUM_BUFFER_SIZE=sizeof(enum_str())-1
  */
 
 #define __SDDS_ENUM_STR_ENTRY(_str) #_str "\0"
@@ -75,6 +75,7 @@ namespace sdds{
 		public:\
 			enum class enum_type : uint8_t {__VA_ARGS__};\
 			constexpr static int COUNT = sdds_SM_COUNT_VARARGS(__VA_ARGS__);\
+			constexpr static int ENUM_BUFFER_SIZE = sizeof("\0" sdds_SM_ITERATE(__SDDS_ENUM_STR_ENTRY,__VA_ARGS__))-1;\
 			constexpr static const char* enum_str(){ return "\0" sdds_SM_ITERATE(__SDDS_ENUM_STR_ENTRY,__VA_ARGS__); }\
 	\
 	};\
