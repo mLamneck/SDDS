@@ -1,4 +1,6 @@
 #include "uMultask.h"
+#include "uPlatform.h"
+
 #if defined(__MINGW64__)
     #include <windows.h>
 	#include <chrono>

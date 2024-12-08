@@ -88,6 +88,7 @@
 
     inline void __sdds_isr_disable(){}
     inline void __sdds_isr_enable(){}
+	#define __sdds_isr_critical(_code)
 
     inline void digitalWrite(int pin, int out) { sdds::simul::pins[pin].digitalValue = out; };
     inline int  digitalRead(int pin) { return sdds::simul::pins[pin].digitalValue; };
