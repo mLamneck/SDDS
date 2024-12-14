@@ -15,9 +15,6 @@ toDo:
 #include "uEnumMacros.h"
 #include "uTime.h"
 
-#ifndef SDDS_USE_META
-	#define SDDS_USE_META 1
-#endif
 #ifndef __SDDS_UTYPEDEF_COMPILE_STRCONV
 	#define __SDDS_UTYPEDEF_COMPILE_STRCONV 1
 #endif
@@ -210,8 +207,6 @@ class Tdescr : public TlinkedListElement{
         #if MARKI_DEBUG_PLATFORM == 1
         int createNummber;
         #endif
-        
-        Tdescr();
 
 		Tdescr* next() { return static_cast<Tdescr*>(TlinkedListElement::next()); }
 		
@@ -221,7 +216,6 @@ class Tdescr : public TlinkedListElement{
         TmenuHandle* findRoot();
 
         /** virtual functions to be implemented in each derived class */
-#if SDDS_USE_META == 1
         sdds::Ttype type(){ return meta().type; };
         sdds::Toption option(){return meta().option; };
         const char* name(){return meta().name; };
@@ -229,14 +223,7 @@ class Tdescr : public TlinkedListElement{
 		sdds::Toption showOption(){ return (meta().option & sdds::opt::mask_show); }
         bool saveval() { return ((meta().option & sdds::opt::saveval) > 0); }
         bool readonly() { return ((meta().option & sdds::opt::readonly) > 0); }
-#else
-        virtual sdds::Ttype type() = 0;
-        virtual sdds::Toption option(){return 0; };
-        virtual const char* name(){return ""; };
-		sdds::Toption showOption(){ return (option() & sdds::opt::mask_show); }
-        inline bool saveval() { return ((option() & sdds::opt::saveval) > 0); }
-    	inline bool readonly() { return ((option() & sdds::opt::readonly) > 0); }
-#endif
+
         dtypes::uint8 typeId(){ return static_cast<dtypes::uint8>(type()); }
         dtypes::uint8 valSize() { return static_cast<uint8_t>(type()) & sdds::typeIds::size_mask; }
 
@@ -344,10 +331,8 @@ template <class ValType, sdds::Ttype _type_id> class TdescrTemplate: public Tdes
         friend class TmenuHandle;
         typedef ValType dtype;
         constexpr static sdds::Ttype TYPE_ID = _type_id;
-#if SDDS_USE_META == 0
-#else
+
 		Tmeta meta() override { return Tmeta{TYPE_ID,0,""}; }
-#endif
 
         /* override copy constructor to avoid a deep copy of the object
          * including callbacks and events
@@ -356,9 +341,7 @@ template <class ValType, sdds::Ttype _type_id> class TdescrTemplate: public Tdes
             Fvalue = _src.Fvalue;
         };
         TdescrTemplate(){};
-#if SDDS_USE_META == 0
-        sdds::Ttype type() override {return _type_id; };
-#endif
+
 		/**
 		 * 27.10.2024 valSize has been changed because it gave wrong values for
 		 * arrays i.e. when transfering a string, valSize gives 32. But what we
@@ -445,6 +428,9 @@ template <class ValType, sdds::Ttype _type_id> class TdescrTemplate: public Tdes
             return (Fvalue==(*pVal));
         }
 
+        template <typename T>
+        void operator=(T _val){__setValue(_val); }
+
 		void __setValue(ValType _value){
 			Fvalue=_value;
             signalEvents();
@@ -458,7 +444,6 @@ Enums
 
 class TenumBase : public Tdescr{
     public:
-
 		struct TenumInfo{
 			const char* buffer;
 			uStrings::TstringArrayIterator iterator;
@@ -496,11 +481,8 @@ template <typename ValType, sdds::Ttype _type_id=sdds::Ttype::ENUM> class TenumT
         };
         TenumTemplate(){}
 
-#if SDDS_USE_META == 0
-        sdds::Ttype type() override {return _type_id; };
-#else
 		Tmeta meta() override { return Tmeta{TYPE_ID,0,""}; }
-#endif
+
         void* pValue() override { return &Fvalue.Fvalue; };
 
 		TenumInfo enumInfo() override { return TenumInfo(Fvalue.iterator(),ValType::ENUM_BUFFER_SIZE,Fvalue.enumBuffer()); }
@@ -581,26 +563,8 @@ class TuserStruct : public TmenuHandle{
 
 *************************************************************************************/
 
-class TstartMenuDefinition{
-    public:
-    TstartMenuDefinition();
-};
-
-class TfinishMenuDefinition{
-    public:
-    TfinishMenuDefinition();
-};
 
 #define __sdds_expandOption(_o)|_o
-
-/**
- * The purpose of the typedef in line 1 is only to get rid of the confusing
- * error messages when using declare with a none existing class. With this
- * typedef, it shows the correct line and says _class does not name a type and
- * usually suggests the right one... this is what we want!
-			Tmeta meta() override { Tmeta m; return m; }\
-*/
-#if SDDS_USE_META == 1
 
 #define __sdds_declareField(_class, _name, _option, _value, _optionAssign, _constructorAssign) \
     class Tclass##_##_name : public _class{\
@@ -610,31 +574,21 @@ class TfinishMenuDefinition{
 			void operator=(_class::dtype _v){ __setValue(_v); }\
 			template<typename T>\
 			void operator=(T _val){__setValue(_val); }\
-    } _name;
-
-#else
-
-#define __sdds_declareField(_class, _name, _option, _value, _optionAssign, _constructorAssign) \
-    class Tclass##_##_name : public _class{\
-        public:\
-			_constructorAssign(_class,_name,_value)\
-			__sdds_optionAssignValue(_option)\
-			const char* name() override { return #_name; }\
-			void operator=(_class::dtype _v){ __setValue(_v); }\
-			template<typename T>\
-			void operator=(T _val){__setValue(_val); }\
-    } _name;
-#endif
+    }_name{this};
 
 #define __sdds_optionAssignValue(_option)\
 	sdds::Toption option() override { return __modifyOption(_option); }
 #define __sdds_optionEmpty(_option)
 
 #define __sdds_constructorAssignValue(_class,_name,_value)\
-Tclass##_##_name(){\
+Tclass##_##_name(TmenuHandle* _parent){\
 	Fvalue = _value;\
+	_parent->addDescr(this);\
 }
-#define __sdds_constructorEmpty(_class,_name,_value)
+#define __sdds_constructorEmpty(_class,_name,_value)\
+Tclass##_##_name(TmenuHandle* _parent){\
+	_parent->addDescr(this);\
+}
 
 /**
  * implement variable number of arguments for sdds_var
@@ -649,8 +603,8 @@ Tclass##_##_name(){\
 /**
  * to be used outside of this unit
  */
-#define sdds_struct(...) TstartMenuDefinition __firstVar; __VA_ARGS__ TfinishMenuDefinition __lastVar;
-#define sdds_joinOpt(...) 0 SP_FOR_EACH_PARAM_CALL_MACRO_WITH_PARAM(__sdds_expandOption,__VA_ARGS__)
+#define sdds_struct(...) __VA_ARGS__
+#define sdds_joinOpt(...) 0 sdds_SM_ITERATE(__sdds_expandOption,__VA_ARGS__)
 #define sdds_var(...) __sdds_getMacro(__VA_ARGS__)(__VA_ARGS__)
 
 
@@ -814,10 +768,6 @@ public:
     typedef const char* Tcstr;
 	private:
 
-#if SDDS_USE_META == 0
-        sdds::Ttype type() override { return sdds::Ttype::STRING; };
-#endif
-
 #if __SDDS_UTYPEDEF_COMPILE_STRCONV == 1
 		bool setValue(const char* _str) override { 
 			__setValue(_str);
@@ -939,8 +889,6 @@ class TmenuHandle : public Tstruct{
 			it.insert(_descr);
 		}
 
-        void print();
-
         Tdescr* find(const char* _name);
 
         template <class _TstringRef>
@@ -987,19 +935,30 @@ class TmenuHandle : public Tstruct{
 		}
 
         #if (MARKI_DEBUG_PLATFORM == 1)
-        void log(dtypes::string _pre = ""){
+
+        void log(dtypes::string _pre, int& __debug_objCnt){
             for (auto it=iterator(); it.hasCurrent(); it.jumpToNext()){
+				__debug_objCnt++;
                 auto d = it.current();
                 if (d->isStruct()){
                     TmenuHandle* mh1 = static_cast<Tstruct*>(d)->value();
                     debug::log("%s-> %s",_pre.c_str(),d->name());
-                    mh1->log(_pre + "  ");
+                    mh1->log(_pre + "  ",__debug_objCnt);
                     debug::log("%s<- %s",_pre.c_str(),d->name());
                 } else {
                     debug::log("%s%s=%s",_pre.c_str(),d->name(),d->to_string().c_str());
                 }
             }
         }
+
+        void log(){
+			static int __debug_objCnt;
+			__debug_objCnt = 0;
+			log("",__debug_objCnt);
+			debug::log("----------------------");
+			debug::log("total number of ojects= %d",__debug_objCnt);
+		}
+
         void _logCreateAssoc(){
             for (auto it=iterator(); it.hasCurrent(); it.jumpToNext()){
                 auto d = it.current();

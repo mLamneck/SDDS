@@ -163,7 +163,7 @@ public:
 		TgpioClockManager::enableClock(GPIO_BASE_ADDR);
 	}
 
-	constexpr static void init1(PIN_MODE _mode = PIN_MODE::output){
+	constexpr static void init(PIN_MODE _mode = PIN_MODE::output){
 		enableClock();
 		GPIO_InitTypeDef GPIO_InitStruct = {0};
 		GPIO_InitStruct.Pin = GPIO_PIN;
@@ -184,7 +184,8 @@ public:
 	}
 
 	//toDo: implement and test initialization with LL
-	constexpr static void init(PIN_MODE _mode = PIN_MODE::output){
+	/*
+	constexpr static void init1(PIN_MODE _mode = PIN_MODE::output){
 		enableClock();
 		LL_GPIO_InitTypeDef GPIO_InitStruct = {0};
 		LL_EXTI_InitTypeDef EXTI_InitStruct = {0};
@@ -212,6 +213,7 @@ public:
 		}
 		LL_GPIO_Init(PORT(), &GPIO_InitStruct);
 	}
+	*/
 
 	constexpr static void high(){ LL_GPIO_SetOutputPin(PORT(), GPIO_PIN); }
 	constexpr static void low(){ LL_GPIO_ResetOutputPin(PORT(), GPIO_PIN); }

@@ -17,42 +17,16 @@
  * used for development on windows machines
 *************************************************************************************/
 
-#ifdef configUSE_PREEMPTION
-	#define SDDS__WITH_RTOS 1
-	#define __sdds_isr_critical(_code) do{\
-		portENTER_CRITICAL()
-		_code\
-		portEXIT_CRITICAL()
-	} while(0);
-#endif
+#if defined(ESP32)
+	#include "freertos/FreeRTOS.h"
+	#include "freertos/semphr.h"
 
-#if defined(ESP32) || defined(ESP8266)
-	//#define __sdds_isr_disable() __disable_irq()
-	//#define __sdds_isr_enable() __enable_irq()
+	static portMUX_TYPE __sdds_mux = portMUX_INITIALIZER_UNLOCKED;
 	#define __sdds_isr_critical(_code)\
-		auto __isrStatus = xPortSetInterruptMaskFromISR();\
+		portENTER_CRITICAL(&__sdds_mux);\
 		_code\
-		vPortClearInterruptMaskFromISR(__isrStatus);
-
-	#define ISR_CRITICAL(_code) do {                                 \
-		auto __isrStatus = xPortSetInterruptMaskFromISR();           \
-		_code                                                        \
-		vPortClearInterruptMaskFromISR(__isrStatus);                 \
-	} while (0)
-
-	#define TASK_CRITICAL(_code) do {                                \
-		taskENTER_CRITICAL();                                        \
-		_code                                                        \
-		taskEXIT_CRITICAL();                                         \
-	} while (0)
-
-//8266
-#define XT_CRITICAL_SECTION(_code) do {        \
-    uint32_t state = xt_rsil(15);             /* Alle Interrupts maskieren */ \
-    _code                                     \
-    xt_wsr_ps(state);                        /* Zustand wiederherstellen */   \
-} while (0)
-
+		portEXIT_CRITICAL(&__sdds_mux);
+#elif defined(ESP8266)
 #endif
 
 #if defined(__MINGW64__) || defined(WIN32)      //__MINGW64__ works in VS_Code, WIN32 in codeBlocks
@@ -172,6 +146,9 @@ inline dtypes::TsystemTime millis() {
 
 	#include <Arduino.h>
 
+	constexpr auto PINMODE_OUTPUT = OUTPUT;
+	constexpr auto PINMODE_INPUT = INPUT;
+
 	namespace sdds{
 		namespace sysTime{
 			constexpr int SYS_TICK_TIMEBASE = 1000; //time in us for timeoverflow
@@ -217,7 +194,6 @@ namespace dtypes {
 
 	//toDo!!! to be checked on each individual compiler and platfom!!!
 	typedef float float32;
-	typedef double float64;
 
 	template <typename T> constexpr T high();
 	template <> constexpr uint8 high<uint8>() { return 255; } 
@@ -229,7 +205,6 @@ namespace dtypes {
 	template <> constexpr int32 high<int32>() { return 2147483647; } 
 	template <> constexpr int64 high<int64>() { return 9223372036854775807LL; } 
 	template <> constexpr float32 high<float32>() { return 3.402823e+38F; } 
-	template <> constexpr float64 high<float64>() { return 1.7976931348623157e+308; }
 }
 
 namespace sdds{

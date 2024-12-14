@@ -15,7 +15,8 @@ namespace uStrings{
 	inline void assign(dtypes::string& _target, const char* _buf, int _nBytes){
 		#if SDDS_ON_ARDUINO == 1
 			_target = "";
-			_target.concat(_buf,_nBytes);		
+			//_target.concat(reinterpret_cast<const char*>(_buf),_nBytes);
+			while (_nBytes-- > 0) _target += *_buf++;
 		#else
 			_target.assign(_buf, _nBytes);
 		#endif
@@ -23,7 +24,8 @@ namespace uStrings{
 
 	inline void append(dtypes::string& _target, const char* _buf, int _nBytes){
 		#if SDDS_ON_ARDUINO == 1
-			_target.concat(reinterpret_cast<const char*>(_buf),_nBytes);		
+			while (_nBytes-- > 0) _target += *_buf++;
+			//_target.concat(reinterpret_cast<const char*>(_buf),_nBytes);
 		#else
 			_target.assign(reinterpret_cast<const char*>(_buf), _nBytes);
 		#endif
