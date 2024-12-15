@@ -26,11 +26,11 @@ void Tdescr::signalEvents(){
 TobjectEvent
 *************************************************************************************/
 
-void __TobjectEvent::afterDispatch(){
+void TobjectEvent::TproxyEvent::afterDispatch(){
     FobjectEvent->afterDispatch();
 }
 
-void __TobjectEvent::execute(){
+void TobjectEvent::TproxyEvent::execute(){
     FobjectEvent->execute();
 }
 
@@ -100,6 +100,8 @@ Tdescr* TmenuHandle::find(const char* _name){
 }
 
 namespace sdds{
+	constexpr dtypes::uint16 TlinkTime::TIMES[];
+
     Ttimer& setup(){
         /*
         For some fucking reason, on TEENSY 3.2 and probably on other ARM CPU's

@@ -76,23 +76,67 @@ class Tdescr;
 
 
 namespace sdds{
-    typedef uint8_t Toption;
-    
+	typedef uint8_t Toption;
+	/*
+	class Toption{
+		uint8_t Fvalue;
+		public:
+			Toption(int _v=0){ Fvalue=_v; }
+			operator uint8_t() const{ return Fvalue; }
+			TlinkTime linkTime() { return TlinkTime(Fvalue>>8); }
+	};
+	*/
+
+	class TlinkTime{
+		public:
+			constexpr static auto NO_EVENT 		= 0;
+			constexpr static auto ON_CHANGE 	= 1;
+			constexpr static auto INT_10ms 		= 2;
+			constexpr static auto INT_20ms		= 3;
+			constexpr static auto INT_50ms		= 4;
+			constexpr static auto INT_100ms		= 5;
+			constexpr static auto INT_200ms		= 6;
+			constexpr static auto INT_500ms		= 7;
+			constexpr static auto INT_1000ms	= 8;
+			constexpr static auto INT_1666ms	= 9;
+		private:
+			/** (std <= C++11) TIMES must also be defined in uTypedef.cpp, because C++ loves to keep developers on their toes!
+			  * Why keep everything in one place when you can embark on a thrilling treasure hunt through your codebase?
+			  * Think of it as a built-in job security feature. You're welcome!
+			  */
+			constexpr static dtypes::uint16 TIMES[] = {0,1,10,20,50,100,200,500,1000,1666};
+			uint8_t FlinkTime; 
+		public:
+			TlinkTime(){ }
+			TlinkTime(uint8_t _v){ load(_v); }
+			bool operator=(int _value){ return (FlinkTime=_value); }
+			bool operator!=(int _value){ return (FlinkTime!=_value); }
+			
+			bool isTimed(){ return FlinkTime > 1; }
+			
+			uint16_t toMseconds(){ return TlinkTime::TIMES[FlinkTime]; }
+			bool load(uint8_t _ordLinkTime){
+				FlinkTime = _ordLinkTime;
+				return (_ordLinkTime < sizeof(TlinkTime::TIMES)/sizeof(TlinkTime::TIMES[0]));
+			}
+	};
+
     namespace opt{
 		typedef dtypes::uint8 Ttype;
 
-        constexpr Toption nothing   = 0;
-        constexpr Toption readonly  = 0x01;
-        constexpr Toption saveval   = 0x80;
+        constexpr int nothing   = 0;
+        constexpr int readonly  = 0x01;
+        constexpr int saveval   = 0x80;
 
+        constexpr int mask_show 	= 0x0E;
+        constexpr int showHex 		= 0x04;
+        constexpr int showBin 		= 0x06;
+        constexpr int showString	= 0x08;
 
-        constexpr Toption mask_show 	= 0x0E;
-        constexpr Toption showHex 		= 0x04;
-        constexpr Toption showBin 		= 0x06;
-        constexpr Toption showString	= 0x08;
+        constexpr int timeRel   	= 0x02;
+        constexpr int timeAbs   	= 0x00;
 
-        constexpr Toption timeRel   	= 0x02;
-        constexpr Toption timeAbs   	= 0x00;
+		constexpr int lt100ms		= TlinkTime::INT_100ms<<8;
     }
 
     namespace typeIds{
@@ -615,19 +659,6 @@ TobjectEvent
 class TobjectEvent;
 class TobjectEventList;
 
-class __TobjectEvent : public Tevent{
-	void execute() override;
-    void afterDispatch() override;
-    TobjectEvent* FobjectEvent;
-public:
-    __TobjectEvent(Tthread* _owner, TobjectEvent* _oe) 
-        : Tevent(_owner)
-        ,FobjectEvent(_oe)
-    {
-    }
-    TobjectEvent* objectEvent(){ return FobjectEvent; }
-};
-
 inline void arrayToDo(){
 
 }
@@ -665,13 +696,26 @@ namespace sdds{
 }
 
 class TobjectEvent : public TlinkedListElement{
+    friend class TobjectEventList;
+
 	typedef sdds::Trange Trange;
 	typedef sdds::TrangeItem TrangeItem;
-	 
-    friend class __TobjectEvent;
-    friend class TobjectEventList;
+
+	class TproxyEvent : public Tevent{
+		void execute() override;
+		void afterDispatch() override;
+		TobjectEvent* FobjectEvent;
+		public:
+			TproxyEvent(Tthread* _owner, TobjectEvent* _oe) 
+				: Tevent(_owner)
+				,FobjectEvent(_oe)
+			{
+			}
+			TobjectEvent* objectEvent(){ return FobjectEvent; }
+	};
+
     private:
-        __TobjectEvent Fevent;
+        TproxyEvent Fevent;
 
 		Tdescr* FobservedObj;
 		Trange FobservedRange;
@@ -693,6 +737,8 @@ class TobjectEvent : public TlinkedListElement{
 
 	    TrangeItem first() { return FchangedRange.Ffirst; }
         TrangeItem last() { return FchangedRange.Flast; }
+	    TrangeItem firstObserved() { return FobservedRange.Ffirst; }
+        TrangeItem lastObserved() { return FobservedRange.Flast; }
         Tevent* event();
         void signal(TrangeItem _first = 0, TrangeItem _last = sdds::TrangeItem_max);
 
@@ -717,7 +763,7 @@ class TobjectEvent : public TlinkedListElement{
 		TobjectEvent() : TobjectEvent(nullptr) {};
 
         static TobjectEvent* retrieve(Tevent* _ev){
-            auto __oe = static_cast<__TobjectEvent*>(_ev);
+            auto __oe = static_cast<TproxyEvent*>(_ev);
             return __oe->objectEvent();
         }
 };
