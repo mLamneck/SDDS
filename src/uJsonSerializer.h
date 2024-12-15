@@ -6,6 +6,9 @@
 
 class TjsonSerializer{
   private:
+	typedef int TrangeItem;
+	constexpr static int TrangeItem_max = 255;//dtypes::high<TrangeItem>();
+	
     TmenuHandle* Froot;
     Tstream* Fstream;
     bool FwithValue;

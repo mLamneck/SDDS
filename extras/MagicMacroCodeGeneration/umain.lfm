@@ -4,10 +4,10 @@ object Form1: TForm1
   Top = 138
   Width = 722
   Caption = 'C++ Spooky Macro Generator'
-  ClientHeight = 612
-  ClientWidth = 722
+  ClientHeight = 0
+  ClientWidth = 0
   OnCreate = FormCreate
-  LCLVersion = '2.2.6.0'
+  LCLVersion = '3.6.0.0'
   object bGenerate: TButton
     Left = 24
     Height = 25
@@ -15,8 +15,8 @@ object Form1: TForm1
     Width = 684
     Anchors = [akTop, akLeft, akRight]
     Caption = 'generate'
-    OnClick = bGenerateClick
     TabOrder = 0
+    OnClick = bGenerateClick
   end
   object GroupBox1: TGroupBox
     Left = 24

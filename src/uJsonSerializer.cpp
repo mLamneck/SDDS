@@ -45,9 +45,9 @@ void TjsonSerializer::encodeString(Tstream* _stream, const char* _str){
 void TjsonSerializer::serializeValues(Tstream* _stream, TmenuHandle* _struct, TrangeItem _first, TrangeItem _last){
     _stream->write("[");
     auto it = _struct->iterator(_first);
-    if (it.hasNext()){
+    if (it.hasCurrent()){
         do{
-        Tdescr* d = it.next();
+        Tdescr* d = it.current();
         switch(d->type()){
             case(Ttype::STRING): case(Ttype::TIME): case(Ttype::ENUM):
                 TjsonSerializer::serializeAsString(_stream,d);
@@ -56,7 +56,7 @@ void TjsonSerializer::serializeValues(Tstream* _stream, TmenuHandle* _struct, Tr
                 _stream->write(d->to_string().c_str());
                 break;
         }
-        if (!it.hasNext() || (_first++ >= _last)) break;
+        if (!it.jumpToNext() || (_first++ >= _last)) break;
         _stream->write(',');
         } while(true);
     }
@@ -82,12 +82,11 @@ void TjsonSerializer::serializeTypeDescr(Tdescr* _d){
         Fstream->write(json_key("enums"));
         Fstream->write('[');
         TenumBase* en = static_cast<TenumBase*>(_d);
-        auto enumCnt = en->enumCnt();
-        for (auto i=0; i<enumCnt; i++){
-        TjsonSerializer::serializeAsString(Fstream,en->getEnum(i));
-        if (i+1 >= enumCnt) break;
-        Fstream->write(',');
-        }
+        for (auto it=en->enumInfo().iterator;;){
+			TjsonSerializer::serializeAsString(Fstream,it.next());
+			if (!it.hasNext()) break;
+			Fstream->write(',');
+		}
         Fstream->write(']');
     }
 }
@@ -95,33 +94,33 @@ void TjsonSerializer::serializeTypeDescr(Tdescr* _d){
 void TjsonSerializer::serialize(TmenuHandle* _curr){
     Fstream->write('[');
     auto it = _curr->iterator();
-    while (it.hasNext()){
-    Tdescr* d = it.next();
+    while (it.hasCurrent()){
+		Tdescr* d = it.current();
 
-    Fstream->write('{');
-    serializeTypeDescr(d);
-    if (d->isStruct()){
-        Fstream->write(',');
-        Fstream->write(json_key("value"));
-        TmenuHandle* mh = static_cast<Tstruct*>(d)->value();
-        if (mh) serialize(mh);
-        else Fstream->write("null");
-    }
+		Fstream->write('{');
+		serializeTypeDescr(d);
+		if (d->isStruct()){
+			Fstream->write(',');
+			Fstream->write(json_key("value"));
+			TmenuHandle* mh = static_cast<Tstruct*>(d)->value();
+			if (mh) serialize(mh);
+			else Fstream->write("null");
+		}
 
-    else if (FwithValue){
-        Fstream->write(',');
-        Fstream->write(json_key("value"));
+		else if (FwithValue){
+			Fstream->write(',');
+			Fstream->write(json_key("value"));
 
-        switch(d->type()){
-        case sdds::Ttype::ENUM: case sdds::Ttype::STRING: case sdds::Ttype::TIME:
-            serializeAsString(d);
-            break;
-        default:
-            Fstream->write(d->to_string().c_str());
-        }
-    }
-    Fstream->write('}');
-    if (it.hasNext()) Fstream->write(',');
+			switch(d->type()){
+			case sdds::Ttype::ENUM: case sdds::Ttype::STRING: case sdds::Ttype::TIME:
+				serializeAsString(d);
+				break;
+			default:
+				Fstream->write(d->to_string().c_str());
+			}
+		}
+		Fstream->write('}');
+		if (it.jumpToNext()) Fstream->write(',');
     }
     Fstream->write(']');
 }

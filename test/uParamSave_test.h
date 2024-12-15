@@ -62,13 +62,13 @@ class TtestParamSave : public TtestCase{
         public:
             sdds_struct(
                 sdds_var(Tled,led,sdds::opt::saveval)
-                sdds_var(TparamSaveMenu,params)
+                //sdds_var(TparamSaveMenu,params)
             )
     };
 
     void logStruct(TmenuHandle& s1, dtypes::string _pre = ""){
-        for (auto it=s1.iterator(); it.hasNext();){
-            auto d = it.next();
+        for (auto it=s1.iterator(); it.hasCurrent(); it.jumpToNext()){
+            auto d = it.current();
             if (d->isStruct()){
                 TmenuHandle* mh1 = static_cast<Tstruct*>(d)->value();
                 debug::log("%s-> %s",_pre.c_str(),d->name());
@@ -81,8 +81,8 @@ class TtestParamSave : public TtestCase{
     }
 
     int _calcSize(TmenuHandle& _s, int _size = 0){
-        for (auto it=_s.iterator(); it.hasNext();){
-            auto d = it.next();
+        for (auto it=_s.iterator(); it.hasCurrent(); it.jumpToNext()){
+            auto d = it.current();
             if (d->isStruct()){
                 TmenuHandle* mh1 = static_cast<Tstruct*>(d)->value();
                 _size = _calcSize(*mh1,_size);
@@ -99,12 +99,12 @@ class TtestParamSave : public TtestCase{
         return _size;
     }
     
-    int calcSize(TmenuHandle& _s){ return _calcSize(_s) + sizeof(TparamSaveVersion) + sizeof(TparamHeaderV0); }
+    int calcSize(TmenuHandle& _s){ return _calcSize(_s) + sizeof(sdds::paramSave::TparamSaveVersion) + sizeof(sdds::paramSave::TparamHeaderV0); }
 
     bool compareStructs(TmenuHandle& s1, TmenuHandle& s2, dtypes::string _path = ""){
         auto it2 = s2.iterator();
-        for (auto it1 = s1.iterator(); it1.hasNext();){
-            auto d1 = it1.next();
+        for (auto it1 = s1.iterator(); it1.hasCurrent(); it1.jumpToNext()){
+            auto d1 = it1.current();
 
             //d1 has no saveval -> this means it is not saved to eeprom
             //we don't have to compare it
@@ -158,8 +158,8 @@ class TtestParamSave : public TtestCase{
         ,TparamError::dtype _expLoadError = TparamError::e::___
     )
     {
-        TparamStreamer ps;
-        TparamStringStream s;
+        sdds::paramSave::TparamStreamer ps;
+        sdds::paramSave::TstringStream s;
         bool res = ps.save(s1,&s);
 
         int expSize = calcSize(s1); 
@@ -169,7 +169,7 @@ class TtestParamSave : public TtestCase{
         }
 
         //debug::log(binToHex(s.str()));
-        s.seek(TseekMode::start,0);
+        s.seek(sdds::paramSave::TseekMode::start,0);
         res = ps.load(s2,&s);
         if (_expLoadError != ps.error()){
             debug::log("error='%s'!='%s'=expectedError",ps.error().to_string().c_str(),TparamError::enumClass::c_str(_expLoadError));
@@ -209,6 +209,13 @@ class TtestParamSave : public TtestCase{
             struct1.Fstr = "HalloMarkiDasIstEinStringMitTab\t";
             return test2structs(struct1,struct11);
         },"TstructAllTypes");
+
+        doTest([this](){
+            TstructAllTypes struct1;
+            TstructAllTypes struct11;
+            struct1.Fstr = "";
+            return test2structs(struct1,struct11);
+        },"Test Menu with empty string");
 
         doTest([this](){
             TnestedStruct struct1;

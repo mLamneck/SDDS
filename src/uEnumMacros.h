@@ -2,60 +2,86 @@
 #define UENUMMACROS_h
 
 #include "uSpookyMacros.h"
+#include "uStrings.h"
 
-#define ENUM__TOKENPASTE(x, y) x ## y
-#define ENUM__TOKENPASTE2(x, y) ENUM__TOKENPASTE(x, y)
-#define ENUM_UNIQUE_NAME() ENUM__TOKENPASTE2(__Tenum__,__COUNTER__)
+namespace sdds{
 
-#define ENUM_CASE(_enumStr) case e::_enumStr : return #_enumStr;
-#define ENUM_TYPE_NAME e
-#define ENUM_STR_CASE(_e) else if (strcmp(_str,#_e)==0){ Fvalue = ENUM_TYPE_NAME::_e; return true; }
-#define ENUM_STR(_e) #_e ,
-#define ENUM_STRS_NAME(_name) _name##ENUM_STRS
+	namespace metaTypes{
 
-#define ENUM_CLASS(_name,...)\
-constexpr static const char* ENUM_STRS_NAME(_name)[] = {SP_FOR_EACH_PARAM_CALL_MACRO_WITH_PARAM(ENUM_STR,__VA_ARGS__)};    \
-class _name{                \
-    typedef uint8_t dtype;\
-    public: \
-        constexpr static const dtype COUNT = SP_COUNT_VARARGS(__VA_ARGS__);                                          \
-        enum class ENUM_TYPE_NAME : dtype {__VA_ARGS__};                                                             \
-        ENUM_TYPE_NAME Fvalue;                                                                                         \
-        operator ENUM_TYPE_NAME() const{return Fvalue;}                                                                \
-        void operator=(ENUM_TYPE_NAME _value){Fvalue = _value;}                                                        \
-        static const dtype ord(ENUM_TYPE_NAME _v){return static_cast<dtype>(_v);}\
-        static const char* c_str(ENUM_TYPE_NAME _v){\
-            dtype idx = static_cast<dtype>(_v);\
-            if (idx < _name::COUNT) return ENUM_STRS_NAME(_name)[idx];\
-            return "unknown";\
-        }\
-        bool tryParseNumber(const char* _str){\
-            dtype val; TstringRef s(_str);\
-            if (!s.parseValue(val) || (s.hasNext())) return false;\
-            if (val>=_name::COUNT) return false;\
-            Fvalue = static_cast<ENUM_TYPE_NAME>(val);  \
-            return true;\
-        }\
-        bool strToVal(const char* _str){  \
-            for (int i=0; i<_name::COUNT; i++){ if (strcmp(ENUM_STRS_NAME(_name)[i],_str) == 0){ Fvalue = static_cast<ENUM_TYPE_NAME>(i); return true; }}\
-            return tryParseNumber(_str);\
-        }\
-        const char* getEnum(int _idx) { return ENUM_STRS_NAME(_name)[_idx]; } \
-        const char* c_str(){ return _name::c_str(Fvalue); }                                       \
-};
+		/**
+		 * @brief Baseclass used in sdds_enumClass to reduce code produce by macro magic
+		 * 
+		 * @tparam t_enum a C++ enum class
+		 * @tparam _COUNT number of elements in the enum class
+		 */
+		template <class Tinfo>
+		class TenumClaseBase{
+			public:
+				typedef uint8_t enumOrdType;
 
-#define sdds_enumClass ENUM_CLASS
-/* versions with case
-    static const char* to_string(ENUM_TYPE_NAME _v){                                                               \
-        switch(_v){                                                                                                \
-        SP_FOR_EACH_PARAM_CALL_MACRO_WITH_PARAM(ENUM_CASE,__VA_ARGS__)                                             \
-        default : return "unknown";                                                                   \
-        }                                                                                             \
-    }                                                                                                 \
-    bool strToVal(const char* _str){                                                                  \
-        if (1==2) {return false;}                                                                     \
-        SP_FOR_EACH_PARAM_CALL_MACRO_WITH_PARAM(ENUM_STR_CASE,__VA_ARGS__)                            \
-        return false;                                                                                 \
-    }                                                                                                 \
-*/
+				typedef typename Tinfo::enum_type e;
+				constexpr static int ENUM_BUFFER_SIZE = Tinfo::ENUM_BUFFER_SIZE;
+				constexpr static const int COUNT = Tinfo::COUNT;
+
+				typename Tinfo::enum_type Fvalue;  
+
+				operator e() const{ return Fvalue; }
+				
+				static const enumOrdType ord(e _v){return static_cast<enumOrdType>(_v);}
+
+				bool strToVal(const char* _str){
+					uStrings::TstringArrayIterator it(Tinfo::enum_str());
+					for (int i=0; it.hasNext(); i++){
+						if (strcmp(it.next(),_str) == 0){
+							Fvalue = static_cast<e>(i);
+							return true;
+						};
+					}
+
+					int val; TstringRef s(_str);
+					if (!s.parseValue(val) || (s.hasNext())) return false;
+					Fvalue = static_cast<e>(val);
+					return true;
+				}
+		
+				static const char* c_str(e _v){
+					enumOrdType idx = static_cast<enumOrdType>(_v);
+					if (idx < COUNT)
+						return uStrings::getStringN(Tinfo::enum_str()+1,idx);
+					return "unknown";
+				}
+		        const char* c_str(){ return TenumClaseBase<Tinfo>::c_str(Fvalue); }
+		
+				uStrings::TstringArrayIterator iterator() { return uStrings::TstringArrayIterator(Tinfo::enum_str()+1); }
+		
+				constexpr const char* enumBuffer(){ return Tinfo::enum_str(); }
+
+				const char* getEnum(int _idx) { return uStrings::getStringN(Tinfo::enum_str()+1,_idx); }
+		};
+	}
+}
+
+/**
+ * @brief 
+ * notes:
+ * 	enum_str(): returns a string containing all enums in form \0en1\0en2\0...enM\0\0 with an additional \0 at the
+ * 		very end. That's why we set ENUM_BUFFER_SIZE=sizeof(enum_str())-1
+ */
+
+#define __SDDS_ENUM_STR_ENTRY(_str) #_str "\0"
+
+#define sdds_enumClass(_name,...)\
+	class _name##_meta{\
+		public:\
+			enum class enum_type : uint8_t {__VA_ARGS__};\
+			constexpr static int COUNT = sdds_SM_COUNT_VARARGS(__VA_ARGS__);\
+			constexpr static int ENUM_BUFFER_SIZE = sizeof("\0" sdds_SM_ITERATE(__SDDS_ENUM_STR_ENTRY,__VA_ARGS__))-1;\
+			constexpr static const char* enum_str(){ return "\0" sdds_SM_ITERATE(__SDDS_ENUM_STR_ENTRY,__VA_ARGS__); }\
+	\
+	};\
+	class _name : public sdds::metaTypes::TenumClaseBase<_name##_meta>{\
+		public:\
+			void operator=(e _value){Fvalue = _value;}\
+	};
+
 #endif // UENUMMACROS_h

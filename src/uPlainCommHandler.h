@@ -46,6 +46,9 @@ class TplainCommHandler : public Tthread{
       Fstream = &_stream;
     }
 
+	dtypes::uint8 getPort(TobjectEvent* _oe){ return _oe->event()->args.byte0; }
+	void setPort(TobjectEvent* _oe, const dtypes::uint8 _val){ _oe->event()->args.byte0 = _val; }
+
     void send(const char* _msg);
 
     void startSendTypes(TmenuHandle* _struct);

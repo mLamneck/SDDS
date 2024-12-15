@@ -3,6 +3,7 @@
 using namespace dtypes;
 
 dtypes::string timeToString(dtypes::TdateTime& _time, const char* _fmt){
+#if __SDDS_UTIME_CAN_PARSE_TEXT == 1
     //10.10.2024 10:33:33.999       //length 23
     constexpr int bufsize = 24;
     char buffer[bufsize];
@@ -18,6 +19,9 @@ dtypes::string timeToString(dtypes::TdateTime& _time, const char* _fmt){
         res = res + "." + strConv::to_string(_time.tv_usec/1000);
     }
     return res;
+#else
+    return "";
+#endif
 }
 
 dtypes::TdateTime stringToTime(const char* _timeStr){

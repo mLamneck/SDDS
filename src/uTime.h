@@ -8,13 +8,19 @@
 #ifdef SDDS_ON_AVR
 #endif
 
+#ifndef __SDDS_UTIME_CAN_PARSE_TEXT
+	#define __SDDS_UTIME_CAN_PARSE_TEXT 1
+#endif
+
 namespace dtypes{
     typedef tm TdateTimeRec;
     #ifdef SDDS_ON_AVR
         struct TdateTime
         {
             time_t tv_sec;
-            dtypes::uint16 tv_usec;
+            //16 bit is not enough! 1sec = 1000*1000us
+			//dtypes::uint16 tv_usec;
+            dtypes::uint32 tv_usec;
         };
     #else
         typedef timeval TdateTime;
@@ -124,8 +130,8 @@ class TdateTimeParser{
     public:
         TdateTime Fresult;
 
-        TdateTimeParser(const char* _input) : Fp(_input){}
-        TdateTimeParser() : Fp(""){}
+        TdateTimeParser(const char* _input) : Fp(_input), Fresult({0}){}
+        TdateTimeParser() : Fp(""), Fresult({0}){}
         
          /** \brief parse a dateTime string into a TdateTime variable. Possible Formats:\n
          * 2022-08-1983[ 12:32:14[.123]]\n
@@ -136,53 +142,56 @@ class TdateTimeParser{
          *
          */
         bool parse(){
-            Ftm = {};
-            Ftm.tm_hour = 1;    //if not time is parsed, hour has to be 1
-            Fmillisecs = 0;
+#if __SDDS_UTIME_CAN_PARSE_TEXT == 1
+          Ftm = {};
+          Ftm.tm_hour = 1;    //if not time is parsed, hour has to be 1
+          Fmillisecs = 0;
 
-            dtypes::uint16 val;
-            if (!Fp.parseValue(val)) return false;
-            char sep = Fp.next();
-            switch(sep){
-                case '/' : {
-                    if (!parseDate1(val)) return false;
-                    break;
-                }
-                case '-' : {
-                    if (!parseDate2(val)) return false;
-                    break;
-                }
-                case '.' : {
-                    if (!parseDate3(val)) return false;
-                    break;
-                }
-                case ':' : {
-                    if (!parseTime(val,sep)) return false;
-                    break;
-                }
-                default : return false;
-            }
-            if (Fp.hasNext()){
-                if (!Fp.parseValue(val)) return false;
-                if (!parseTime(val,Fp.next())) return false;
-            }
+          dtypes::uint16 val;
+          if (!Fp.parseValue(val)) return false;
+          char sep = Fp.next();
+          switch(sep){
+              case '/' : {
+                  if (!parseDate1(val)) return false;
+                  break;
+              }
+              case '-' : {
+                  if (!parseDate2(val)) return false;
+                  break;
+              }
+              case '.' : {
+                  if (!parseDate3(val)) return false;
+                  break;
+              }
+              case ':' : {
+                  if (!parseTime(val,sep)) return false;
+                  break;
+              }
+              default : return false;
+          }
+          if (Fp.hasNext()){
+              if (!Fp.parseValue(val)) return false;
+              if (!parseTime(val,Fp.next())) return false;
+          }
 
-            //date parsed???
-            if (Ftm.tm_year > 0){
-                dtypes::uint16 year = Ftm.tm_year;
-                dtypes::uint8 mon = Ftm.tm_mon;
-                dtypes::uint8 day = Ftm.tm_mday;
-                Fresult.tv_sec = mktime(&Ftm);
-                if (Fresult.tv_sec == -1) return false;
-                //mktime doesn't necessarily fail with sec=-1 for wrong inputs, but the following seems to detect these failures.
-                if (Ftm.tm_year != year || Ftm.tm_mon != mon || Ftm.tm_mday != day) return false;
-            }
+          //date parsed???
+          if (Ftm.tm_year > 0){
+              dtypes::uint16 year = Ftm.tm_year;
+              dtypes::uint8 mon = Ftm.tm_mon;
+              dtypes::uint8 day = Ftm.tm_mday;
+              Fresult.tv_sec = mktime(&Ftm);
+              if (Fresult.tv_sec == -1) return false;
+              //mktime doesn't necessarily fail with sec=-1 for wrong inputs, but the following seems to detect these failures.
+              if (Ftm.tm_year != year || Ftm.tm_mon != mon || Ftm.tm_mday != day) return false;
+          }
 
-            //if no date parsed, calc manually as mktime seems to be not reliable
-            else Fresult.tv_sec = 60 * ((Ftm.tm_hour-1)*60 + Ftm.tm_min) + Ftm.tm_sec;
+          //if no date parsed, calc manually as mktime seems to be not reliable
+          else Fresult.tv_sec = 60 * ((Ftm.tm_hour-1)*60 + Ftm.tm_min) + Ftm.tm_sec;
 
-            Fresult.tv_usec = Fmillisecs*1000;
-            return true;
+          Fresult.tv_usec = Fmillisecs*1000;
+          return true;
+#endif
+          return false;
         }
 
         bool parse(const char* _input){

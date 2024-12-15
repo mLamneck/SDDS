@@ -4,42 +4,43 @@
 #include "uPlainCommHandler.h"
 
 class TserialStream : public Tstream{
-    void write(const char* _str) override { Serial.print(_str); }
-    void write(char _char) override { Serial.print(_char); } 
-    void write(int _int) override { Serial.print(_int); }
-    void flush() override { Serial.println(""); }
-    public:
-      TserialStream(int _baud){
-        Serial.begin(_baud);
-      }
+	void write(const char* _str) override { Serial.print(_str); }
+	void write(char _char) override { Serial.print(_char); }
+	void write(int _int) override { Serial.print(_int); }
+	void flush() override { Serial.println(""); }
+	public:
+		TserialStream(int _baud){
+			if (!Serial)
+				Serial.begin(_baud);
+		}
 };
 
 void* __TserialSpikeInstance = nullptr;
 
 class TserialSpike{
-  String Fbuffer;
-  TplainCommHandler FcommHandler;
-  TserialStream Fstream;
-  public:
-    TserialSpike(TmenuHandle& _root, int _baudrate = 115200):
-      FcommHandler(_root,Fstream)
-      ,Fstream(_baudrate)
-    {
-		__TserialSpikeInstance = this;
-    }
+	String Fbuffer;
+	TplainCommHandler FcommHandler;
+	TserialStream Fstream;
+	public:
+		TserialSpike(TmenuHandle& _root, int _baudrate = 115200):
+			FcommHandler(_root,Fstream)
+		,Fstream(_baudrate)
+		{
+			__TserialSpikeInstance = this;
+		}
 
-    void read(){
-      while (Serial.available()) {
-      char inChar = (char)Serial.read();
-      if (inChar == '\n') {
-        FcommHandler.handleMessage(Fbuffer.c_str());
-        Fbuffer="";
-      }
-      else{
-        Fbuffer += inChar;
-      }
-    }
-  }
+		void read(){
+			while (Serial.available()) {
+				char inChar = (char)Serial.read();
+				if (inChar == '\n') {
+					FcommHandler.handleMessage(Fbuffer.c_str());
+					Fbuffer="";
+				}
+				else{
+					Fbuffer += inChar;
+				}
+			}
+		}
 };
 
 void serialEvent(){
