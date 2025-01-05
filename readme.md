@@ -8,6 +8,7 @@ A lightweight, dependency-free C++ library to write event-driven processes with 
   - [PlatformIO](#platformio)
     - [Coding with PlatformIO](#coding-platformIO)
 - [Supported platforms](#supported-platforms)
+- [Changes in the library](#changes-in-the-library)
 - [Example for this documentation](#example-for-this-documentation)
 - [Coding the example](#coding-the-example)
   - [Defining the structure](#defining-the-structure)
@@ -108,9 +109,11 @@ We provide some useful snippets to further speed up your development process and
   <img src="assets/sddsSnippets.gif">
 </p>
 
+
 ## Supported platforms
 
-The library is intended to be highly scalable, i.e., capable of running with minimal RAM and/or ROM, as well as on more powerful platforms like the ESP32 or different TEENSY boards. It's also intended to be independent of Arduino. So basically, it's possible to use it within Espressif IDF or STM32Cube, but we have not done that so far, and there would certainly be some adjustments needed. We will address this on demand. So far, the library has been tested on the following boards, using the Arduino platform:
+
+The library is intended to be highly scalable, i.e., capable of running with minimal RAM and/or ROM, as well as on more powerful platforms like the ESP32 or different TEENSY boards. It's also intended to be independent of Arduino. Essentially, it's possible to use it within Espressif IDF or STM32Cube. So far, the library has been tested on the following boards using the Arduino platform:
 
 - Teensy 3.2
 - ESP32
@@ -123,6 +126,81 @@ The library is intended to be highly scalable, i.e., capable of running with min
   - UNO [*](#reacting-to-state-changes-on-avr)
 
 We would appreciate feedback to further extend this list.
+
+For STM32Cube, we have tested on the following boards:
+- NUCLEO C031C6
+- NUCLEO-G474RE
+- Custom boards with STM32 MCUs
+
+As the IDE, we have used the [STM32CubeIDE](https://www.st.com/en/development-tools/stm32cubeide.html). So far, we cannot provide ready-to-use examples for STM32, because we have only used it with the vbusSpike, and there is currently no implementation for the serialSpike.
+
+Nevertheless, we want to give a rough example:
+
+First of all, it's important to create a C++ project and not a C project, which is the default in STM32CubeIDE. Choosing C++ in the new project's wizard is not enough. By default, this creates a `main.c`. In order to make use of the C++ language, you have to manually add a `.cpp` file. There are some good examples on the internet on how to do this. After creating the project, you have to specify a compiler flag `STM32_CUBE`. In the STM32CubeIDE, you can add this flag under **Project Properties -> C/C++ General -> Path and Symbols -> Symbols**. Add `STM32_CUBE` without a value. This adds `-DSTM32_CUBE` to the compiler arguments, which we use to enable conditional compilation. The IDE does a good job creating the boilerplate code for a new project. With some minor adjustments, this should look almost like an Arduino project. A typical `main.cpp` would look like this:
+
+
+```C++
+#include "main.h"
+#include "uTypedef.h"
+#include "uMultask.h"
+
+class TuserStruct : public TmenuHandle{
+	...
+	// your code
+};
+
+TuserStruct userStruct;
+//add some spikes
+
+void setup(){
+
+}
+
+void loop(){
+	TtaskHandler::handleEvents();
+}
+
+int main(){
+	HAL_Init();
+	SystemClock_Config();
+
+	setup();
+	while (true)
+	{
+		loop();
+	}
+}
+
+```
+
+
+## Changes in the library
+
+The library is under constant development. Most of the time, this will not affect user code. Changes that affect user code will be listed here in chronologically descending order. We divide these into breaking and non-breaking changes. There's nothing more annoying than breaking changes in libraries, and we do our best to keep this list empty.
+
+### Breaking changes
+
+Changes that will break user code will be listed here.
+
+### Non-breaking changes
+
+#### 2025/01: sdds_struct not needed anymore
+
+From now on, it's no longer necessary to wrap your variables in `sdds_struct`. For example, in the following code from the LED example, you can remove the commented-out lines.
+
+```C++
+class Tled : public TmenuHandle {
+  public:
+    //sdds_struct(
+        sdds_var(TonOffState, ledSwitch, sdds::opt::saveval)
+        sdds_var(TonOffState, blinkSwitch, sdds::opt::saveval)
+        sdds_var(Tuint16, onTime, sdds::opt::saveval, 500)  
+        sdds_var(Tuint16, offTime, sdds::opt::saveval, 500)
+    //)
+};
+```
+
+**Note:** There is no need to remove the lines. Old code will still work.
 
 ## Example for this documentation
 
@@ -443,8 +521,9 @@ class Tadc : public TmenuHandle{
             sdds_var(Tuint8,pin,sdds::opt::saveval)
             sdds_var(Tuint16,readInterval,sdds::opt::saveval,100)
         )
-        Tadc(int _pin){
+        Tadc(){
           on(pin){
+			//check pin to be a valid pin...
             pinMode(pin, INPUT);
             timer.start(0);
           };
@@ -456,7 +535,7 @@ class Tadc : public TmenuHandle{
         }
 };
 ```
-The beauty of this is that this code is completely separated from the rest of your code. It's responsible for one thing: to read out the ADC with a given, adjustable interval. You don't care who gets notified of a change in the ADC value nor who is setting the readInterval. There could be 10 clients subscribed due to different communication channels or none. And if nobody's interested in the ADC value, the line
+The beauty of this is that this code is completely separated from the rest of your code. It's responsible for one thing: to read out the ADC with a given, adjustable interval and pin. You don't care who gets notified of a change in the ADC value nor who is setting the readInterval. There could be 10 clients subscribed due to different communication channels or none. And if nobody's interested in the ADC value, the line
 ```C++
 value = analogRead(_pin); 
 ```
@@ -777,7 +856,7 @@ As mentioned before, in the middle of SDDS is the [tree](#the-data-structure). A
 * a communication channel
 
 #### Plain Protocol
-The plain protocol is a human-readable format. All commands are terminated with a `\n`. At the moment, this is the only protocol we are using, but there will be a binary protocol as well in the future.
+The plain protocol is a human-readable format. All commands are terminated with a `\n`. 
 
 The most obvious commands are to simply read and write values.
 ```C++
@@ -822,6 +901,11 @@ Web Spikes are only available on ESP platforms with the [SDDS_ESP_EXTENSION](htt
 #### UDP Spike
 
 At the moment not implemented for ESP. We use it for debugging when running SDDS on Windows with MinGW.
+
+#### Vbus Spike
+
+The vbusSpike aims to implement efficient communication and distribution of self-describing data structures in distributed systems and embedded applications using a binary protocol. More information can be found in the repository [vbusSpike](https://github.com/mLamneck/SDDS_vbusSpike).
+
 
 ### Interrupts
 

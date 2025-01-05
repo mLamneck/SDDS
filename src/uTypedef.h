@@ -426,10 +426,10 @@ template <class ValType, sdds::Ttype _type_id> class TdescrTemplate: public Tdes
         */
 
         template <typename T>
-        void operator++(T) { Fvalue++; signalEvents(); };
+        ValType operator++(T) { Fvalue++; signalEvents(); return Fvalue; };
 
         template <typename T>
-        void operator--(T) { Fvalue--; signalEvents(); };
+        ValType operator--(T) { Fvalue--; signalEvents(); return Fvalue; };
 
         void operator+=(TdescrTemplate<ValType,_type_id>& _inp){
             ValType* pVal = static_cast<ValType*>(_inp.pValue());
