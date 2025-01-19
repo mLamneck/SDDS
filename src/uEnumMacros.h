@@ -30,7 +30,7 @@ namespace sdds{
 				static const enumOrdType ord(e _v){return static_cast<enumOrdType>(_v);}
 
 				bool strToVal(const char* _str){
-					uStrings::TstringArrayIterator it(Tinfo::enum_str());
+					uStrings::TstringArrayIterator it(Tinfo::enum_str()+1);
 					for (int i=0; it.hasNext(); i++){
 						if (strcmp(it.next(),_str) == 0){
 							Fvalue = static_cast<e>(i);
