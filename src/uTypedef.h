@@ -252,6 +252,8 @@ class Tdescr : public TlinkedListElement{
         int createNummber;
         #endif
 
+		TmenuHandle* parent() { return Fparent; }
+
 		Tdescr* next() { return static_cast<Tdescr*>(TlinkedListElement::next()); }
 		
         Tcallbacks* callbacks(){ return &Fcallbacks; }
@@ -735,6 +737,7 @@ class TobjectEvent : public TlinkedListElement{
 		Tdescr* observedObj() { return FobservedObj; }
 		void setObservedObj(Tdescr* _oo){ FobservedObj = _oo; }
 
+		int getChangedItemCount() { return first() <= last()? last()-first()+1 : 0; }
 	    TrangeItem first() { return FchangedRange.Ffirst; }
         TrangeItem last() { return FchangedRange.Flast; }
 	    TrangeItem firstObserved() { return FobservedRange.Ffirst; }
@@ -914,6 +917,8 @@ class TmenuHandle : public Tstruct{
         TlinkedListIterator<Tdescr> iterator(TrangeItem _first) { return FmenuItems.iterator(_first); }
 
         TobjectEventList* events() { return &FobjectEvents; }
+
+		int childCount(){ return FmenuItems.indexOf(last())+1; }
 
         void signalEvents(Tdescr* _sender){
             if (events()->hasElements()){
