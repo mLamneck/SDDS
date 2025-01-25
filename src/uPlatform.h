@@ -1,6 +1,21 @@
 #ifndef UPLATFORM_H
 #define UPLATFORM_H
 
+/************************************************************************************
+ * UPLATFORM
+ *
+ * compiler flags:
+ * 	if sdds_noDebugOuput == 1		//prevent debug::write/log to print to the console
+ * 	#ifdef STM32_CUBE				//use stm32
+ *  #ifdef SDDS_ON_AVR
+ * 	#ifdef ESP32
+ * 	#ifdef ESP8266
+ *  #if defined(SDDS_ON_ARDUINO)
+ * 	? __SDDS_UTYPEDEF_COMPILE_STRCONV 0
+ *	? __SDDS_UTIME_CAN_PARSE_TEXT 0
+
+*************************************************************************************/
+
 #ifdef __AVR__
     #define SDDS_ON_AVR
 #endif
