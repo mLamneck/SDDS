@@ -119,6 +119,11 @@ public:
 				LL_AHB2_GRP1_EnableClock(LL_AHB2_GRP1_PERIPH_GPIOC);
 			}
 			break;
+		case GPIOD_BASE:
+			if (!isClockEnabled(GPIOD_BASE)) {
+				LL_AHB2_GRP1_EnableClock(LL_AHB2_GRP1_PERIPH_GPIOD);
+			}
+			break;
 		case GPIOF_BASE:
 			if (!isClockEnabled(GPIOF_BASE)) {
 				LL_AHB2_GRP1_EnableClock(LL_AHB2_GRP1_PERIPH_GPIOF);

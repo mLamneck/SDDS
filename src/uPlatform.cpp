@@ -4,25 +4,32 @@
  * MARKI_DEBUG_PLATFORM
  *
  * used for development on windows machines
+ * compiler flags:
+ * 	sdds_noDebugOuput	
+ * 	STM32_CUBE
 *************************************************************************************/
 
 #if MARKI_DEBUG_PLATFORM == 1
 
 void debug::write(const char* _fmt...)
 {
+	#if sdds_noDebugOuput == 0
     va_list argptr;
     va_start(argptr, _fmt);
     vfprintf(stderr, _fmt, argptr);
     va_end(argptr);
+	#endif
 }
 
 void debug::log(const char* _fmt...)
 {
+	#if sdds_noDebugOuput == 0
     va_list argptr;
     va_start(argptr, _fmt);
     vfprintf(stderr, _fmt, argptr);
     va_end(argptr);
     printf("\n");
+	#endif
 }
 
 dtypes::TsystemTime _millis(){
