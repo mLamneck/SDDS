@@ -441,7 +441,44 @@ void loop(){
 ```
 
 ### Explore Serial Spike
-The serial spike uses the [Plain protocol](#plain-protocol) specified in the documentation to populate the data structure we've built over the default serial. We want to point out here that the following section is not how it's supposed to be used. It's made to have software running on the host machine to provide a user interface using the protocol to read/write the data like showcased [here](https://github.com/mLamneck/SDDS_ESP_Extension?tab=readme-ov-file#introducing-the-user-interface) for ESP boards. There is a fully featured software for serial communication, but unfortunately, it's not available for the public. It still makes sense to check out the following instructions to get an idea of how spikes work under the hood. So let's walk through...
+
+The serial spike uses the [Plain protocol](#plain-protocol) specified in the documentation to populate the data structure we've built over the default serial. With this, we can use client applications that understand this protocol to build a generic user interface based on the variables we have used in our code. A simple example of such an application is our **sddsMinimalBrowser** from [this](https://github.com/mLamneck/SDDS_minimalBrowser) repository. We will use it in this chapter. First of all, download the file **sddsMinimalBrowser.html** from [here](https://github.com/mLamneck/SDDS_minimalBrowser/tree/main/release). Open it in your browser (Chrome, Opera, or Edge). It will look like the following.
+
+<p align="center">
+  <img src="assets/startupSerial.png">
+</p>
+
+The first step is to connect to the serial port, associated with the device you are using.
+* Make sure the port is not blocked by another application (serial monitor, upload process, ...).
+* Click on *Connect to Serial Port*.
+* In the upcoming dialog, select the port associated with your device and click on connect.
+
+
+<p align="center">
+  <img src="assets/serialPortDialog1.png">
+</p>
+
+
+After the connection has been established, it will look like this:
+
+<p align="center">
+  <img src="assets/serialConnected.png">
+</p>
+
+Congratulations! You have successfully connected to your device. Now it's time to play around. For example, you could try the following. If you don't know what we mean by setting `led.ledSwitch=ON/OFF` or you don't know how to do it, we have some guidelines on how to use this application [here](https://github.com/mLamneck/SDDS_minimalBrowser?tab=readme-ov-file#introducing-the-user-interface).
+
+* **Switch the LED ON/OFF** set `led.ledSwitch=ON/OFF`
+* **Let it Blink!** set `led.ledSwitch=ON/OFF`
+* **Adjust the blink interval!** set `led.onTime/offTime=1000` (don't go crazy with low values, because we didn't account for this in our simple code). Note how you get live updates from `led.ledSwitch` as well.
+* **Save the current settings** set `params.action=save`
+
+After saving the settings, you can restart the device and you should find it blinking with the same settings. While this is just a very simple example application, it's still very useful to have the ability to monitor and adjust all the variables of your program without any additional effort.
+
+If you want to go more in depth on how this works behind the scenes, you can continue with the next chapter or jump to the [documentation](#documentation).
+
+### Explore Serial Spike - in depth
+
+We want to point out here that the following section is not how it's supposed to be used. It still makes sense to check out the following instructions to get an idea of how spikes work under the hood. So let's walk through...
 
 1. Build and upload the code to your board.
 2. Open the Serial Monitor (default baudrate 115200).
