@@ -944,6 +944,9 @@ At the moment not implemented for ESP. We use it for debugging when running SDDS
 The vbusSpike aims to implement efficient communication and distribution of self-describing data structures in distributed systems and embedded applications using a binary protocol. More information can be found in the repository [vbusSpike](https://github.com/mLamneck/SDDS_vbusSpike).
 
 
+#### Text Display Spike
+The Text Display Spike allows displaying and editing self-describing data structures on an LCD screen. It provides a simple and intuitive text-based interface for interacting with the data, making it accessible in embedded environments without requiring a web or serial connection. More details and implementation specifics can be found in the [textDisplaySpike](https://github.com/mLamneck/SDDS_textDisplaySpike) repository.
+
 ### Interrupts
 
 When it comes to interrupt handling, there is a lot to consider. One of the main guidelines is to keep the executed code in an ISR (interrupt service routine) as short as possible. This is simply because an interrupt is intended to be executed as fast as possible when a certain condition is met, i.e., a change of a logical level on an input pin. While one ISR is executed, usually other interrupts are blocked. In turn, if you write a long ISR, you prevent other ISRs from executing during that time. That's why you should only do what's really necessary in the ISR and send a notification to perform heavy calculations outside of the ISR. Here are some guidelines:
@@ -1109,7 +1112,7 @@ Coding a [Spike](#spikes) is usually straightforward, especially if you can use 
 
 - `mqttSpike`
 - `tcpSpike`
-- `displaySpikes`
+- ...
 
 just to name a few.
 
