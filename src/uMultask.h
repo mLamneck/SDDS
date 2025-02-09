@@ -48,6 +48,9 @@ class Tevent : public TlinkedListElement{
 				dtypes::uint16 word0;
 				dtypes::uint16 word1;
 			};
+			struct{
+				dtypes::uint32 uint32;
+			};
 		} args;
         #if MULTASK_DEBUG
         const char* Fname;

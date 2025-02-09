@@ -24,12 +24,16 @@ namespace mhal{
 	class Tuart{
 			constexpr static USART_TypeDef* pUart(){ return (USART_TypeDef*)UART_BASE_ADDR; }
 			constexpr static IRQn_Type uart_irq_type(){
-				return USART1_IRQn;
+				static_assert(UART_BASE_ADDR==USART1_BASE || UART_BASE_ADDR==USART3_BASE, "uart not implemented yet");
+				if (UART_BASE_ADDR == USART1_BASE)
+					return USART1_IRQn;
+				else if (UART_BASE_ADDR == USART3_BASE)
+					return USART3_IRQn;
 			}
 			constexpr static uint32_t ERR_MASK = (USART_ISR_ORE | USART_ISR_FE | USART_ISR_NE | USART_ISR_PE);
 
 		public:
-			constexpr static void init(){
+			constexpr static void init(int _baud = 115200*8){
 				LL_USART_InitTypeDef USART_InitStruct = {0};
 				LL_GPIO_InitTypeDef GPIO_InitStruct = {0};
 				RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
@@ -37,15 +41,18 @@ namespace mhal{
 				/** Initializes the peripherals clocks */
 				if (UART_BASE_ADDR == USART1_BASE){
 					PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART1;
-				  PeriphClkInit.Usart1ClockSelection = RCC_USART1CLKSOURCE_PCLK2;
+					PeriphClkInit.Usart1ClockSelection = RCC_USART1CLKSOURCE_PCLK2;
+					LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_USART1);
+				}
+				else if (UART_BASE_ADDR == USART3_BASE){
+					  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART3;
+					  PeriphClkInit.Usart3ClockSelection = RCC_USART3CLKSOURCE_PCLK1;
+					  LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_USART3);
 				}
 				if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
 				{
 					Error_Handler();
 				}
-
-				/* Peripheral clock enable */
-				LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_USART1);
 
 				RX_PIN::enableClock();
 				GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
@@ -69,7 +76,7 @@ namespace mhal{
 				isr_enable();
 
 				USART_InitStruct.PrescalerValue = LL_USART_PRESCALER_DIV1;
-				USART_InitStruct.BaudRate = 115200*8; //9600;//
+				USART_InitStruct.BaudRate = _baud;
 				USART_InitStruct.DataWidth = LL_USART_DATAWIDTH_8B;
 				USART_InitStruct.StopBits = LL_USART_STOPBITS_1;
 				USART_InitStruct.Parity = LL_USART_PARITY_NONE;
