@@ -47,7 +47,7 @@ namespace sdds{
 				int bytesAvailableForRead() { return FbytesAvailableForRead - FreadPos; }
 				
 				bool hasSpaceFor(const uint8 _size){
-					return ((FwritePos + _size) < FbufferSize);
+					return ((FwritePos + _size) <= FbufferSize);
 				}
 
 				int spaceAvailableForWrite() { return FbufferSize - FwritePos; }
