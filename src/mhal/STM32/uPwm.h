@@ -8,6 +8,8 @@
 #ifndef MHAL_UPWM_STM32_H_
 #define MHAL_UPWM_STM32_H_
 
+#include "stm32g4xx_ll_tim.h"
+
 namespace mhal{
 
 template<uintptr_t TIM_BASE_ADDR>
