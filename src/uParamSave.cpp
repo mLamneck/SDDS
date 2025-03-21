@@ -188,9 +188,19 @@ namespace sdds{
 #if uParamSave_debug == 1
 							memccpy(descr->pValue(),&tempBuf,size,size);
 #endif
-							descr->signalEvents();
+							//first load the whole structure and signal events afterwards.
+							//descr->signalEvents();
 						};
 					}
+
+					//signal events for all loaded variables
+					for (auto it = s->iterator(); it.hasCurrent();){
+						auto descr = it.current();
+						it.jumpToNext();
+						if (!descr->shouldBeSaved()) continue;
+						descr->signalEvents();
+					}
+
 					return true;
 				}
 
