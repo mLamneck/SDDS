@@ -910,6 +910,15 @@ class TmenuHandle : public Tstruct{
         TlinkedList<Tdescr> FmenuItems;
         TobjectEventList FobjectEvents;
         void push_back(Tdescr* d){FmenuItems.push_back(d);}
+		
+		void setParent(Tdescr* _descr){
+            _descr->Fparent = this;
+			if (_descr->isStruct()){
+				auto s = static_cast<Tstruct*>(_descr);
+				if (s->Fvalue)
+					s->Fvalue->Fparent = this;
+			}
+		}
     public:
         TmenuHandle();
 
@@ -930,12 +939,12 @@ class TmenuHandle : public Tstruct{
         }
 
         void addDescr(Tdescr* _descr){
-            _descr->Fparent = this;
+			setParent(_descr);
             push_back(_descr);
         }
 
 		void addDescr(Tdescr* _descr, int _pos){
-            _descr->Fparent = this;
+			setParent(_descr);
 			auto it = iterator(_pos);
 			it.insert(_descr);
 		}
