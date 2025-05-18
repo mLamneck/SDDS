@@ -21,7 +21,7 @@ bool TplainCommHandler::sendError(Terror::e _errCode, Tport _port){
     Fstream->write("E ");
     Fstream->write(_port);
     Fstream->write(' ');
-    Fstream->write(plainComm::Terror::ord(_errCode));
+    Fstream->write(plainComm::Terror::toInt(_errCode));
     Fstream->write(' ');
     Fstream->write(plainComm::Terror::c_str(_errCode));
     Fstream->flush();

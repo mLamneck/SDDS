@@ -515,9 +515,16 @@ template <typename ValType, sdds::Ttype _type_id=sdds::Ttype::ENUM> class TenumT
         friend class TmenuHandle;
 		constexpr static sdds::Ttype TYPE_ID = _type_id;
 
-        typedef ValType enumClass;
+		/**
+		 * enumClass: 	sdds enum class created by enumMacros
+		 * dtype: 		raw c++ enum class.
+		 * e: 			same as dtype, just to have a shorter access i.e. if (switch::e::on...)
+		 * COUNT		number of elements in the enum
+		 */
+		typedef ValType enumClass;
         typedef typename ValType::e dtype;
         typedef typename ValType::e e;
+		constexpr static int COUNT = enumClass::COUNT;
 
         /* override copy constructor to avoid a deep copy of the object
          * including callbacks and events
@@ -548,6 +555,9 @@ template <typename ValType, sdds::Ttype _type_id=sdds::Ttype::ENUM> class TenumT
 
         inline ValType value(){ return Fvalue; }
 
+        static e toEnum(int _ord){ return ValType::toEnum(_ord); }
+		int toInt() { return ValType::toInt(Fvalue); }
+	
         // behave like a plain class enum
         operator dtype() const{ return Fvalue.Fvalue; }
 
@@ -562,6 +572,11 @@ template <typename ValType, sdds::Ttype _type_id=sdds::Ttype::ENUM> class TenumT
 
         // behave like an extended created by macro magic
         operator ValType() const { return Fvalue; }
+
+		/** deprecated */
+		[[deprecated("use toInt() instead")]]
+		int ord() { return ValType::toInt(Fvalue); }
+
 };
 
 #define __sdds_namedEnum(_name, ...) \
