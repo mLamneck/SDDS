@@ -124,173 +124,190 @@ namespace sdds{
 					continue;
 				}
 #if uParamSave_debug == 1
-		uint8_t tempBuf[16] = {};
-		int size = descr->valSize();
-		bool res = Fstream->writeBytes(descr->pValue(),descr->valSize());
-		Fstream->seek(TseekMode::curr,-size);
-		Fstream->readBytes(&tempBuf,size);
-		if (!res){
+				uint8_t tempBuf[16] = {};
+				int size = descr->valSize();
+				bool res = Fstream->writeBytes(descr->pValue(),descr->valSize());
+				Fstream->seek(TseekMode::curr,-size);
+				Fstream->readBytes(&tempBuf,size);
+				if (!res){
 #else
-	if (!Fstream->writeBytes(descr->pValue(),descr->valSize())){
+				if (!Fstream->writeBytes(descr->pValue(),descr->valSize())){
 #endif
-		Ferror = TparamError::e::outOfMem;
-		return false;
-	};
-		}
-		return true;
-			}
-
-			bool TparamStreamer::readByte(dtypes::uint8& _byte){
-				bool res = Fstream->readByte(_byte);
-				if (!res)
 					Ferror = TparamError::e::outOfMem;
-				return res;
+					return false;
+				};
 			}
+			return true;
+		}
 
-			bool TparamStreamer::_loadStruct(TmenuHandle* s){
+		bool TparamStreamer::readByte(dtypes::uint8& _byte){
+			bool res = Fstream->readByte(_byte);
+			if (!res)
+				Ferror = TparamError::e::outOfMem;
+			return res;
+		}
+
+		bool TparamStreamer::_loadStruct(TmenuHandle* s){
+			for (auto it = s->iterator(); it.hasCurrent();){
+				auto descr = it.current();
+				it.jumpToNext();
+
+				if (descr->isStruct()){
+					TmenuHandle* mh = static_cast<Tstruct*>(descr)->value();
+					if (!mh) continue;
+
+					if (!_loadStruct(mh)) return false;
+					continue;
+				}
+
+				if (!descr->shouldBeSaved()) continue;
+				if (descr->type() == sdds::Ttype::STRING){
+					dtypes::uint8 strSize;
+					if (!readByte(strSize)) return false;
+					dtypes::string* str = static_cast<dtypes::string*>(descr->pValue());
+					str->reserve(strSize);  //don't grow on each iteration
+					*str = "";
+					uint8_t c;
+					while(strSize-- > 0){
+						if (!readByte(c)) return false;
+						*str += (char)c;
+					}
+					continue;
+				}
+
+#if uParamSave_debug == 1
+				uint8_t tempBuf[16] = {};
+				int size = descr->valSize();
+				if (!Fstream->readBytes(&tempBuf,size)){
+#else
+				if (!Fstream->readBytes(descr->pValue(),descr->valSize())){
+#endif
+					Ferror = TparamError::e::outOfMem;
+					return false;
+				}else{
+#if uParamSave_debug == 1
+					memccpy(descr->pValue(),&tempBuf,size,size);
+#endif
+				}
+			}
+			return true;
+		}
+
+		/**
+		 * @brief signal menu events for all variables with flag SAVEVAL after a successful load
+		 * 
+		 * @param s rootMenu
+		 */
+		void signalMenuEventsAfterLoad(TmenuHandle* s){
+			for (auto it = s->iterator(); it.hasCurrent();){
+				auto descr = it.current();
+				it.jumpToNext();
+
+				if (descr->isStruct()){
+					TmenuHandle* mh = static_cast<Tstruct*>(descr)->value();
+					if (!mh) continue;
+					signalMenuEventsAfterLoad(mh);				
+				}
+
 				for (auto it = s->iterator(); it.hasCurrent();){
 					auto descr = it.current();
 					it.jumpToNext();
-
-					if (descr->isStruct()){
-						TmenuHandle* mh = static_cast<Tstruct*>(descr)->value();
-						if (!mh) continue;
-
-						if (!_loadStruct(mh)) return false;
-						continue;
-					}
-
 					if (!descr->shouldBeSaved()) continue;
-					if (descr->type() == sdds::Ttype::STRING){
-						dtypes::uint8 strSize;
-						if (!readByte(strSize)) return false;
-						dtypes::string* str = static_cast<dtypes::string*>(descr->pValue());
-						str->reserve(strSize);  //don't grow on each iteration
-						*str = "";
-						uint8_t c;
-						while(strSize-- > 0){
-							if (!readByte(c)) return false;
-							*str += (char)c;
-						}
-						continue;
-					}
-
-#if uParamSave_debug == 1
-					uint8_t tempBuf[16] = {};
-					int size = descr->valSize();
-					if (!Fstream->readBytes(&tempBuf,size)){
-#else
-						if (!Fstream->readBytes(descr->pValue(),descr->valSize())){
-#endif
-							Ferror = TparamError::e::outOfMem;
-							return false;
-						}else{
-#if uParamSave_debug == 1
-							memccpy(descr->pValue(),&tempBuf,size,size);
-#endif
-							//first load the whole structure and signal events afterwards.
-							//descr->signalEvents();
-						};
-					}
-
-					//signal events for all loaded variables
-					for (auto it = s->iterator(); it.hasCurrent();){
-						auto descr = it.current();
-						it.jumpToNext();
-						if (!descr->shouldBeSaved()) continue;
-						descr->signalEvents();
-					}
-
-					return true;
+					descr->signalEvents();
 				}
-
-				bool TparamStreamer::loadStructV0(TmenuHandle* s){
-					TparamHeaderV0 header;
-					if (!Fstream->readBytes(&header,sizeof(header))){
-						Ferror = TparamError::e::outOfMem;
-						return false;
-					}
-					calcCrc(s);
-					if (header.crc != Fcrc.rCrc.Ftype){
-						Ferror = TparamError::e::crc;
-						return false;
-					}
-					return _loadStruct(s);
-				}
-
-				bool TparamStreamer::save(TmenuHandle* s, TstreamBase* _stream){
-					Fcrc.crc = 0;
-					Ferror = TparamError::e::___;
-					Fstream = _stream;
-					Fstream->initWrite();
-					Fstream->seek(TseekMode::start,sizeof(TparamSaveVersion)+sizeof(TparamHeaderV0));
-					bool res = saveStruct(s);
-					if (res){
-						Fstream->seek(TseekMode::start,0);
-						TparamSaveVersion version = 0;
-						TparamHeaderV0 header = { .crc = Fcrc.rCrc.Ftype };
-						if (
-							(!Fstream->writeBytes(&version,sizeof(TparamSaveVersion)))
-							|| (!Fstream->writeBytes(&header,sizeof(TparamHeaderV0)))
-						)
-						{
-							Ferror = TparamError::e::outOfMem;
-							return false;
-						}
-					}
-					else{
-						Fstream->seek(TseekMode::start,0);
-					}
-					Fstream->flush();
-					return res;
-				}
-
-				bool TparamStreamer::load(TmenuHandle* s, TstreamBase* _stream){
-					Ferror = TparamError::e::___;
-					Fstream = _stream;
-					Fstream->initRead();
-					TparamSaveVersion version = 0;
-					if (!Fstream->readBytes(&version,sizeof(TparamSaveVersion))){
-						Ferror = TparamError::e::outOfMem;
-						return false;
-					}
-
-					switch(version){
-					case(0): return loadStructV0(s);
-					}
-					Ferror = TparamError::e::invVers;
-					return false;
-				}
-
 			}
 		}
 
-		TparamSaveMenu::TparamSaveMenu(){
-			on(action){
-				sdds_self(TparamSaveMenu);
-				TenLoadSave::dtype action = self->action;
-				if (action != TenLoadSave::e::___){
-					TmenuHandle* root = self->findRoot();
-					sdds::paramSave::TparamStreamer ps;
-					sdds::paramSave::Tstream s;
-					if (action==TenLoadSave::e::load){
-						dtypes::uint32 locTime = millis();
-						ps.load(root,&s);
-						self->time = millis()-locTime;
-					}else if(action==TenLoadSave::e::save){
-						dtypes::uint32 locTime = millis();
-						ps.save(root,&s);
-						self->time = millis()-locTime;
-					}
-					self->error = ps.error();
-					self->size = s.high();
-					self->action = TenLoadSave::e::___;
-				}
-			};
-
-			on(sdds::setup()){
-				sdds_self(TparamSaveMenu);
-				sdds::paramSave::Tstream::INIT();
-				self->action = Taction::load;
-			};
+		bool TparamStreamer::loadStructV0(TmenuHandle* s){
+			TparamHeaderV0 header;
+			if (!Fstream->readBytes(&header,sizeof(header))){
+				Ferror = TparamError::e::outOfMem;
+				return false;
+			}
+			calcCrc(s);
+			if (header.crc != Fcrc.rCrc.Ftype){
+				Ferror = TparamError::e::crc;
+				return false;
+			}
+			auto res = _loadStruct(s);
+			if (res)
+				signalMenuEventsAfterLoad(s);
+			return res;
 		}
+
+		bool TparamStreamer::save(TmenuHandle* s, TstreamBase* _stream){
+			Fcrc.crc = 0;
+			Ferror = TparamError::e::___;
+			Fstream = _stream;
+			Fstream->initWrite();
+			Fstream->seek(TseekMode::start,sizeof(TparamSaveVersion)+sizeof(TparamHeaderV0));
+			bool res = saveStruct(s);
+			if (res){
+				Fstream->seek(TseekMode::start,0);
+				TparamSaveVersion version = 0;
+				TparamHeaderV0 header = { .crc = Fcrc.rCrc.Ftype };
+				if (
+					(!Fstream->writeBytes(&version,sizeof(TparamSaveVersion)))
+					|| (!Fstream->writeBytes(&header,sizeof(TparamHeaderV0)))
+				)
+				{
+					Ferror = TparamError::e::outOfMem;
+					return false;
+				}
+			}
+			else{
+				Fstream->seek(TseekMode::start,0);
+			}
+			Fstream->flush();
+			return res;
+		}
+
+		bool TparamStreamer::load(TmenuHandle* s, TstreamBase* _stream){
+			Ferror = TparamError::e::___;
+			Fstream = _stream;
+			Fstream->initRead();
+			TparamSaveVersion version = 0;
+			if (!Fstream->readBytes(&version,sizeof(TparamSaveVersion))){
+				Ferror = TparamError::e::outOfMem;
+				return false;
+			}
+
+			switch(version){
+				case(0): return loadStructV0(s);
+			}
+			Ferror = TparamError::e::invVers;
+			return false;
+		}
+
+	}
+}
+
+TparamSaveMenu::TparamSaveMenu(){
+	on(action){
+		sdds_self(TparamSaveMenu);
+		TenLoadSave::dtype action = self->action;
+		if (action != TenLoadSave::e::___){
+			TmenuHandle* root = self->findRoot();
+			sdds::paramSave::TparamStreamer ps;
+			sdds::paramSave::Tstream s;
+			if (action==TenLoadSave::e::load){
+				dtypes::uint32 locTime = millis();
+				ps.load(root,&s);
+				self->time = millis()-locTime;
+			}else if(action==TenLoadSave::e::save){
+				dtypes::uint32 locTime = millis();
+				ps.save(root,&s);
+				self->time = millis()-locTime;
+			}
+			self->error = ps.error();
+			self->size = s.high();
+			self->action = TenLoadSave::e::___;
+		}
+	};
+
+	on(sdds::setup()){
+		sdds_self(TparamSaveMenu);
+		sdds::paramSave::Tstream::INIT();
+		self->action = Taction::load;
+	};
+}
