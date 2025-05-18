@@ -10,7 +10,7 @@
 
 #include "uPlatform.h"
 
-#ifdef __STM32G474xx_H
+#if defined(__STM32G474xx_H) || defined(STM32G431xx)
 	#define RCC_USART1CLKSOURCE RCC_USART1CLKSOURCE_PCLK2
 	#define __mhal_UART_AF LL_GPIO_AF_7
 #else
@@ -24,9 +24,11 @@ namespace mhal{
 	class Tuart{
 			constexpr static USART_TypeDef* pUart(){ return (USART_TypeDef*)UART_BASE_ADDR; }
 			constexpr static IRQn_Type uart_irq_type(){
-				static_assert(UART_BASE_ADDR==USART1_BASE || UART_BASE_ADDR==USART3_BASE, "uart not implemented yet");
+				static_assert(UART_BASE_ADDR==USART1_BASE || UART_BASE_ADDR==USART2_BASE || UART_BASE_ADDR==USART3_BASE , "uart not implemented yet");
 				if (UART_BASE_ADDR == USART1_BASE)
 					return USART1_IRQn;
+				else if (UART_BASE_ADDR == USART2_BASE)
+					return USART2_IRQn;
 				else if (UART_BASE_ADDR == USART3_BASE)
 					return USART3_IRQn;
 			}
@@ -43,6 +45,11 @@ namespace mhal{
 					PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART1;
 					PeriphClkInit.Usart1ClockSelection = RCC_USART1CLKSOURCE_PCLK2;
 					LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_USART1);
+				}
+				else if (UART_BASE_ADDR == USART2_BASE){
+					  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART2;
+					  PeriphClkInit.Usart2ClockSelection = RCC_USART2CLKSOURCE_PCLK1;
+					  LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_USART2);
 				}
 				else if (UART_BASE_ADDR == USART3_BASE){
 					  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART3;
@@ -109,7 +116,12 @@ namespace mhal{
 			constexpr static uint32_t ddr_notEmpty(){ return LL_USART_IsActiveFlag_RXNE_RXFNE(pUart()); }
 			constexpr static uint32_t ddr_empty(){ return !LL_USART_IsActiveFlag_RXNE_RXFNE(pUart()); }
 
-			constexpr static uint32_t tdr_notEmpty(){ return LL_USART_IsActiveFlag_TXE_TXFNF(pUart()); }
+			/**
+			 * this was the wrong name. In my understanding now the function returns if the transmit
+			 * data register is empty or the tx fifo is not full...
+			 */
+			//constexpr static uint32_t tdr_notEmpty(){ return LL_USART_IsActiveFlag_TXE_TXFNF(pUart()); }
+			constexpr static uint32_t tdr_empty(){ return LL_USART_IsActiveFlag_TXE_TXFNF(pUart()); }
 
 			//read data register
 			constexpr static uint8_t ddr_read(){ return LL_USART_ReceiveData8(pUart()); }
@@ -146,7 +158,7 @@ namespace mhal{
 			constexpr static auto isr_rto_flagSet(){ return LL_USART_IsActiveFlag_RTO(pUart()); }
 			constexpr static void isr_rto_clearFlag(){ LL_USART_ClearFlag_RTO(pUart()); }
 
-			constexpr static uint32_t uart_hardware_error(){ return (USART1->ISR & ERR_MASK); }
+			constexpr static uint32_t uart_hardware_error(){ return (pUart()->ISR & ERR_MASK); }
 			constexpr static void uart_hardware_clearErrors(){
 				// Handle Overrun Error
 				if (pUart()->ISR & USART_ISR_ORE) {
