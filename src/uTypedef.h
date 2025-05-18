@@ -601,7 +601,16 @@ typedef TdescrTemplate<dtypes::int16,sdds::Ttype::INT16> Tint16;
 typedef TdescrTemplate<dtypes::int32,sdds::Ttype::INT32> Tint32;
 
 //floating point
-typedef TdescrTemplate<dtypes::float32,sdds::Ttype::FLOAT32> Tfloat32;
+class Tfloat32 : public TdescrTemplate<dtypes::float32,sdds::Ttype::FLOAT32>{
+	public:
+		void operator=(dtype _v){ __setValue(_v); }
+		template<typename T>
+		void operator=(T _val){__setValue(_val); }
+
+		static dtype nan() { return 0.0f/0.0f; }
+		static bool isNan(dtype _val) { return (_val != _val); }
+		bool isNan(){ return Fvalue!=Fvalue; }
+};
 
 typedef TdescrTemplate<dtypes::TdateTime,sdds::Ttype::TIME> Ttime;
 //typedef TdescrTemplate<dtypes::string,sdds::Ttype::STRING> Tstring;
