@@ -27,7 +27,9 @@
 /*****************************************************************************/
 
 #if SDDS_ON_ARDUINO == 1
+#ifndef PARTICLE
 #include <EEPROM.h>
+#endif
 #elif defined(STM32_CUBE)
 #include <mhal/uFlashProg.h>
 #elif MARKI_DEBUG_PLATFORM == 1
