@@ -176,11 +176,11 @@ class TdateTimeParser{
 
           //date parsed???
           if (Ftm.tm_year > 0){
-              dtypes::uint16 year = Ftm.tm_year;
-              dtypes::uint8 mon = Ftm.tm_mon;
-              dtypes::uint8 day = Ftm.tm_mday;
+              decltype(Ftm.tm_year) year = Ftm.tm_year;
+              decltype(Ftm.tm_mon) mon = Ftm.tm_mon;
+              decltype(Ftm.tm_mday) day = Ftm.tm_mday;
               Fresult.tv_sec = mktime(&Ftm);
-              if (Fresult.tv_sec == -1) return false;
+              if (Fresult.tv_sec == (time_t)-1) return false;
               //mktime doesn't necessarily fail with sec=-1 for wrong inputs, but the following seems to detect these failures.
               if (Ftm.tm_year != year || Ftm.tm_mon != mon || Ftm.tm_mday != day) return false;
           }
