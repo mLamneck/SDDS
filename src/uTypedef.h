@@ -372,11 +372,12 @@ template for the actual descriptive types
 template <class ValType, sdds::Ttype _type_id> class TdescrTemplate: public Tdescr{
     private:
     protected:
-        ValType Fvalue;
     public:
         friend class TmenuHandle;
         typedef ValType dtype;
         constexpr static sdds::Ttype TYPE_ID = _type_id;
+
+		ValType Fvalue;
 
 		Tmeta meta() override { return Tmeta{TYPE_ID,0,""}; }
 
