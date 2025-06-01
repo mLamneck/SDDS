@@ -27,7 +27,11 @@ namespace sdds{
 
 				operator e() const{ return Fvalue; }
 				
-				static const enumOrdType ord(e _v){return static_cast<enumOrdType>(_v);}
+				static const enumOrdType toInt(e _v){return static_cast<enumOrdType>(_v);}
+				static const e toEnum(const int _ord){
+					if (_ord >= COUNT) return static_cast<e>(0);
+					return static_cast<e>(_ord);
+				}
 
 				bool strToVal(const char* _str){
 					uStrings::TstringArrayIterator it(Tinfo::enum_str()+1);
@@ -57,6 +61,9 @@ namespace sdds{
 				constexpr const char* enumBuffer(){ return Tinfo::enum_str(); }
 
 				const char* getEnum(int _idx) { return uStrings::getStringN(Tinfo::enum_str()+1,_idx); }
+
+				[[deprecated("use toInt() instead")]]
+				static const enumOrdType ord(e _v){return static_cast<enumOrdType>(_v);}
 		};
 	}
 }

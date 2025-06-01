@@ -216,6 +216,7 @@ Tthread
 
 class Tthread : public Tevent{
     using Tevent::Tevent;
+    using Tevent::execute; // Prevent warning about hiding 'execute()' from Tevent
     friend class TtaskHandler;
 
     multask::Tpriority Fpriority = 0;

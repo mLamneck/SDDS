@@ -14,6 +14,7 @@ toDo:
 #include "uStrings.h"
 #include "uEnumMacros.h"
 #include "uTime.h"
+#include "uMmath.h"
 
 #ifndef __SDDS_UTYPEDEF_COMPILE_STRCONV
 	#define __SDDS_UTYPEDEF_COMPILE_STRCONV 1
@@ -372,11 +373,12 @@ template for the actual descriptive types
 template <class ValType, sdds::Ttype _type_id> class TdescrTemplate: public Tdescr{
     private:
     protected:
-        ValType Fvalue;
     public:
         friend class TmenuHandle;
         typedef ValType dtype;
         constexpr static sdds::Ttype TYPE_ID = _type_id;
+
+		ValType Fvalue;
 
 		Tmeta meta() override { return Tmeta{TYPE_ID,0,""}; }
 
@@ -515,9 +517,16 @@ template <typename ValType, sdds::Ttype _type_id=sdds::Ttype::ENUM> class TenumT
         friend class TmenuHandle;
 		constexpr static sdds::Ttype TYPE_ID = _type_id;
 
-        typedef ValType enumClass;
+		/**
+		 * enumClass: 	sdds enum class created by enumMacros
+		 * dtype: 		raw c++ enum class.
+		 * e: 			same as dtype, just to have a shorter access i.e. if (switch::e::on...)
+		 * COUNT		number of elements in the enum
+		 */
+		typedef ValType enumClass;
         typedef typename ValType::e dtype;
         typedef typename ValType::e e;
+		constexpr static int COUNT = enumClass::COUNT;
 
         /* override copy constructor to avoid a deep copy of the object
          * including callbacks and events
@@ -548,6 +557,9 @@ template <typename ValType, sdds::Ttype _type_id=sdds::Ttype::ENUM> class TenumT
 
         inline ValType value(){ return Fvalue; }
 
+        static e toEnum(int _ord){ return ValType::toEnum(_ord); }
+		int toInt() { return ValType::toInt(Fvalue); }
+	
         // behave like a plain class enum
         operator dtype() const{ return Fvalue.Fvalue; }
 
@@ -562,6 +574,11 @@ template <typename ValType, sdds::Ttype _type_id=sdds::Ttype::ENUM> class TenumT
 
         // behave like an extended created by macro magic
         operator ValType() const { return Fvalue; }
+
+		/** deprecated */
+		[[deprecated("use toInt() instead")]]
+		int ord() { return ValType::toInt(Fvalue); }
+
 };
 
 #define __sdds_namedEnum(_name, ...) \
@@ -586,7 +603,16 @@ typedef TdescrTemplate<dtypes::int16,sdds::Ttype::INT16> Tint16;
 typedef TdescrTemplate<dtypes::int32,sdds::Ttype::INT32> Tint32;
 
 //floating point
-typedef TdescrTemplate<dtypes::float32,sdds::Ttype::FLOAT32> Tfloat32;
+class Tfloat32 : public TdescrTemplate<dtypes::float32,sdds::Ttype::FLOAT32>{
+	public:
+		void operator=(dtype _v){ __setValue(_v); }
+		template<typename T>
+		void operator=(T _val){__setValue(_val); }
+
+		static dtype nan() { return 0.0f/0.0f; }
+		static bool isNan(dtype _val) { return (_val != _val); }
+		bool isNan(){ return Fvalue!=Fvalue; }
+};
 
 typedef TdescrTemplate<dtypes::TdateTime,sdds::Ttype::TIME> Ttime;
 //typedef TdescrTemplate<dtypes::string,sdds::Ttype::STRING> Tstring;
@@ -686,8 +712,8 @@ namespace sdds{
 		}
 
 		bool intersection(const Trange& _r) {
-			TrangeItem newFirst = std::max(Ffirst, _r.Ffirst);
-			TrangeItem newLast = std::min(Flast, _r.Flast);
+			TrangeItem newFirst = mmath::max(Ffirst, _r.Ffirst);
+			TrangeItem newLast = mmath::min(Flast, _r.Flast);
 			if (newFirst > newLast) return false;
 
 			Ffirst = newFirst;
@@ -910,6 +936,15 @@ class TmenuHandle : public Tstruct{
         TlinkedList<Tdescr> FmenuItems;
         TobjectEventList FobjectEvents;
         void push_back(Tdescr* d){FmenuItems.push_back(d);}
+		
+		void setParent(Tdescr* _descr){
+            _descr->Fparent = this;
+			if (_descr->isStruct()){
+				auto s = static_cast<Tstruct*>(_descr);
+				if (s->Fvalue)
+					s->Fvalue->Fparent = this;
+			}
+		}
     public:
         TmenuHandle();
 
@@ -930,12 +965,12 @@ class TmenuHandle : public Tstruct{
         }
 
         void addDescr(Tdescr* _descr){
-            _descr->Fparent = this;
+			setParent(_descr);
             push_back(_descr);
         }
 
 		void addDescr(Tdescr* _descr, int _pos){
-            _descr->Fparent = this;
+			setParent(_descr);
 			auto it = iterator(_pos);
 			it.insert(_descr);
 		}

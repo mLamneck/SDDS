@@ -66,7 +66,7 @@ class Tudp : public TstringStream{
                 perror("Error");
             }
 
-            //bind socket to local port
+			//bind socket to local port
             local.sin_family = AF_INET;
             local.sin_addr.s_addr = htonl(INADDR_ANY);
             local.sin_port = htons(_localPort);
@@ -91,8 +91,6 @@ class Tudp : public TstringStream{
         const int length() { return Flength; }
 
         bool receive(){
-            //memset(&Fbuffer[0],'\0',sizeof(Fbuffer));
-            //int ret = recv(Fs,&Fbuffer[0],sizeof(Fbuffer)-1,0);
             int fromLen = sizeof(Fsrc);
             Flength = recvfrom(Fs,&Fbuffer[0],sizeof(Fbuffer)-1,0,(sockaddr*)&Fsrc,&fromLen);
             if (Flength > 0){
@@ -102,15 +100,37 @@ class Tudp : public TstringStream{
             return false;
         }
 
-        void send(const char* _msg, int _len = -1){
-            if (_len < 1){ _len = strlen(_msg); }
-            Fdest.sin_port = htons(FremotePort);
-            debug::log("UDP: sending %s", _msg);
-            int ret = sendto(FsendSock, _msg, _len, 0, (sockaddr*)&Fdest, sizeof(Fdest) );
-            if (ret == SOCKET_ERROR){
-                    printf("error in send\n");
-            }
-        }
+		void send(const char* _msg, int _len = -1) {
+			if (_len < 1) {
+				_len = strlen(_msg);
+			}
+
+			const size_t maxUDPPacket = 32000;
+			size_t sent = 0;
+
+			Fdest.sin_port = htons(FremotePort);
+
+			while (sent < (size_t)_len) {
+				size_t remaining = _len - sent;
+				size_t chunkSize = std::min(maxUDPPacket, remaining);
+				bool isLast = (sent + chunkSize >= (size_t)_len);
+
+				std::string chunk(_msg + sent, chunkSize);
+				if (isLast) {
+					chunk += '\n';
+				}
+
+				//debug::log("UDP: sending %s", chunk.c_str());
+				int ret = sendto(FsendSock, chunk.c_str(), (int)chunk.size(), 0, (sockaddr*)&Fdest, sizeof(Fdest));
+				if (ret == SOCKET_ERROR) {
+					int errorCode = WSAGetLastError();
+					debug::log("error in send: WSAGetLastError=%d", errorCode);
+					break;
+				}
+
+				sent += chunkSize;
+			}
+		}
 
         void flush() override {
             send(TstringStream::data());
