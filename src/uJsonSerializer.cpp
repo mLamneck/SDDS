@@ -52,6 +52,12 @@ void TjsonSerializer::serializeValues(Tstream* _stream, TmenuHandle* _struct, Tr
             case(Ttype::STRING): case(Ttype::TIME): case(Ttype::ENUM):
                 TjsonSerializer::serializeAsString(_stream,d);
                 break;
+			case (Ttype::FLOAT32):
+				if (static_cast<Tfloat32*>(d)->isNan())
+					TjsonSerializer::serializeAsString(_stream,"nan");
+				else	
+	                _stream->write(d->to_string().c_str());
+				break;
             default:
                 _stream->write(d->to_string().c_str());
                 break;
