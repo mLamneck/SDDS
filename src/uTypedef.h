@@ -14,6 +14,7 @@ toDo:
 #include "uStrings.h"
 #include "uEnumMacros.h"
 #include "uTime.h"
+#include "uMmath.h"
 
 #ifndef __SDDS_UTYPEDEF_COMPILE_STRCONV
 	#define __SDDS_UTYPEDEF_COMPILE_STRCONV 1
@@ -711,8 +712,8 @@ namespace sdds{
 		}
 
 		bool intersection(const Trange& _r) {
-			TrangeItem newFirst = std::max(Ffirst, _r.Ffirst);
-			TrangeItem newLast = std::min(Flast, _r.Flast);
+			TrangeItem newFirst = mmath::max(Ffirst, _r.Ffirst);
+			TrangeItem newLast = mmath::min(Flast, _r.Flast);
 			if (newFirst > newLast) return false;
 
 			Ffirst = newFirst;
