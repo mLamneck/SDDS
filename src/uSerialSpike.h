@@ -22,7 +22,7 @@ class TserialSpike{
 	TplainCommHandler FcommHandler;
 	TserialStream Fstream;
 	public:
-		TserialSpike(TmenuHandle& _root, int _baudrate = 115200):
+		TserialSpike(TmenuHandle& _root, dtypes::uint32 _baudrate = 115200):
 			FcommHandler(_root,Fstream)
 		,Fstream(_baudrate)
 		{
