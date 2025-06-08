@@ -7,9 +7,10 @@ class Tstream{
     public:
         virtual void write(const char* _str) = 0;
         virtual void write(char _char) = 0;
-        virtual void write(int _int) = 0;
         virtual void write(const dtypes::string &_str){ write(_str.c_str()); }
         virtual void flush(){};
+        template<typename T>
+        void write(T _int){ write(strConv::to_string(_int)); };
 };
 
 class TstringStream : public Tstream{
@@ -30,9 +31,6 @@ class TstringStream : public Tstream{
     }
     void write(const char _char) override{
         Fbuffer += _char;
-    }
-    void write(int _int) override{
-      Fbuffer += strConv::to_string(_int);
     }
     void clear(){
         Fbuffer = "";

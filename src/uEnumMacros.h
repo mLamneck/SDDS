@@ -7,6 +7,17 @@
 namespace sdds{
 
 	namespace metaTypes{
+		/**
+		 * @brief datatype for enums unique id. At the moment 255 seems to be 
+		 * enough for all applications but if we need more somewhen we can
+		 * easily specify a compiler flag to make this bigger.
+		 */
+		typedef dtypes::uint8 TenumId;
+
+		inline TenumId& TenumClassBase_counter() {
+			static TenumId counter = 0;
+			return counter;
+		}
 
 		/**
 		 * @brief Baseclass used in sdds_enumClass to reduce code produce by macro magic
@@ -26,7 +37,11 @@ namespace sdds{
 				typename Tinfo::enum_type Fvalue;  
 
 				operator e() const{ return Fvalue; }
-				
+				static TenumId id(){
+					static TenumId ID = TenumClassBase_counter()++;
+					return ID;
+				}
+
 				static const enumOrdType toInt(e _v){return static_cast<enumOrdType>(_v);}
 				static const e toEnum(const int _ord){
 					if (_ord >= COUNT) return static_cast<e>(0);

@@ -495,11 +495,13 @@ class TenumBase : public Tdescr{
 		struct TenumInfo{
 			const char* buffer;
 			uStrings::TstringArrayIterator iterator;
-			int bufferSize;
-			TenumInfo(uStrings::TstringArrayIterator _iterator, int _bufferSize, const char* _buffer)
+			dtypes::uint16 bufferSize;
+			sdds::metaTypes::TenumId id;
+			TenumInfo(uStrings::TstringArrayIterator _iterator, dtypes::uint16 _bufferSize, const char* _buffer, sdds::metaTypes::TenumId _id)
 			: buffer(_buffer)
 			, iterator(_iterator)
 			, bufferSize(_bufferSize) 
+			, id(_id)
 			{
 
 			}
@@ -540,7 +542,9 @@ template <typename ValType, sdds::Ttype _type_id=sdds::Ttype::ENUM> class TenumT
 
         void* pValue() override { return &Fvalue.Fvalue; };
 
-		TenumInfo enumInfo() override { return TenumInfo(Fvalue.iterator(),ValType::ENUM_BUFFER_SIZE,Fvalue.enumBuffer()); }
+		TenumInfo enumInfo() override { 
+			return TenumInfo(Fvalue.iterator(),ValType::ENUM_BUFFER_SIZE,Fvalue.enumBuffer(),ValType::id());
+		}
 
 #if __SDDS_UTYPEDEF_COMPILE_STRCONV == 1
 		bool setValue(const char* _str) override {
