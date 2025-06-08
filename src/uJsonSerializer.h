@@ -66,6 +66,26 @@ class TjsonSerializer{
 		Fstream->write(':');
 	}
 
+	void setDialect(char _d){
+		if (_d == 'T'){
+			FjsonValueKey = "value";
+			FjsonEnumKey = "enums";
+			FjsonTypeKey = "type";
+			FjsonOptKey = "opt";
+			FjsonNameKey = "name";
+			skipDefaultOption = false;
+			FreferEnums = false;
+		} else{
+			FjsonValueKey = "v";
+			FjsonEnumKey = "e";
+			FjsonTypeKey = "t";
+			FjsonOptKey = "o";
+			FjsonNameKey = "n";
+			skipDefaultOption = true;
+			FreferEnums = true;
+		}
+	}
+
 	TjsonSerializer(TmenuHandle* _root, Tstream* _stream, bool _withValue=true);
 
 	static void encodeString(Tstream* _stream, const char* _str);

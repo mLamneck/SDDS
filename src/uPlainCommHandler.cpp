@@ -14,6 +14,7 @@ void TbasicPlainCommHandler::startSendTypes(TmenuHandle* _struct, const Tcmd _cm
 	Fstream->write(Fport);
 	Fstream->write(' ');
 	TjsonSerializer s(_struct,Fstream);
+	s.setDialect(_cmd);
 	s.serialize();
 	Fstream->flush();
 }
