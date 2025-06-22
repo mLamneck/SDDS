@@ -117,8 +117,11 @@ namespace sdds{
 			
 			uint16_t toMseconds(){ return TlinkTime::TIMES[FlinkTime]; }
 			bool load(uint8_t _ordLinkTime){
-				FlinkTime = _ordLinkTime;
-				return (_ordLinkTime < sizeof(TlinkTime::TIMES)/sizeof(TlinkTime::TIMES[0]));
+				if (_ordLinkTime < sizeof(TlinkTime::TIMES)/sizeof(TlinkTime::TIMES[0])){
+					FlinkTime = _ordLinkTime;
+					return true;
+				};
+				return false;
 			}
 	};
 
