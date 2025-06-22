@@ -291,13 +291,13 @@ TparamSaveMenu::TparamSaveMenu(){
 			sdds::paramSave::TparamStreamer ps;
 			sdds::paramSave::Tstream s;
 			if (action==TenLoadSave::e::load){
-				dtypes::uint32 locTime = millis();
+				dtypes::uint32 locTime = sdds::sysTime::tickCount();
 				ps.load(root,&s);
-				self->time = millis()-locTime;
+				self->time = sdds::sysTime::tickCount()-locTime;
 			}else if(action==TenLoadSave::e::save){
-				dtypes::uint32 locTime = millis();
+				dtypes::uint32 locTime = sdds::sysTime::tickCount();
 				ps.save(root,&s);
-				self->time = millis()-locTime;
+				self->time = sdds::sysTime::tickCount()-locTime;
 			}
 			self->error = ps.error();
 			self->size = s.high();

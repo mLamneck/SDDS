@@ -138,6 +138,7 @@ namespace dtypes {
 #endif
 
 inline void __sdds_systemReset(){ NVIC_SystemReset(); }
+
 #define __sdds_isr_disable() __disable_irq()
 #define __sdds_isr_enable() __enable_irq()
 #ifndef __sdds_isr_critical
@@ -165,10 +166,6 @@ namespace sdds{
 	namespace sysTime{
 		constexpr int SYS_TICK_TIMEBASE = 100; //time in us for timeoverflow
 	}
-}
-extern volatile uint32_t uwTick;
-inline dtypes::TsystemTime millis() {
-	return uwTick;
 }
 
 #else
@@ -256,6 +253,7 @@ namespace dtypes {
 namespace sdds{
 	namespace sysTime{
 		constexpr int MILLIS = 1000/SYS_TICK_TIMEBASE;
+		dtypes::TsystemTime tickCount();
 	};
 };
 

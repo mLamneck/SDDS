@@ -44,7 +44,16 @@ dtypes::TsystemTime millis(){
     return _millis() - startTime;
 }
 
-#else
+namespace sdds{
+	namespace sysTime{
+		dtypes::TsystemTime tickCount(){
+			return millis();
+		}
+	};
+};
+
+
+#else //MARKI_DEBUG_PLATFORM
 
 
 #if defined(SDDS_ON_ARDUINO)
@@ -52,6 +61,14 @@ dtypes::TsystemTime millis(){
 /************************************************************************************
  * Arduino
 *************************************************************************************/
+
+namespace sdds{
+	namespace sysTime{
+		dtypes::TsystemTime tickCount(){
+			return millis();
+		}
+	};
+};
 
 
 #elif defined(STM32_CUBE)
@@ -61,7 +78,29 @@ dtypes::TsystemTime millis(){
  * STM32 Cube
 *************************************************************************************/
 
-HAL_StatusTypeDef HAL_InitTick(uint32_t TickPriority)
+volatile dtypes::uint32 myTickCounter = 0;
+
+namespace sdds{
+	namespace sysTime{
+		dtypes::TsystemTime tickCount(){
+			return myTickCounter;
+		}
+	};
+};
+
+extern "C" void HAL_IncTick(void)
+{
+	myTickCounter++;	//increase our tickCounter 100us tickes
+
+    static dtypes::uint32 modCounter = 0;
+    if (++modCounter >= 1000/sdds::sysTime::SYS_TICK_TIMEBASE)
+    {
+        modCounter = 0;
+        uwTick++;
+    }
+}
+
+extern "C" HAL_StatusTypeDef HAL_InitTick(uint32_t TickPriority)
 {
   HAL_StatusTypeDef  status = HAL_OK;
 
@@ -100,4 +139,4 @@ HAL_StatusTypeDef HAL_InitTick(uint32_t TickPriority)
 void debug::log(const char* _fmt...){}
 void debug::write(const char* _fmt...){}
 
-#endif
+#endif //STM32_CUBE
