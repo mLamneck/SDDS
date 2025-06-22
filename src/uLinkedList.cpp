@@ -38,6 +38,15 @@ bool _TlinkedList::remove(_TlinkedList::T* _element){
     return false;
 }
 
+_TlinkedList::T* _TlinkedList::pop_last(){
+	auto it = iterator();
+	if (!it.hasCurrent()) return nullptr;
+	while (it.hasCurrent() && (it.current()->next() != nullptr))
+		it.jumpToNext();
+	it.removeCurr();
+	return it.current();
+}
+
 _TlinkedListIterator _TlinkedList::iterator(){
     return _TlinkedListIterator(this);
 }
