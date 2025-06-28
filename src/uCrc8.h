@@ -32,13 +32,11 @@ namespace crc8{
 		while (_inLen-- > 0) calc(_crc,*p++);
 	}
 
-	/* not used yet
 	inline Tcrc calc(const void* _in, uint8_t _inLen){
 		Tcrc c = 0;
 		calc(c,_in,_inLen);
 		return c;
 	}
-	*/
 }
 
 #endif
