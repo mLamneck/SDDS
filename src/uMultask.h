@@ -21,6 +21,8 @@ typedef void (*TeventProc)(Tevent*);
 namespace multask{
     typedef dtypes::uint8 Tpriority;
     constexpr int Tpriority_highest = 255;
+
+	typedef dtypes::TsystemTime TsystemTime;
 }
 
 class Tevent : public TlinkedListElement{
@@ -67,7 +69,7 @@ class Tevent : public TlinkedListElement{
 
         multask::Tpriority priority() { return Fpriority; }
         void setPriority(multask::Tpriority _p){ Fpriority = _p; }
-        void setOwner(Tthread* _owner) { Fowner = _owner; }
+        void setOwner(Tthread* _owner);
 
         Tevent(){};
         Tevent(Tthread* _owner);
@@ -80,6 +82,14 @@ class Tevent : public TlinkedListElement{
 };
 
 namespace multask{
+
+	class TstopWatch{
+		public:
+			TsystemTime FlastTime;
+			void start();
+			TsystemTime getMillis();
+			TsystemTime getTicks();
+	};
 
     /**
      * @brief TisrEvent event to be used to notify the application that an interrupt occured
@@ -169,10 +179,6 @@ TeventQ - only for debuggin purpose print/remove
 TtaskHandler
 *************************************************************************************/
 
-namespace multask{
-	typedef dtypes::TsystemTime TsystemTime;
-}
-
 class TtaskHandler{
 	typedef multask::TsystemTime TsystemTime;
 
@@ -184,7 +190,7 @@ class TtaskHandler{
         multask::TeventQ FprocQ;
         multask::TeventQ FtimerQ;
         Tthread* FcurrTask;
-        TsystemTime FsysTime = millis();
+        TsystemTime FsysTime = sdds::sysTime::tickCount();
 
         inline TsystemTime sysTime(){ return FsysTime; }
 
@@ -205,8 +211,19 @@ class TtaskHandler{
         void calcTime();
         bool _handleEvent();
         void _handleEvents();
-    public:
-        static void handleEvents();
+
+		//measure cpu load
+		int FscheduleState = 0;
+		multask::TstopWatch FswBusy;
+		static dtypes::uint32 FbusyTicks;
+	public:
+		static dtypes::uint32 readBusyTicks(){
+			auto temp = FbusyTicks;
+			FbusyTicks = 0;
+			return temp;
+		}
+
+		static void handleEvents();
 };
 
 
@@ -218,6 +235,7 @@ class Tthread : public Tevent{
     using Tevent::Tevent;
     using Tevent::execute; // Prevent warning about hiding 'execute()' from Tevent
     friend class TtaskHandler;
+	friend class Tevent;
 
     multask::Tpriority Fpriority = 0;
     protected:
