@@ -38,6 +38,13 @@ void TjsonSerializer::encodeString(Tstream* _stream, const char* _str){
 	}
 }
 
+void TjsonSerializer::serializeFloat32(Tstream* _stream, Tfloat32* _f){
+	if (_f->isNan())
+		TjsonSerializer::serializeAsString(_stream,"nan");
+	else	
+		_stream->write(_f->to_string().c_str());
+}
+
 void TjsonSerializer::serializeValues(Tstream* _stream, TmenuHandle* _struct, TrangeItem _first, TrangeItem _last){
 	_stream->write("[");
 	auto it = _struct->iterator(_first);
@@ -49,10 +56,7 @@ void TjsonSerializer::serializeValues(Tstream* _stream, TmenuHandle* _struct, Tr
 				TjsonSerializer::serializeAsString(_stream,d);
 				break;
 			case (Ttype::FLOAT32):
-				if (static_cast<Tfloat32*>(d)->isNan())
-					TjsonSerializer::serializeAsString(_stream,"nan");
-				else	
-					_stream->write(d->to_string().c_str());
+				serializeFloat32(_stream,static_cast<Tfloat32*>(d));
 				break;
 			default:
 				_stream->write(d->to_string().c_str());
@@ -125,6 +129,9 @@ void TjsonSerializer::_serialize(TmenuHandle* _curr){
 			switch(d->type()){
 			case sdds::Ttype::ENUM: case sdds::Ttype::STRING: case sdds::Ttype::TIME:
 				serializeAsString(d);
+				break;
+			case sdds::Ttype::FLOAT32:
+				serializeFloat32(Fstream,static_cast<Tfloat32*>(d));
 				break;
 			default:
 				Fstream->write(d->to_string().c_str());

@@ -96,6 +96,8 @@ class TjsonSerializer{
 
 	void serializeAsString(Tdescr* _d);
 
+	static void serializeFloat32(Tstream* _stream, Tfloat32* _f);
+	
 	static void serializeValues(Tstream* _stream, TmenuHandle* _struct, TrangeItem _first=0, TrangeItem _last=TrangeItem_max);
 
 	static void serializeEnums(Tstream* _stream, TenumBase* _enum);
