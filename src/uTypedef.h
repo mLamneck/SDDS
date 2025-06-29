@@ -798,10 +798,10 @@ class TobjectEvent : public TlinkedListElement{
 		}
 		TobjectEvent() : TobjectEvent(nullptr) {};
 
-        static TobjectEvent* retrieve(Tevent* _ev){
-            auto __oe = static_cast<TproxyEvent*>(_ev);
-            return __oe->objectEvent();
-        }
+		static TobjectEvent* retrieve(Tevent* _ev){
+			auto __oe = static_cast<TproxyEvent*>(_ev);
+			return __oe->objectEvent();
+		}
 };
 
 class TobjectEventList : public TlinkedList<TobjectEvent>{

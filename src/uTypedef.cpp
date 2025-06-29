@@ -64,8 +64,8 @@ void TobjectEvent::signal(TrangeItem _first, TrangeItem _last){
 void TobjectEvent::cleanup(){
 	afterDispatch();		//make sure changed range is initialized properly (actually not necessary but who knows....)
 	FobservedObj = nullptr;
-	setOwner(nullptr);
 	Fevent.reclaim();
+	setOwner(nullptr);
 }
 
 void TobjectEventList::signal(TrangeItem _first, int _n, dtypes::uint16 _port){
