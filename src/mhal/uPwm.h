@@ -16,13 +16,16 @@ namespace mhal{
 	class TtimerBase{
 	public:
 		constexpr static void setCounter(uint32_t _value){ };
+		static int getArr() {return 8000; };
 	};
 
 	template<class _Ttimer, class _TgpioPin, uint32_t _CH>
 	class TpwmChannelBase{
 	public:
+		using TIMER = _Ttimer;
 		typedef _TgpioPin GPIO_PIN;
 		constexpr static void setCompareChannel(uint32_t _value){ };
+		static void init() {};
 	};
 
 }

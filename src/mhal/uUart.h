@@ -96,11 +96,6 @@ namespace mhal{
 				LL_USART_EnableFIFO(pUart());
 				LL_USART_ConfigAsyncMode(pUart());
 
-				//toDo: remove this block!!! this is for debugging
-				/*
-				rto_setRxTimeout(20);
-				rto_enableRxTimeout();
-				*/
 				LL_USART_Enable(pUart());
 				while((!(LL_USART_IsActiveFlag_TEACK(pUart()))) || (!(LL_USART_IsActiveFlag_REACK(pUart()))))
 				{
