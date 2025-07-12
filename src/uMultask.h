@@ -5,8 +5,9 @@
 
 #include "uPlatform.h"
 #include "uLinkedList.h"
+#include "uTypeTraits.h"
 
-namespace multask{
+namespace multask{	
 	class Tevent;
 	class Tthread;
 	class TtaskHandler;
@@ -16,7 +17,19 @@ namespace multask{
 	typedef dtypes::uint8 Tpriority;
 	constexpr int Tpriority_highest = 255;
 
-	typedef dtypes::TsystemTime TsystemTime;
+	/**
+	 * @brief this is our timebase. It is the value that is stored in timeevents and
+	 * compared to our sysTime. Never change this to an unsigned value. Otherwise
+	 * time calculation will fail...
+	 */
+	typedef dtypes::TtickCount TtickCount;
+
+	/**
+	 * @brief this is the value given to methods like setTimeEvent, ... 
+	 */
+	typedef dtypes::TtickCount Tmilliseconds;
+
+	static_assert(typeTraits::is_signed<TtickCount>(),"TtickCount must be a signed type");
 
 	/************************************************************************************
 	Tevent
@@ -27,7 +40,7 @@ namespace multask{
 		friend class TtaskHandler;
 		private:
 			Tthread* Fowner = nullptr;
-			TsystemTime FdeliveryTime;
+			TtickCount FdeliveryTime;
 			multask::Tpriority Fpriority = 0;
 		public:
 			virtual void beforeDispatch(){};
@@ -54,12 +67,12 @@ namespace multask{
 			#endif
 
 			Tthread* owner() { return Fowner; }
-			inline TsystemTime deliveryTime() { return FdeliveryTime; }
+			inline TtickCount deliveryTime() { return FdeliveryTime; }
 
 			void signal();
 			void signalFromIsr();
-			void setTimeEvent(const TsystemTime _relTime);
-			void setTimeEventTicks(const TsystemTime _relTime);
+			void setTimeEvent(const Tmilliseconds _relTime);
+			void setTimeEventTicks(const TtickCount _relTime);
 			void reclaim();
 
 			multask::Tpriority priority() { return Fpriority; }
@@ -83,10 +96,10 @@ namespace multask{
 
 	class TstopWatch{
 		public:
-			TsystemTime FlastTime;
+			TtickCount FlastTime;
 			void start();
-			TsystemTime getMillis();
-			TsystemTime getTicks();
+			TtickCount getMillis();
+			TtickCount getTicks();
 	};
 
 	/**
@@ -185,9 +198,9 @@ TtaskHandler
 			multask::TeventQ FprocQ;
 			multask::TeventQ FtimerQ;
 			Tthread* FcurrTask;
-			TsystemTime FsysTime = sdds::sysTime::tickCount();
+			TtickCount FsysTime = sdds::sysTime::tickCount();
 
-			inline TsystemTime sysTime(){ return FsysTime; }
+			inline TtickCount sysTime(){ return FsysTime; }
 
 			void setTaskPriority(Tthread* _thread, multask::Tpriority _priority, bool _transferEvents = true);
 
@@ -199,7 +212,7 @@ TtaskHandler
 
 			void signalEvent(Tevent* _ev);
 			void signalEventISR(Tevent* _ev);
-			void setTimeEvent(Tevent* _ev, const TsystemTime _relTime);
+			void setTimeEvent(Tevent* _ev, const TtickCount _relTime);
 			void reclaimEvent(Tevent* _ev);
 
 			void dispatchEvent(Tevent* _ev, bool _eventFromIsr);
@@ -209,7 +222,7 @@ TtaskHandler
 
 			//measure cpu load
 			int FscheduleState = 0;
-			multask::TstopWatch FswBusy;
+			TstopWatch FswBusy;
 			static dtypes::uint32 FbusyTicks;
 		public:
 			static dtypes::uint32 readBusyTicks(){

@@ -8,6 +8,10 @@
 
 using namespace multask;
 
+TtickCount diffTime(TtickCount _t1, TtickCount _t2){
+	return _t1-_t2;
+}
+
 /************************************************************************************
 TtaskHandler
 *************************************************************************************/
@@ -50,22 +54,22 @@ void TtaskHandler::signalEventISR(Tevent* _ev){
 	)
 }
 
-void TtaskHandler::setTimeEvent(Tevent* _ev, const TsystemTime _relTime){
-    unlinkTimeEvent(_ev);
-    TsystemTime now = sysTime();
-    TsystemTime delTime = now +_relTime;
-    auto it = FtimerQ.iterator();
+void TtaskHandler::setTimeEvent(Tevent* _ev, const TtickCount _relTime){
+	unlinkTimeEvent(_ev);
+	TtickCount now = sysTime();
+	TtickCount delTime = now +_relTime;
+	auto it = FtimerQ.iterator();
 
-    while (it.hasCurrent()){
-        auto ev = it.current();
-        if (delTime < ev->deliveryTime()){ break; }
+	while (it.hasCurrent()){
+		auto ev = it.current();
+		if (diffTime(delTime,ev->deliveryTime()) < 0){ break; }
 		it.jumpToNext();
-    }
-    _ev->FdeliveryTime = delTime;
-    #if MULTASK_DEBUG
-    debug::log("insert event %s, delT=%d before event %s, delT=%d",_ev->Fname,delTime,it.prev()==&FtimerQ?"null":static_cast<Tevent*>(it.prev())->Fname,it.prev()==&FtimerQ?-1:static_cast<Tevent*>(it.prev())->deliveryTime());
-    #endif
-    it.insert(_ev);
+	}
+	_ev->FdeliveryTime = delTime;
+	#if MULTASK_DEBUG
+	debug::log("insert event %s, delT=%d before event %s, delT=%d",_ev->Fname,delTime,it.prev()==&FtimerQ?"null":static_cast<Tevent*>(it.prev())->Fname,it.prev()==&FtimerQ?-1:static_cast<Tevent*>(it.prev())->deliveryTime());
+	#endif
+	it.insert(_ev);
 }
 
 void TtaskHandler::reclaimEvent(Tevent* _ev){
@@ -131,8 +135,8 @@ bool TtaskHandler::_handleEvent(){
 	while (ev){
 		calcTime();
 
-		TsystemTime delTime = ev->deliveryTime();
-		if (sysTime() < delTime) break;
+		TtickCount delTime = ev->deliveryTime();
+		if (diffTime(sysTime(),delTime) < 0) break;
 
 		FtimerQ.pop();
 		dispatchEvent(ev,false);
@@ -161,21 +165,23 @@ bool TtaskHandler::_handleEvent(){
 };
 
 void TtaskHandler::_handleEvents(){
-   while ( _handleEvent()){};
-    #if MARKI_DEBUG_PLATFORM == 1
-    while (_handleEvent()){};
-    auto ev = FtimerQ.first();
-    if (ev){
+	while ( _handleEvent()){};
+	#if MARKI_DEBUG_PLATFORM == 1
+	while (_handleEvent()){};
+	auto ev = FtimerQ.first();
+	if (ev){
 		calcTime();
-		TsystemTime now = sysTime();
-		TsystemTime waitTime = ev->deliveryTime() - now;
-		auto start = std::chrono::high_resolution_clock::now();
-		Sleep(waitTime);
-		auto end = std::chrono::high_resolution_clock::now();
-		auto actualWaitTime = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-		FsysTime += actualWaitTime;
-    }
-    #endif
+		TtickCount now = sysTime();
+		TtickCount waitTime = ev->deliveryTime() - now;
+		if (waitTime > 0){
+			auto start = std::chrono::high_resolution_clock::now();
+			Sleep(waitTime);
+			auto end = std::chrono::high_resolution_clock::now();
+			auto actualWaitTime = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+			FsysTime += actualWaitTime;
+		}
+	}
+	#endif
 }
 
 
@@ -207,19 +213,19 @@ void Tevent::signalFromIsr(){
     taskHandler().signalEventISR(this);
 }
 
-constexpr TsystemTime ticksToMillis(const TsystemTime _time){
+constexpr Tmilliseconds ticksToMillis(const TtickCount _time){
 	return _time/sdds::sysTime::MILLIS;
 }
 
-constexpr TsystemTime millisToTicks(const TsystemTime _time){
+constexpr TtickCount millisToTicks(const Tmilliseconds _time){
 	return _time*sdds::sysTime::MILLIS;
 }
 
-void Tevent::setTimeEvent(const TsystemTime _relTime){
+void Tevent::setTimeEvent(const Tmilliseconds _relTime){
 	taskHandler().setTimeEvent(this, millisToTicks(_relTime));
 }
 
-void Tevent::setTimeEventTicks(const TsystemTime _relTime){
+void Tevent::setTimeEventTicks(const TtickCount _relTime){
 	taskHandler().setTimeEvent(this,_relTime);
 }
 
@@ -265,13 +271,13 @@ namespace multask{
 		FlastTime = sdds::sysTime::tickCount();
 	}
 
-	TsystemTime TstopWatch::getTicks(){
+	TtickCount TstopWatch::getTicks(){
 		return sdds::sysTime::tickCount()-FlastTime;
 	}
 
-	TsystemTime TstopWatch::getMillis(){
-		TsystemTime now = sdds::sysTime::tickCount();
-		TsystemTime diff = (now-FlastTime);
+	TtickCount TstopWatch::getMillis(){
+		TtickCount now = sdds::sysTime::tickCount();
+		TtickCount diff = (now-FlastTime);
 		FlastTime = now; 
 		return ticksToMillis(diff);
 	}

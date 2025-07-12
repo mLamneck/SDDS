@@ -11,6 +11,8 @@
 
 #if MARKI_DEBUG_PLATFORM == 1
 
+#include <chrono>
+
 void debug::write(const char* _fmt...)
 {
 	#if sdds_noDebugOuput == 0
@@ -32,22 +34,10 @@ void debug::log(const char* _fmt...)
 	#endif
 }
 
-dtypes::TsystemTime _millis(){
-    struct timeval tp;
-    gettimeofday(&tp, NULL);
-    return tp.tv_sec * 1000 + tp.tv_usec / 1000;
-}
-
-dtypes::TsystemTime startTime = _millis();
-
-dtypes::TsystemTime millis(){
-    return _millis() - startTime;
-}
-
 namespace sdds{
 	namespace sysTime{
-		dtypes::TsystemTime tickCount(){
-			return millis();
+		dtypes::TtickCount tickCount(){
+			return static_cast<dtypes::TtickCount>(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count());
 		}
 	};
 };
@@ -64,7 +54,7 @@ namespace sdds{
 
 namespace sdds{
 	namespace sysTime{
-		dtypes::TsystemTime tickCount(){
+		dtypes::TtickCount tickCount(){
 			return millis();
 		}
 	};
@@ -82,7 +72,7 @@ volatile dtypes::uint32 myTickCounter = 0;
 
 namespace sdds{
 	namespace sysTime{
-		dtypes::TsystemTime tickCount(){
+		dtypes::TtickCount tickCount(){
 			return myTickCounter;
 		}
 	};

@@ -1089,7 +1089,6 @@ Ttimer
 
 template <class eventType>
 class TcallbackEvent: public eventType{
-    typedef dtypes::TsystemTime Ttime;
     Tcallbacks Fcallbacks;
     void execute() override{ Fcallbacks.emit(); }
     public:
@@ -1098,7 +1097,7 @@ class TcallbackEvent: public eventType{
 };
 
 class Ttimer: public TcallbackEvent<Tevent>{
-    typedef dtypes::TsystemTime Ttime;
+    typedef multask::Tmilliseconds Ttime;
     public:
         void start(Ttime _waitTime){ setTimeEvent(_waitTime); }
         void stop(){ Tevent::reclaim(); }

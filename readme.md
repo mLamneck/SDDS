@@ -170,7 +170,7 @@ So far, we have defined our data structure. For the moment, just assume that it 
 Tled(){
   ...
   on(ledSwitch){
-    if (ledSwitch == TonOffState::dtype::ON) digitalWrite(LED_BUILTIN,1);
+    if (ledSwitch == TonOffState::e::ON) digitalWrite(LED_BUILTIN,1);
     else digitalWrite(LED_BUILTIN,0);
   };
 }
@@ -202,23 +202,23 @@ class Tled : public TmenuHandle{
           pinMode(LED_BUILTIN, OUTPUT);
 
           on(ledSwitch){
-              if (ledSwitch == TonOffState::dtype::ON) digitalWrite(LED_BUILTIN,1);
+              if (ledSwitch == TonOffState::e::ON) digitalWrite(LED_BUILTIN,1);
               else digitalWrite(LED_BUILTIN,0);
           };
 
           // code from here is new
           on(blinkSwitch){
-              if (blinkSwitch == TonOffState::dtype::ON) timer.start(0);
+              if (blinkSwitch == TonOffState::e::ON) timer.start(0);
               else timer.stop();
           };
 
           on(timer){
-              if (ledSwitch == TonOffState::dtype::ON){
-                  ledSwitch = TonOffState::dtype::OFF;
+              if (ledSwitch == TonOffState::e::ON){
+                  ledSwitch = TonOffState::e::OFF;
                   timer.start(offTime);
               } 
               else {
-                  ledSwitch = TonOffState::dtype::ON;
+                  ledSwitch = TonOffState::e::ON;
                   timer.start(onTime);
               }
           };
@@ -301,22 +301,22 @@ class Tled : public TmenuHandle{
           pinMode(LED_BUILTIN, OUTPUT);
 
           on(ledSwitch){
-              if (ledSwitch == TonOffState::dtype::ON) digitalWrite(LED_BUILTIN,0);
+              if (ledSwitch == TonOffState::e::ON) digitalWrite(LED_BUILTIN,0);
               else digitalWrite(LED_BUILTIN,1);
           };
 
           on(blinkSwitch){
-              if (blinkSwitch == TonOffState::dtype::ON) timer.start(0);
+              if (blinkSwitch == TonOffState::e::ON) timer.start(0);
               else timer.stop();
           };
 
           on(timer){
-              if (ledSwitch == TonOffState::dtype::ON){
-                  ledSwitch = TonOffState::dtype::OFF;
+              if (ledSwitch == TonOffState::e::ON){
+                  ledSwitch = TonOffState::e::OFF;
                   timer.start(offTime);
               } 
               else {
-                  ledSwitch = TonOffState::dtype::ON;
+                  ledSwitch = TonOffState::e::ON;
                   timer.start(onTime);
               }
           };
@@ -674,15 +674,16 @@ SDDS provides primitive types as well as composed types and enums.
 #### Primitives
 We support the usual primitive data types as displayed in the following table. The TypeID field is what you see as the type fields in the response of the ```T``` command.
 
-| Type      | TypeID/hex  | TypeID/dec  | Min         | Max         |
-| -         | :-:         | :-:         | -----------:| -----------:|
-| Tuint8    | 0x01        | 1           | 0           | 255         |
-| Tuint16   | 0x02        | 2           | 0           | 65535       |
-| Tuint32   | 0x04        | 4           | 0           | 4294967295  |
-| Tint8     | 0x11        | 17          | -128        | 127         |
-| Tint16    | 0x12        | 18          |-32768       | 32767       |
-| Tint32    | 0x14        | 20          |-2147483648  | 2147483647  |
-| Ffloat32  | 0x24        | 36          |             |             |
+| Type      | TypeID/hex  | TypeID/dec  | Min           | Max           |
+| -         | :-:         | :-:         | -----------:  | -----------:  |
+| Tuint8    | 0x01        | 1           | 0             | 255           |
+| Tuint16   | 0x02        | 2           | 0             | 65535         |
+| Tuint32   | 0x04        | 4           | 0             | 4294967295    |
+| Tint8     | 0x11        | 17          | -128          | 127           |
+| Tint16    | 0x12        | 18          |-32768         | 32767         |
+| Tint32    | 0x14        | 20          |-2147483648    | 2147483647    |
+| Ffloat32  | 0x24        | 36          | -3.40282e+38  | 3.40282e+38   |
+| Ffloat64  | 0x28        | 40          | -1.79769e+308 | 1.79769e+308  |
 
 
 #### Other Types
@@ -1048,7 +1049,7 @@ class Tled : public TmenuHandle{
   public:
     Tled(){
       on(ledSwitch){
-        if (ledSwitch == TonOffState::dtype::ON) digitalWrite(LED_BUILTIN,1);
+        if (ledSwitch == TonOffState::e::ON) digitalWrite(LED_BUILTIN,1);
         else digitalWrite(LED_BUILTIN,0);
       };
     }
@@ -1060,7 +1061,7 @@ to
 class Tled : public TmenuHandle{
   public:
     void onLedSwitch(){
-      if (ledSwitch == TonOffState::dtype::ON) digitalWrite(LED_BUILTIN,1);
+      if (ledSwitch == TonOffState::e::ON) digitalWrite(LED_BUILTIN,1);
       else digitalWrite(LED_BUILTIN,0);
     }
 

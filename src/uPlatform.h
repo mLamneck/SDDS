@@ -50,6 +50,13 @@ namespace dtypes {
 	typedef float float32;
 	typedef double float64;
 
+	/**
+	 * @brief this is the type of our timebase. It is the type of the value that is stored in 
+	 * timeevents and compared to our sysTime. Never change this to an unsigned value. Otherwise
+	 * time calculation will fail...
+	 */
+	typedef int32_t TtickCount;
+
 	//numeric limits
 	template <typename T> constexpr T high();
 	template <typename T> constexpr T low();
@@ -157,15 +164,12 @@ namespace sdds{
 
     namespace dtypes{
         typedef std::string string;
-        typedef int64_t TsystemTime;
     }
 
     namespace strConv{
         template<typename valType>
         inline dtypes::string to_string(valType _val) { return std::to_string(_val); }
     }
-
-    dtypes::TsystemTime millis();
 
 
 #elif defined(STM32_CUBE)
@@ -200,7 +204,6 @@ inline void __sdds_systemReset(){ NVIC_SystemReset(); }
 
 namespace dtypes {
 	typedef std::string string;
-	typedef uint32_t TsystemTime;
 }
 
 namespace strConv {
@@ -255,7 +258,6 @@ namespace sdds{
 
     namespace dtypes{
         typedef String string;                      //for Arduino this seems to be the best option for dynamic strings
-        typedef long int TsystemTime;               //millis on Arduino returns... what is this exactly? unsigned long int?
     }
     namespace strConv{
         template<typename valType>
@@ -270,7 +272,7 @@ namespace sdds{
 namespace sdds{
 	namespace sysTime{
 		constexpr int MILLIS = 1000/SYS_TICK_TIMEBASE;
-		dtypes::TsystemTime tickCount();
+		dtypes::TtickCount tickCount();
 	};
 };
 
