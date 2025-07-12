@@ -26,10 +26,9 @@
 	#endif
 #endif
 
+
 /************************************************************************************
- * MARKI_DEBUG_PLATFORM
- *
- * used for development on windows machines
+ * stuff available on all platforms and compilers
 *************************************************************************************/
 
 #include <stdint.h>                         //uint8_t, ...
@@ -47,9 +46,46 @@ namespace dtypes {
 	typedef int32_t int32;
 	typedef int64_t int64;
 
-	//toDo!!! to be checked on each individual compiler and platfom!!!
+	//floating point
 	typedef float float32;
+	typedef double float64;
+
+	//numeric limits
+	template <typename T> constexpr T high();
+	template <typename T> constexpr T low();
+	template <> constexpr uint8 high<uint8>() { return 255; }
+	template <> constexpr uint8 low<uint8>() { return 0; }
+	template <> constexpr uint16 high<uint16>() { return 65535; }
+	template <> constexpr uint16 low<uint16>() { return 0; }
+	template <> constexpr uint32 high<uint32>() { return 4294967295U; }
+	template <> constexpr uint32 low<uint32>() { return 0; }
+	template <> constexpr uint64 high<uint64>() { return 18446744073709551615ULL; }
+	template <> constexpr uint64 low<uint64>() { return 0; }
+	template <> constexpr int8 high<int8>() { return 127; }
+	template <> constexpr int8 low<int8>() { return -128; }
+	template <> constexpr int16 high<int16>() { return 32767; }
+	template <> constexpr int16 low<int16>() { return -32768; }
+	template <> constexpr int32 high<int32>() { return 2147483647; }
+	template <> constexpr int32 low<int32>() { return -2147483648; }
+	template <> constexpr int64 high<int64>() { return 9223372036854775807LL; }
+	template <> constexpr int64 low<int64>() { return -9223372036854775807LL - 1; }
+	template <> constexpr float32 high<float32>() { return 3.402823e+38F; }
+	template <> constexpr float32 low<float32>() { return -3.402823e+38F; }
+	template <> constexpr float64 high<float64>() { return 1.7976931348623157e+308; }
+	template <> constexpr float64 low<float64>() { return -1.7976931348623157e+308; }
 }
+
+namespace sdds{
+	class TsysFuncs{
+		public:
+			static dtypes::uint32 getCpuFreq(){ return 0; }
+	};
+}
+
+
+/************************************************************************************
+ * ESP specific stuff
+*************************************************************************************/
 
 #if defined(ESP32)
 	#include "freertos/FreeRTOS.h"
@@ -62,6 +98,13 @@ namespace dtypes {
 		portEXIT_CRITICAL(&__sdds_mux);
 #elif defined(ESP8266)
 #endif
+
+
+/************************************************************************************
+ * MARKI_DEBUG_PLATFORM
+ *
+ * used for development on windows machines
+*************************************************************************************/
 
 #if defined(__MINGW64__) || defined(WIN32)      //__MINGW64__ works in VS_Code, WIN32 in codeBlocks
     #include <stdint.h>                         //uint8_t, ...
@@ -81,6 +124,11 @@ namespace dtypes {
 		namespace sysTime{
 			constexpr int SYS_TICK_TIMEBASE = 1000;	//time in us for timeoverflow
 		}
+
+		class SysFuncs : public TsysFuncs{
+			public:
+		};
+
         namespace simul{
             typedef void(*Tisr)();
             constexpr int PIN_COUNT = 64;
@@ -163,6 +211,11 @@ namespace strConv {
 }
 
 namespace sdds{
+	class SysFuncs : public TsysFuncs{
+		public:
+			static dtypes::uint32 getCpuFreq(){ return HAL_RCC_GetSysClockFreq(); }
+	};
+
 	namespace sysTime{
 		constexpr int SYS_TICK_TIMEBASE = 100; //time in us for timeoverflow
 	}
@@ -186,6 +239,9 @@ namespace sdds{
 		namespace sysTime{
 			constexpr int SYS_TICK_TIMEBASE = 1000; //time in us for timeoverflow
 		}
+
+		class SysFuncs : public TsysFuncs{
+		};
 	}
 
 	#define __sdds_isr_disable() noInterrupts()
@@ -210,45 +266,6 @@ namespace sdds{
 #if !defined(SDDS_ON_ARDUINO)
 	#define PROGMEM
 #endif
-
-//available on all compilers?
-namespace dtypes {
-	//signed integers
-	typedef uint8_t uint8;
-	typedef uint16_t uint16;
-	typedef uint32_t uint32;
-	typedef uint64_t uint64;
-
-	//unsigned integers
-	typedef int8_t int8;
-	typedef int16_t int16;
-	typedef int32_t int32;
-	typedef int64_t int64;
-
-	//toDo!!! to be checked on each individual compiler and platfom!!!
-	typedef float float32;
-
-	template <typename T> constexpr T high();
-	template <typename T> constexpr T low();
-	template <> constexpr uint8 high<uint8>() { return 255; }
-	template <> constexpr uint8 low<uint8>() { return 0; }
-	template <> constexpr uint16 high<uint16>() { return 65535; }
-	template <> constexpr uint16 low<uint16>() { return 0; }
-	template <> constexpr uint32 high<uint32>() { return 4294967295U; }
-	template <> constexpr uint32 low<uint32>() { return 0; }
-	template <> constexpr uint64 high<uint64>() { return 18446744073709551615ULL; }
-	template <> constexpr uint64 low<uint64>() { return 0; }
-	template <> constexpr int8 high<int8>() { return 127; }
-	template <> constexpr int8 low<int8>() { return -128; }
-	template <> constexpr int16 high<int16>() { return 32767; }
-	template <> constexpr int16 low<int16>() { return -32768; }
-	template <> constexpr int32 high<int32>() { return 2147483647; }
-	template <> constexpr int32 low<int32>() { return -2147483648; }
-	template <> constexpr int64 high<int64>() { return 9223372036854775807LL; }
-	template <> constexpr int64 low<int64>() { return -9223372036854775807LL - 1; }
-	template <> constexpr float32 high<float32>() { return 3.402823e+38F; }
-	template <> constexpr float32 low<float32>() { return -3.402823e+38F; }
-}
 
 namespace sdds{
 	namespace sysTime{
