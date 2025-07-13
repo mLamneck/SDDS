@@ -57,9 +57,6 @@ class TjsonSerializer{
 		Fstream->write(':');
 	}
 
-	void setDialect(char _d){
-	}
-
 	TjsonSerializer(TmenuHandle* _root, Tstream* _stream, bool _withValue=true);
 
 	static void encodeString(Tstream* _stream, const char* _str);

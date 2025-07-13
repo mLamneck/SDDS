@@ -14,7 +14,6 @@ void TbasicPlainCommHandler::startSendTypes(TmenuHandle* _struct, const Tcmd _cm
 	Fstream->write(Fport);
 	Fstream->write(' ');
 	TjsonSerializer s(_struct,Fstream);
-	s.setDialect(_cmd);
 	s.serialize();
 	Fstream->flush();
 }
@@ -110,7 +109,7 @@ void TbasicPlainCommHandler::unlinkPath(TstringRef& _msg){
 void TbasicPlainCommHandler::handleCommand(Tcmd _cmd, TstringRef& _msg){
 	switch (_cmd)
 	{
-		case 'T': case 'D':
+		case 'T':
 			if (_msg.parseValue(Fport)){
 				if (_msg.hasNext() && _msg.next() != ' '){
 					sendError(Terror::e::portParseErr);
