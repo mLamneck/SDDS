@@ -44,15 +44,6 @@ class TjsonSerializer{
 	constexpr static int TrangeItem_max = 255;//dtypes::high<TrangeItem>();
 
 	TnumberMemory<64> FenumIds;
-
-	const char* FjsonValueKey = "v";
-	const char* FjsonTypeKey = "t";
-	const char* FjsonOptKey = "o";
-	const char* FjsonNameKey = "n";
-	const char* FjsonEnumKey = "e";
-
-	bool skipDefaultOption = false;
-	bool FreferEnums = true;
 	
 	TmenuHandle* Froot;
 	Tstream* Fstream;
@@ -67,23 +58,6 @@ class TjsonSerializer{
 	}
 
 	void setDialect(char _d){
-		if (_d == 'T'){
-			FjsonValueKey = "value";
-			FjsonEnumKey = "enums";
-			FjsonTypeKey = "type";
-			FjsonOptKey = "opt";
-			FjsonNameKey = "name";
-			skipDefaultOption = false;
-			FreferEnums = false;
-		} else{
-			FjsonValueKey = "v";
-			FjsonEnumKey = "e";
-			FjsonTypeKey = "t";
-			FjsonOptKey = "o";
-			FjsonNameKey = "n";
-			skipDefaultOption = true;
-			FreferEnums = true;
-		}
 	}
 
 	TjsonSerializer(TmenuHandle* _root, Tstream* _stream, bool _withValue=true);

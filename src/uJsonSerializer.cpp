@@ -81,16 +81,10 @@ void TjsonSerializer::serializeEnums(Tstream* _stream, TenumBase* _enum){
 }
 
 void TjsonSerializer::serializeTypeDescr(Tdescr* _d){
-	writeKey(FjsonTypeKey);
 	Fstream->write(_d->typeId());
 	Fstream->write(',');
-	if (!skipDefaultOption || _d->option() != 0)
-	{
-		writeKey(FjsonOptKey);
-		Fstream->write(_d->option());
-		Fstream->write(',');
-	}
-	writeKey(FjsonNameKey);
+	Fstream->write(_d->option());
+	Fstream->write(',');
 	Fstream->write('"');
 	Fstream->write(_d->name());
 	Fstream->write('"');
@@ -99,8 +93,7 @@ void TjsonSerializer::serializeTypeDescr(Tdescr* _d){
 	if (_d->type() == sdds::Ttype::ENUM){
 		auto en = static_cast<TenumBase*>(_d);
 		Fstream->write(',');
-		writeKey(FjsonEnumKey);
-		if (FreferEnums && FenumIds.knows(en->enumInfo().id))
+		if (FenumIds.knows(en->enumInfo().id))
 			Fstream->write(en->enumInfo().id);
 		else
 			serializeEnums(Fstream,en);
@@ -113,31 +106,15 @@ void TjsonSerializer::_serialize(TmenuHandle* _curr){
 	while (it.hasCurrent()){
 		Tdescr* d = it.current();
 
-		Fstream->write('{');
+		Fstream->write('[');
 		serializeTypeDescr(d);
 		if (d->isStruct()){
 			Fstream->write(',');
-			writeKey(FjsonValueKey);
 			TmenuHandle* mh = static_cast<Tstruct*>(d)->value();
 			if (mh) _serialize(mh);
 			else Fstream->write("null");
 		}
-
-		else if (FwithValue){
-			Fstream->write(',');
-			writeKey(FjsonValueKey);
-			switch(d->type()){
-			case sdds::Ttype::ENUM: case sdds::Ttype::STRING: case sdds::Ttype::TIME:
-				serializeAsString(d);
-				break;
-			case sdds::Ttype::FLOAT32:
-				serializeFloat32(Fstream,static_cast<Tfloat32*>(d));
-				break;
-			default:
-				Fstream->write(d->to_string().c_str());
-			}
-		}
-		Fstream->write('}');
+		Fstream->write(']');
 		if (it.jumpToNext()) Fstream->write(',');
 	}
 	Fstream->write(']');
@@ -168,8 +145,6 @@ bool TjsonSerializer::_serializeEnums(TmenuHandle* _curr){
 }
 
 void TjsonSerializer::serialize(TmenuHandle* _curr){
-	if (!FreferEnums) return _serialize(_curr);
-
 	Fstream->write('{');
 	
 	writeKey('e');
