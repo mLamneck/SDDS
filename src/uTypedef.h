@@ -353,6 +353,7 @@ class Tdescr : public TlinkedListElement{
 
         //floating point
         static bool _strToValue(const char* _str, dtypes::float32& _value){return Tdescr::_strToNumber<dtypes::float32>(_str,_value);}
+        static bool _strToValue(const char* _str, dtypes::float64& _value){return Tdescr::_strToNumber<dtypes::float64>(_str,_value);}
 
         static bool _strToValue(const char* _str, dtypes::string& _value){ _value = _str; return true; }
 
