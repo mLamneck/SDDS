@@ -258,7 +258,10 @@ namespace sdds{
 			else{
 				Fstream->seek(TseekMode::start,0);
 			}
-			Fstream->flush();
+			if (!Fstream->flush()) {
+				Ferror = TparamError::e::outOfMem;
+				return false;
+			}
 			return res;
 		}
 
