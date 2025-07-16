@@ -118,7 +118,6 @@ namespace sdds{
 					int fd = open(FparamsFilePath, O_RDONLY);
 					if (fd != -1) {
 						FbytesRead = read(fd, FreadBuffer, SDDS_PS_MAX_SIZE);
-						Log.info("PARAMS: read %d bytes", FbytesRead);
 						close(fd);
 					}
 				}
@@ -182,9 +181,6 @@ namespace sdds{
 
 				bool doWriteByte(uint8_t _byte) override{
 					EEPROM.put(curr(),_byte);
-					uint8_t byte;
-					EEPROM.get(curr(),byte);
-					if (byte != _byte) EEPROM.put(curr(),_byte);
 					return true;
 				}
 
