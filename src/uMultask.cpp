@@ -5,11 +5,10 @@
     #include <windows.h>
 	#include <chrono>
 #endif
-
 using namespace multask;
 
-TtickCount diffTime(TtickCount _t1, TtickCount _t2){
-	return _t1-_t2;
+dtypes::TtickCount_signed diffTime(TtickCount _t1, TtickCount _t2){
+	return static_cast<dtypes::TtickCount_signed>(_t1-_t2);
 }
 
 /************************************************************************************

@@ -29,8 +29,6 @@ namespace multask{
 	 */
 	typedef dtypes::TtickCount Tmilliseconds;
 
-	static_assert(typeTraits::is_signed<TtickCount>(),"TtickCount must be a signed type");
-
 	/************************************************************************************
 	Tevent
 	*************************************************************************************/

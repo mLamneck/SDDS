@@ -51,11 +51,24 @@ namespace dtypes {
 	typedef double float64;
 
 	/**
-	 * @brief this is the type of our timebase. It is the type of the value that is stored in 
-	 * timeevents and compared to our sysTime. Never change this to an unsigned value. Otherwise
-	 * time calculation will fail...
+	 * @brief TtickCount defines the type used for our timebase. It is stored in time events
+	 * and compared against sysTime.
+	 *
+	 * This type is intentionally defined as unsigned because signed integer overflow
+	 * results in undefined behavior (UB) in C. Although compiler flags like -fwrapv
+	 * can enforce wrapping behavior for signed integers, they are not reliably supported
+	 * across all platforms and may be silently ignored by some compilers.
+	 *
+	 * Therefore, we define both TtickCount (unsigned) and TtickCount_signed (signed).
+	 * Calculations are performed using the unsigned type to avoid UB, and the result
+	 * is cast to the signed type when needed, for example, to interpret time differences.
+	 *
+	 * Note: While unsigned subtraction is well-defined by the C standard, some compiler
+	 * optimizations could potentially lead to unexpected behavior in specific scenarios.
+	 * This setup aims to balance safety and correctness across platforms and compilers.
 	 */
-	typedef int32_t TtickCount;
+	typedef uint32_t TtickCount;
+	typedef int32_t TtickCount_signed;
 
 	//numeric limits
 	template <typename T> constexpr T high();
