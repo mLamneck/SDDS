@@ -165,6 +165,7 @@ bool TtaskHandler::_handleEvent(){
 
 void TtaskHandler::_handleEvents(){
 	while ( _handleEvent()){};
+
 	#if MARKI_DEBUG_PLATFORM == 1
 	while (_handleEvent()){};
 	auto ev = FtimerQ.first();
@@ -267,17 +268,10 @@ TstopWatch
 
 namespace multask{
 	void TstopWatch::start(){
-		FlastTime = sdds::sysTime::tickCount();
+		FlastTime = sdds::SysFuncs::getCycleCount();
 	}
 
 	TtickCount TstopWatch::getTicks(){
-		return sdds::sysTime::tickCount()-FlastTime;
-	}
-
-	TtickCount TstopWatch::getMillis(){
-		TtickCount now = sdds::sysTime::tickCount();
-		TtickCount diff = (now-FlastTime);
-		FlastTime = now; 
-		return ticksToMillis(diff);
+		return sdds::SysFuncs::getCycleCount()-FlastTime;
 	}
 }

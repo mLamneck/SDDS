@@ -98,7 +98,9 @@ namespace dtypes {
 namespace sdds{
 	class TsysFuncs{
 		public:
+			static void init(){}
 			static dtypes::uint32 getCpuFreq(){ return 0; }
+			static dtypes::uint32 getCycleCount() { return 0; }
 	};
 }
 
@@ -229,7 +231,16 @@ namespace strConv {
 namespace sdds{
 	class SysFuncs : public TsysFuncs{
 		public:
+			static void init(){
+			    if (!(CoreDebug->DEMCR & CoreDebug_DEMCR_TRCENA_Msk)) {
+			        CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+			    }
+			    DWT->CYCCNT = 0;
+			    DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
+			}
 			static dtypes::uint32 getCpuFreq(){ return HAL_RCC_GetSysClockFreq(); }
+			static dtypes::uint32 getCycleCount() { return DWT->CYCCNT;; }
+
 	};
 
 	namespace sysTime{
