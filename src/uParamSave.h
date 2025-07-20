@@ -27,9 +27,9 @@
 /*****************************************************************************/
 
 #if SDDS_ON_ARDUINO == 1
-#ifdef PARTICLE
+#ifdef SDDS_ON_PARTICLE
 #include <fcntl.h>
-#elif
+#else
 #include <EEPROM.h>
 #endif
 #elif defined(STM32_CUBE)
@@ -90,7 +90,7 @@ namespace sdds{
 				TstreamLength high(){ return FhighWater; }
 		};
 
-#ifdef PARTICLE && HAL_PLATFORM_FILESYSTEM
+#if defined(SDDS_ON_PARTICLE) && defined(HAL_PLATFORM_FILESYSTEM)
 	
 		class TflashStream : public TstreamBase{
 

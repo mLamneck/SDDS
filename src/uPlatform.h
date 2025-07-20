@@ -13,11 +13,16 @@
  *  #if defined(SDDS_ON_ARDUINO)
  * 	? __SDDS_UTYPEDEF_COMPILE_STRCONV 0
  *	? __SDDS_UTIME_CAN_PARSE_TEXT 0
+ *	SDDS_ON_PARTICLE
 
 *************************************************************************************/
 
 #ifdef __AVR__
     #define SDDS_ON_AVR
+#endif
+
+#ifdef PARTICLE
+#define SDDS_ON_PARTICLE 1
 #endif
 
 #ifndef STM32_CUBE

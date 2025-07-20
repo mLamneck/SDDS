@@ -111,7 +111,7 @@ class TbasicPlainCommHandler : public Tthread{
 				while (_length > 0 && isspace(_msg[_length-1])) _msg[--_length] = '\0';
 				handleMessage(_msg.c_str());
 			}
-		private:
+
 			/** \brief close any open connections and don't send any messages from now
 			 *
 			 */
@@ -123,6 +123,7 @@ class TbasicPlainCommHandler : public Tthread{
 				}
 			}
 			
+		private:
 			void execute(Tevent* _ev) override;
 };
 
