@@ -1006,6 +1006,10 @@ Changes that will break user code will be listed here.
 
 ### Non-breaking changes
 
+#### 2025/07: More efficient repsonse to T command
+
+toDo: give some expamples...
+
 #### 2025/01: sdds_struct not needed anymore
 
 From now on, it's no longer necessary to wrap your variables in `sdds_struct`. For example, in the following code from the LED example, you can remove the commented-out lines.
