@@ -213,7 +213,7 @@ namespace sdds{
 					auto descr = it.current();
 					it.jumpToNext();
 					if (!descr->shouldBeSaved()) continue;
-					descr->signalEvents();
+					descr->signalEvents(true); // FIXME: always consider it changed after load?
 				}
 			}
 		}

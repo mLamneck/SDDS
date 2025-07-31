@@ -14,8 +14,8 @@ TmenuHandle* Tdescr::findRoot(){
     return root;
 }
 
-void Tdescr::signalEvents(){
-    Fcallbacks.emit();
+void Tdescr::signalEvents(bool _changed){
+    Fcallbacks.emit(_changed);
     if (Fparent){
         Fparent->signalEvents(this);
     }
