@@ -1,20 +1,42 @@
 /*
- * uBootReason.h
+ * uSystemInfo.h
  *
- *  Created on: Jun 5, 2025
+ *  Created on: Jun 8, 2025
  *      Author: mark.lamneck
  */
 
-#ifndef SDDS_SRC_MHAL_STM32_UBOOTREASON_H_
-#define SDDS_SRC_MHAL_STM32_UBOOTREASON_H_
+#ifndef SDDS_SRC_MHAL_STM32_USYSTEMINFO_H_
+#define SDDS_SRC_MHAL_STM32_USYSTEMINFO_H_
 
 #include "uTypedef.h"
 
 namespace mhal{
-	class TbootReason{
+	class TsystemInfo{
 		public:
 			sdds_enum(___,LP,WWD,IWD,SOFTR,POWER,EPIN,BOR) TenBootReason;
+
+			static void init(){
+				dwt_init();
+			}
+
+			static dtypes::uint32 getCpuFreq(){ return HAL_RCC_GetSysClockFreq(); }
+			static dtypes::uint32 getCycleCount() { return DWT->CYCCNT; }
+			static TenBootReason::dtype getBootReason(){
+				auto res = _getBootReason();
+			    __HAL_RCC_CLEAR_RESET_FLAGS();
+			    return res;
+			}
+
 		private:
+			static void dwt_init(){
+			    if (!(CoreDebug->DEMCR & CoreDebug_DEMCR_TRCENA_Msk)) {
+			        CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+			    }
+
+			    DWT->CYCCNT = 0;                     // set counter to 0
+			    DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk; // activate counter
+			}
+
 			static TenBootReason::dtype _getBootReason(){
 			    if (__HAL_RCC_GET_FLAG(RCC_FLAG_LPWRRST))
 			        return TenBootReason::e::LP;
@@ -35,15 +57,10 @@ namespace mhal{
 			    else
 			        return TenBootReason::e::___;
 			}
-		public:
-			static TenBootReason::dtype getBootReason(){
-				auto res = _getBootReason();
-			    __HAL_RCC_CLEAR_RESET_FLAGS();
-			    return res;
-			}
 	};
+
 }
 
 
 
-#endif /* SDDS_SRC_MHAL_STM32_UBOOTREASON_H_ */
+#endif /* SDDS_SRC_MHAL_STM32_USYSTEMINFO_H_ */

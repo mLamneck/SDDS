@@ -100,15 +100,6 @@ namespace dtypes {
 	template <> constexpr float64 low<float64>() { return -1.7976931348623157e+308; }
 }
 
-namespace sdds{
-	class TsysFuncs{
-		public:
-			static void init(){}
-			static dtypes::uint32 getCpuFreq(){ return 0; }
-			static dtypes::uint32 getCycleCount() { return 0; }
-	};
-}
-
 
 /************************************************************************************
  * ESP specific stuff
@@ -151,10 +142,6 @@ namespace sdds{
 		namespace sysTime{
 			constexpr int SYS_TICK_TIMEBASE = 1000;	//time in us for timeoverflow
 		}
-
-		class SysFuncs : public TsysFuncs{
-			public:
-		};
 
         namespace simul{
             typedef void(*Tisr)();
@@ -234,20 +221,6 @@ namespace strConv {
 }
 
 namespace sdds{
-	class SysFuncs : public TsysFuncs{
-		public:
-			static void init(){
-			    if (!(CoreDebug->DEMCR & CoreDebug_DEMCR_TRCENA_Msk)) {
-			        CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
-			    }
-			    DWT->CYCCNT = 0;
-			    DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
-			}
-			static dtypes::uint32 getCpuFreq(){ return HAL_RCC_GetSysClockFreq(); }
-			static dtypes::uint32 getCycleCount() { return DWT->CYCCNT;; }
-
-	};
-
 	namespace sysTime{
 		constexpr int SYS_TICK_TIMEBASE = 100; //time in us for timeoverflow
 	}
@@ -271,9 +244,6 @@ namespace sdds{
 		namespace sysTime{
 			constexpr int SYS_TICK_TIMEBASE = 1000; //time in us for timeoverflow
 		}
-
-		class SysFuncs : public TsysFuncs{
-		};
 	}
 
 	#define __sdds_isr_disable() noInterrupts()

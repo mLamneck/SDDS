@@ -1,5 +1,6 @@
 #include "uMultask.h"
 #include "uPlatform.h"
+#include "mhal/uSystemInfo.h"
 
 #if defined(__MINGW64__)
     #include <windows.h>
@@ -239,7 +240,7 @@ void Tevent::setOwner(Tthread* _owner) {
 	Fowner = _owner; 
 }
 
-void TisrEvent::signal(){
+void multask::TisrEvent::signal(){
     taskHandler().signalEventISR(this);
 }
 
@@ -268,10 +269,10 @@ TstopWatch
 
 namespace multask{
 	void TstopWatch::start(){
-		FlastTime = sdds::SysFuncs::getCycleCount();
+		FlastTicks = mhal::TsystemInfo::getCycleCount();
 	}
 
 	TtickCount TstopWatch::getTicks(){
-		return sdds::SysFuncs::getCycleCount()-FlastTime;
+		return mhal::TsystemInfo::getCycleCount()-FlastTicks;
 	}
 }

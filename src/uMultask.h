@@ -5,7 +5,6 @@
 
 #include "uPlatform.h"
 #include "uLinkedList.h"
-#include "uTypeTraits.h"
 
 namespace multask{	
 	class Tevent;
@@ -94,9 +93,8 @@ namespace multask{
 
 	class TstopWatch{
 		public:
-			TtickCount FlastTime;
+			TtickCount FlastTicks;
 			void start();
-			TtickCount getMillis();
 			TtickCount getTicks();
 	};
 
