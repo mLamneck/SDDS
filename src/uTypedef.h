@@ -519,8 +519,8 @@ class TenumBase : public Tdescr{
 template <typename ValType, sdds::Ttype _type_id=sdds::Ttype::ENUM> class TenumTemplate: public TenumBase{
     private:
     protected:
-        ValType Fvalue;
     public:
+        ValType Fvalue;
         friend class TmenuHandle;
 		constexpr static sdds::Ttype TYPE_ID = _type_id;
 
