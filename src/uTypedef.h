@@ -195,7 +195,7 @@ class TcallbackWrapper : public TlinkedListElement{
             Fcallback = _cb;
             return this;
         }
-
+        
         void emit(){
             if (Fcallback){
                 Fcallback(Fctx);
@@ -206,6 +206,7 @@ typedef TlinkedListIterator<TcallbackWrapper> TcallbackIterator;
 
 class Tcallbacks : public TlinkedList<TcallbackWrapper>{
     public:
+
         inline void emit(){
             for (auto it = iterator(); it.hasCurrent();){
                 it.current()->emit();
@@ -242,7 +243,7 @@ class Tdescr : public TlinkedListElement{
         TmenuHandle* Fparent = nullptr;
 	protected:
         Tcallbacks Fcallbacks;
-
+        bool Fchanged = false;
 		constexpr sdds::opt::Ttype __modifyOption(const sdds::opt::Ttype _opt) { return _opt; }
 
     public:
@@ -287,6 +288,9 @@ class Tdescr : public TlinkedListElement{
 #endif
 		
         virtual void* pValue() = 0;
+
+        inline void setChanged(bool _changed) { Fchanged = _changed; }
+        inline bool hasChanged() { return Fchanged; }
 
         //propably compare default value to current and only save if different
         inline bool shouldBeSaved(){ return saveval(); }
@@ -411,7 +415,9 @@ template <class ValType, sdds::Ttype _type_id> class TdescrTemplate: public Tdes
 
 #if __SDDS_UTYPEDEF_COMPILE_STRCONV == 1
         bool setValue(const char* _str) override {
+            ValType oldValue = Fvalue;
             if (_strToValue(_str,Fvalue)){
+                Fchanged = Fvalue != oldValue;
                 signalEvents();
                 return true;
             }
@@ -435,45 +441,48 @@ template <class ValType, sdds::Ttype _type_id> class TdescrTemplate: public Tdes
         */
 
         template <typename T>
-        ValType operator++(T) { Fvalue++; signalEvents(); return Fvalue; };
+        ValType operator++(T) { Fvalue++; Fchanged = true; signalEvents(); return Fvalue; };
 
         template <typename T>
-        ValType operator--(T) { Fvalue--; signalEvents(); return Fvalue; };
+        ValType operator--(T) { Fvalue--; Fchanged = true; signalEvents(); return Fvalue; };
 
         void operator+=(TdescrTemplate<ValType,_type_id>& _inp){
             ValType* pVal = static_cast<ValType*>(_inp.pValue());
             if (!pVal) return;
             Fvalue += (*pVal);
+            Fchanged = true;
             signalEvents();
         }
 
         template <typename T>
-        void operator+=(T _inp){ Fvalue += _inp; signalEvents(); }
+        void operator+=(T _inp){ Fvalue += _inp; Fchanged = true; signalEvents(); }
 
         void operator-=(TdescrTemplate<ValType,_type_id>& _inp){
             ValType* pVal = static_cast<ValType*>(_inp.pValue());
             if (!pVal) return;
             Fvalue -= (*pVal);
+            Fchanged = true;
             signalEvents();
         }
 
         template <typename T>
-        void operator-=(T _inp){ Fvalue -= _inp; signalEvents(); }
+        void operator-=(T _inp){ Fvalue -= _inp; Fchanged = true; signalEvents(); }
 
         void operator*=(TdescrTemplate<ValType,_type_id>& _inp){
             ValType* pVal = static_cast<ValType*>(_inp.pValue());
             if (!pVal) return;
             Fvalue *= (*pVal);
+            Fchanged = true;
             signalEvents();
         }
         template <typename T>
-        void operator*=(T _inp){ Fvalue *= _inp; signalEvents(); }
+        void operator*=(T _inp){ Fvalue *= _inp; Fchanged = true; signalEvents(); }
 
         template <typename T>
-        void operator<<=(T _inp){ Fvalue <<= _inp; signalEvents(); }
+        void operator<<=(T _inp){ Fvalue <<= _inp; Fchanged = true; signalEvents(); }
 
         template <typename T>
-        void operator>>=(T _inp){ Fvalue >>= _inp; signalEvents(); }
+        void operator>>=(T _inp){ Fvalue >>= _inp; Fchanged = true; signalEvents(); }
 
         bool operator==(TdescrTemplate<ValType,_type_id>& _inp){
             ValType* pVal = static_cast<ValType*>(_inp.pValue());
@@ -485,6 +494,7 @@ template <class ValType, sdds::Ttype _type_id> class TdescrTemplate: public Tdes
         void operator=(T _val){__setValue(_val); }
 
 		void __setValue(ValType _value){
+            Fchanged = Fvalue != _value;
 			Fvalue=_value;
             signalEvents();
 		}
@@ -519,11 +529,11 @@ class TenumBase : public Tdescr{
 template <typename ValType, sdds::Ttype _type_id=sdds::Ttype::ENUM> class TenumTemplate: public TenumBase{
     private:
     protected:
-        ValType Fvalue;
     public:
         friend class TmenuHandle;
 		constexpr static sdds::Ttype TYPE_ID = _type_id;
 
+        ValType Fvalue;
 		/**
 		 * enumClass: 	sdds enum class created by enumMacros
 		 * dtype: 		raw c++ enum class.
@@ -553,7 +563,9 @@ template <typename ValType, sdds::Ttype _type_id=sdds::Ttype::ENUM> class TenumT
 
 #if __SDDS_UTYPEDEF_COMPILE_STRCONV == 1
 		bool setValue(const char* _str) override {
+            ValType oldValue = Fvalue;
         	if (Fvalue.strToVal(_str)){
+                Fchanged = Fvalue != oldValue;
                 signalEvents();
                 return true;
             }
@@ -573,10 +585,12 @@ template <typename ValType, sdds::Ttype _type_id=sdds::Ttype::ENUM> class TenumT
         operator dtype() const{ return Fvalue.Fvalue; }
 
 		void __setValue(dtype _value){
+            Fchanged = Fvalue != _value;
 			Fvalue=_value;
             signalEvents();
 		}
         void operator=(dtype _value){
+            Fchanged = Fvalue != _value;
 			Fvalue=_value;
             signalEvents();
         }
@@ -898,11 +912,12 @@ public:
             ValType* pVal = static_cast<ValType*>(_inp.pValue());
             if (!pVal) return;
             Fvalue += (*pVal);
+            Fchanged = true;
             signalEvents();
         }
 
         template <typename T>
-        void operator+=(T _inp){ Fvalue += _inp; signalEvents(); }
+        void operator+=(T _inp){ Fvalue += _inp; Fchanged = true; signalEvents(); }
 
         const char* c_str() { return Fvalue.c_str(); }
         
@@ -921,8 +936,10 @@ public:
 		}
 
 		void setValue(TsubStringRef& _strRef){
-			uStrings::assign(Fvalue,_strRef.c_str(),_strRef.length());
-			signalEvents();
+            ValType oldValue = Fvalue;
+            uStrings::assign(Fvalue,_strRef.c_str(),_strRef.length());
+            Fchanged = Fvalue != oldValue;
+		    signalEvents();
 		}
 
 		void signalEvents(){
@@ -932,6 +949,7 @@ public:
 
 		template<typename T>
 		void __setValue(T _val){
+            Fchanged = _val != Fvalue;
 			Fvalue = _val;
 			signalEvents();
 		}

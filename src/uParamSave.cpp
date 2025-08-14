@@ -172,6 +172,7 @@ namespace sdds{
 						if (!readByte(c)) return false;
 						*str += (char)c;
 					}
+					descr->setChanged(true); // FIXME: this needs to compare the existing value with the new value to set descr->Fchanged correctly
 					continue;
 				}
 
@@ -189,6 +190,7 @@ namespace sdds{
 					memccpy(descr->pValue(),&tempBuf,size,size);
 #endif
 				}
+				descr->setChanged(true); // FIXME: this needs to compare the existing value with the new value to set descr->Fchanged correctly
 			}
 			return true;
 		}
