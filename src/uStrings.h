@@ -90,7 +90,7 @@ class TstringRef{
 		bool isNil(){ return !Fstr; }
         inline const char* pCurr(){ return Frun; }
         inline void initIterate(){ Frun = Fstr; }
-        inline bool hasNext(){ return (*Frun != '\0') && (*Frun != '\n'); }
+        virtual bool hasNext(){ return (*Frun != '\0') && (*Frun != '\n'); }
         inline char curr() { return *Frun; }
         inline char next() { return hasNext()? *Frun++ : '\0'; }
         inline char get(int _ofs) {
@@ -178,7 +178,7 @@ class TsubStringRef : public TstringRef{
 		int length() { return (Fend - Fstr); }
 		const char* c_str() { return Fstr; }
 
-        inline bool hasNext(){
+        bool hasNext() override{
 			//BUGFIX 04.09.2024 Frun <= Fend -> otherwise we cannot read the last char!
             //return (TstringRef::hasNext() && Frun < Fend);
             //return (TstringRef::hasNext() && Frun <= Fend);
@@ -186,7 +186,6 @@ class TsubStringRef : public TstringRef{
 			//BUGFIX 06.09.2024 change back... last error was due to wrong impl of init (_str,_length)
             return (TstringRef::hasNext() && Frun < Fend);
         }
-        inline char next(){ return hasNext()? *Frun++ : '\0'; }
 
         void copy(char* _dest);
 
