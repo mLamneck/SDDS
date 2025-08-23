@@ -9,6 +9,7 @@
 #define MHAL_UART_H_
 
 #include "uPlatform.h"
+#include "stm32g4xx_ll_usart.h"
 
 #if defined(__STM32G474xx_H) || defined(STM32G431xx)
 	#define RCC_USART1CLKSOURCE RCC_USART1CLKSOURCE_PCLK2
@@ -58,7 +59,8 @@ namespace mhal{
 				}
 				if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
 				{
-					Error_Handler();
+					__disable_irq();
+					while (1) {  }
 				}
 
 				RX_PIN::enableClock();
@@ -66,7 +68,7 @@ namespace mhal{
 				GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_VERY_HIGH;
 				GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
 				GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
-				GPIO_InitStruct.Pin = TX_PIN::GPIO_PIN;
+				GPIO_InitStruct.Pin = TX_PIN::GPIO_PIN_LL;
 				GPIO_InitStruct.Alternate = __mhal_UART_AF;
 				LL_GPIO_Init(TX_PIN::PORT(), &GPIO_InitStruct);
 
@@ -75,7 +77,7 @@ namespace mhal{
 				GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_VERY_HIGH;
 				GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
 				GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
-				GPIO_InitStruct.Pin = RX_PIN::GPIO_PIN;
+				GPIO_InitStruct.Pin = RX_PIN::GPIO_PIN_LL;
 				GPIO_InitStruct.Alternate = __mhal_UART_AF;
 				LL_GPIO_Init(RX_PIN::PORT(), &GPIO_InitStruct);
 

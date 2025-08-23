@@ -8,7 +8,9 @@
 #ifndef MHAL_UPWM_STM32_H_
 #define MHAL_UPWM_STM32_H_
 
+#include "stm32g4xx_ll_bus.h"
 #include "stm32g4xx_ll_tim.h"
+#include "uAF.h"
 
 namespace mhal{
 
@@ -56,6 +58,11 @@ constexpr static uint32_t __mhal_LL_TIM_CHANNEL() {
 					LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_TIM4);
 				}
 				break;
+			case TIM5_BASE:
+				if (!isClockEnabled(TIM5_BASE)) {
+					LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_TIM5);
+				}
+				break;
 			case TIM6_BASE:
 				if (!isClockEnabled(TIM6_BASE)) {
 					LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_TIM6);
@@ -64,6 +71,11 @@ constexpr static uint32_t __mhal_LL_TIM_CHANNEL() {
 			case TIM7_BASE:
 				if (!isClockEnabled(TIM7_BASE)) {
 					LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_TIM7);
+				}
+				break;
+			case TIM8_BASE:
+				if (!isClockEnabled(TIM8_BASE)) {
+					LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_TIM8);
 				}
 				break;
 			case TIM15_BASE:
@@ -81,6 +93,11 @@ constexpr static uint32_t __mhal_LL_TIM_CHANNEL() {
 					LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_TIM17);
 				}
 				break;
+			case TIM20_BASE:
+				if (!isClockEnabled(TIM20_BASE)) {
+					LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_TIM20);
+				}
+				break;
 			default:
 				break;
 			}
@@ -96,16 +113,22 @@ constexpr static uint32_t __mhal_LL_TIM_CHANNEL() {
 				return LL_APB1_GRP1_IsEnabledClock(LL_APB1_GRP1_PERIPH_TIM3);
 			case TIM4_BASE:
 				return LL_APB1_GRP1_IsEnabledClock(LL_APB1_GRP1_PERIPH_TIM4);
+			case TIM5_BASE:
+				return LL_APB1_GRP1_IsEnabledClock(LL_APB1_GRP1_PERIPH_TIM5);
 			case TIM6_BASE:
 				return LL_APB1_GRP1_IsEnabledClock(LL_APB1_GRP1_PERIPH_TIM6);
 			case TIM7_BASE:
 				return LL_APB1_GRP1_IsEnabledClock(LL_APB1_GRP1_PERIPH_TIM7);
+			case TIM8_BASE:
+				return LL_APB2_GRP1_IsEnabledClock(LL_APB2_GRP1_PERIPH_TIM8);
 			case TIM15_BASE:
 				return LL_APB2_GRP1_IsEnabledClock(LL_APB2_GRP1_PERIPH_TIM15);
 			case TIM16_BASE:
 				return LL_APB2_GRP1_IsEnabledClock(LL_APB2_GRP1_PERIPH_TIM16);
 			case TIM17_BASE:
 				return LL_APB2_GRP1_IsEnabledClock(LL_APB2_GRP1_PERIPH_TIM17);
+			case TIM20_BASE:
+				return LL_APB2_GRP1_IsEnabledClock(LL_APB2_GRP1_PERIPH_TIM20);
 			default:
 				return false;
 			}
@@ -116,8 +139,7 @@ constexpr static uint32_t __mhal_LL_TIM_CHANNEL() {
 template<uintptr_t TIM_BASE_ADDR, uint32_t FREQ=115200, bool USE_DITHERING=true>
 class Ttimer : public TtimerBase<TIM_BASE_ADDR>{
 	public:
-		static uint32_t ARR;
-	public:
+		constexpr static uintptr_t BASE_ADDR = TIM_BASE_ADDR;
 		constexpr static TIM_TypeDef* TIM(){ return (TIM_TypeDef*)TIM_BASE_ADDR; }
 
 		constexpr static void setCounter(uint32_t _value){ LL_TIM_SetCounter(TIM(),_value); };
@@ -126,7 +148,6 @@ class Ttimer : public TtimerBase<TIM_BASE_ADDR>{
 		constexpr static void enableCounter() { LL_TIM_EnableCounter(TIM()); }
 
 		static uint32_t getArr(){
-			return ARR;
 			uint32_t arr = HAL_RCC_GetSysClockFreq()*1.0f/FREQ+0.5f;
 			if (USE_DITHERING) arr = arr*16;
 			return arr;
@@ -150,14 +171,14 @@ class Ttimer : public TtimerBase<TIM_BASE_ADDR>{
 		}
 };
 
-template<uintptr_t TIM_BASE_ADDR, uint32_t FREQ, bool USE_DITHERING>
-uint32_t Ttimer<TIM_BASE_ADDR,FREQ,USE_DITHERING>::ARR = 0;
-
 template<class _Ttimer, class _GPIO_PIN, uint32_t _CH>
 class TpwmChannel : public TpwmChannelBase<_Ttimer,_GPIO_PIN,_CH>{
 public:
 	constexpr static TIM_TypeDef* TIM(){ return _Ttimer::TIM(); }
-//	using TIMER=_Ttimer;
+	constexpr static int32_t AF = AF::getAlternateFunction(_GPIO_PIN::BASE_ADDR, _GPIO_PIN::PIN_NUM, _Ttimer::BASE_ADDR, _CH);
+	static_assert(AF>=0,"Alternate Function not defined");
+
+	using TIMER=_Ttimer;
 
 	constexpr static void setCompareChannel(uint32_t _value){
 		if (_CH == 1) LL_TIM_OC_SetCompareCH1(TIM(),_value);
@@ -170,6 +191,13 @@ public:
 
 	constexpr static void enableChannel(){
 		LL_TIM_CC_EnableChannel(TIM(),__mhal_LL_TIM_CHANNEL<_CH>());
+
+		/**
+		 * advanced TIMER (1,8,20) and TIM16/17 need a call to LL_TIM_EnableAllOutputs to enable pwm output
+		 */
+		if (TIM()==TIM1 || TIM()==TIM8 || TIM()==TIM20 || TIM()==TIM16 || TIM()==TIM17) {
+		    LL_TIM_EnableAllOutputs(TIM());
+		}
 	}
 
 	constexpr static void init(){
@@ -198,12 +226,12 @@ public:
 
 		LL_GPIO_InitTypeDef GPIO_InitStruct = {0};
 		_GPIO_PIN::enableClock();
-		GPIO_InitStruct.Pin = _GPIO_PIN::GPIO_PIN;
+		GPIO_InitStruct.Pin = _GPIO_PIN::GPIO_PIN_LL;
 		GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
 		GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
 		GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
 		GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
-		GPIO_InitStruct.Alternate = LL_GPIO_AF_10;
+		GPIO_InitStruct.Alternate = AF;
 		LL_GPIO_Init(_GPIO_PIN::PORT(), &GPIO_InitStruct);
 
 

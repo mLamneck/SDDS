@@ -14,7 +14,10 @@
  ***********************************************************/
 
 #include "uPlatform.h"
-
+#include "stm32g4xx_ll_gpio.h"
+#include "stm32g4xx_ll_bus.h"
+#include "stm32g4xx_ll_exti.h"
+#include "stm32g4xx_ll_system.h"
 
 namespace mhal{
 
@@ -157,7 +160,11 @@ template<uintptr_t GPIO_BASE_ADDR, uint32_t _GPIO_PIN>
 class TgpioPin {
 public:
 	static_assert(_GPIO_PIN <= 15,"GPIO_PIN must be <= 15");
-	constexpr static uint32_t GPIO_PIN = __mhal_NUMBER_TO_LL_GPIO_PIN<_GPIO_PIN>();
+
+	constexpr static uintptr_t BASE_ADDR = GPIO_BASE_ADDR;
+	constexpr static uint32_t PIN_NUM = _GPIO_PIN;
+
+	constexpr static uint32_t GPIO_PIN_LL = __mhal_NUMBER_TO_LL_GPIO_PIN<_GPIO_PIN>();
 	constexpr static uint32_t EXTI_LINE = __mhal_NUMBER_TO_LL_EXTI_LINE<_GPIO_PIN>();
 	constexpr static uint32_t LL_SYSCFG_EXTI_PORT = __mhal_NUMBER_TO_LL_SYSCFG_EXTI_PORT<GPIO_BASE_ADDR>();
 	constexpr static uint32_t LL_SYSCFG_EXTI_LINE = __mhal_NUMBER_TO_LL_SYSCFG_EXTI_LINE<_GPIO_PIN>();
@@ -171,7 +178,7 @@ public:
 	constexpr static void init(PIN_MODE _mode = PIN_MODE::output){
 		enableClock();
 		GPIO_InitTypeDef GPIO_InitStruct = {0};
-		GPIO_InitStruct.Pin = GPIO_PIN;
+		GPIO_InitStruct.Pin = GPIO_PIN_LL;
 		switch(_mode){
 		case PIN_MODE::input:
 			GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
@@ -220,9 +227,9 @@ public:
 	}
 	*/
 
-	constexpr static void high(){ LL_GPIO_SetOutputPin(PORT(), GPIO_PIN); }
-	constexpr static void low(){ LL_GPIO_ResetOutputPin(PORT(), GPIO_PIN); }
-	constexpr static void toggle(){ LL_GPIO_TogglePin(PORT(), GPIO_PIN); }
+	constexpr static void high(){ LL_GPIO_SetOutputPin(PORT(), GPIO_PIN_LL); }
+	constexpr static void low(){ LL_GPIO_ResetOutputPin(PORT(), GPIO_PIN_LL); }
+	constexpr static void toggle(){ LL_GPIO_TogglePin(PORT(), GPIO_PIN_LL); }
 
 	constexpr static void pulse() {
 		high();
