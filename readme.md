@@ -1,5 +1,5 @@
 # SDDS (Self-Describing-Data-Structure)
-A lightweight, dependency-free C++ library to write event-driven processes with self-generating user interfaces primarily for Arduino.
+A lightweight C++ library for event-driven applications with auto-generated user interfaces.
 
 ## Table of contents
 - [Why use this library](#why-use-this-library)
@@ -170,7 +170,7 @@ So far, we have defined our data structure. For the moment, just assume that it 
 Tled(){
   ...
   on(ledSwitch){
-    if (ledSwitch == TonOffState::e::ON) digitalWrite(LED_BUILTIN,1);
+    if (ledSwitch == TonOffState::ON) digitalWrite(LED_BUILTIN,1);
     else digitalWrite(LED_BUILTIN,0);
   };
 }
@@ -202,23 +202,23 @@ class Tled : public TmenuHandle{
           pinMode(LED_BUILTIN, OUTPUT);
 
           on(ledSwitch){
-              if (ledSwitch == TonOffState::e::ON) digitalWrite(LED_BUILTIN,1);
+              if (ledSwitch == TonOffState::ON) digitalWrite(LED_BUILTIN,1);
               else digitalWrite(LED_BUILTIN,0);
           };
 
           // code from here is new
           on(blinkSwitch){
-              if (blinkSwitch == TonOffState::e::ON) timer.start(0);
+              if (blinkSwitch == TonOffState::ON) timer.start(0);
               else timer.stop();
           };
 
           on(timer){
-              if (ledSwitch == TonOffState::e::ON){
-                  ledSwitch = TonOffState::e::OFF;
+              if (ledSwitch == TonOffState::ON){
+                  ledSwitch = TonOffState::OFF;
                   timer.start(offTime);
               } 
               else {
-                  ledSwitch = TonOffState::e::ON;
+                  ledSwitch = TonOffState::ON;
                   timer.start(onTime);
               }
           };
@@ -301,22 +301,22 @@ class Tled : public TmenuHandle{
           pinMode(LED_BUILTIN, OUTPUT);
 
           on(ledSwitch){
-              if (ledSwitch == TonOffState::e::ON) digitalWrite(LED_BUILTIN,0);
+              if (ledSwitch == TonOffState::ON) digitalWrite(LED_BUILTIN,0);
               else digitalWrite(LED_BUILTIN,1);
           };
 
           on(blinkSwitch){
-              if (blinkSwitch == TonOffState::e::ON) timer.start(0);
+              if (blinkSwitch == TonOffState::ON) timer.start(0);
               else timer.stop();
           };
 
           on(timer){
-              if (ledSwitch == TonOffState::e::ON){
-                  ledSwitch = TonOffState::e::OFF;
+              if (ledSwitch == TonOffState::ON){
+                  ledSwitch = TonOffState::OFF;
                   timer.start(offTime);
               } 
               else {
-                  ledSwitch = TonOffState::e::ON;
+                  ledSwitch = TonOffState::ON;
                   timer.start(onTime);
               }
           };
@@ -390,11 +390,13 @@ We want to point out here that the following section is not how it's supposed to
    
 #### Request the type description
 3. Send the command ```T```.
-    * The response will look like the following. It's a full description of the data structure you have declared within your code, including options, the current value, possible values for enums, ... This information can be used by software to build a generic user interface like showcased with the webSpike for ESP-based boards. For now, let's continue to explore the fundamentals in the serial monitor.
+    * The response will look like the following. It's a full description of the data structure you have declared within your code, including types, options and possible values for enums. This information can be used by software to build a generic user interface like showcased with the [SDDS-Minimal-Browser](https://github.com/mLamneck/SDDS_minimalBrowser). For now, let's continue to explore the fundamentals in the serial monitor.
      
        ```t 0 [{"type":66,"opt":0,"name":"led","value":[{"type":49,"opt":0,"name":"ledSwitch","value":"OFF","enums":["OFF","ON"]},...```
+
+	   ```t 0 {"e":{"0":["OFF","ON"],"1":["___","save","load"],"2":["___","crc","invStrLen","outOfMem","invVers"]},"d":[[66,0,"led",[[49,128,"ledSwitch",0],[49,128,"blinkSwitch",0],[2,128,"onTime"],[2,128,"offTime"]]],[66,0,"params",[[49,0,"action",1],[49,0,"error",2],[2,0,"size"],[4,0,"time"]]]]}``` 
     
-      Without specifying a path after the ```T```, you get the whole data structure. You can also ask more specifically, i.e., ```T led```, which will give you the description of the component we've created. You can also specify an arbitrary number after the `T`, i.e., `T 88 led`, if you want to do multiple without waiting for the individual responses. If you do not specify a number, you will find a `0` in the response like in the above example.
+      Without specifying a path after the ```T```, you get the whole data structure. You can also ask more specifically, i.e., ```T led```, which will give you the description of the component we've created. You can also specify an arbitrary number after the `T`, i.e., `T 88 led`, if you want to do multiple requests without waiting for the individual responses. If you do not specify a number, you will find a `0` in the response like in the above example.
 
 
 #### Subscribe to change notification
@@ -559,22 +561,22 @@ The third function `void incByRef(Tuint8& _val)`, as expected, receives a refere
 
 The usage of enums as function arguments is basically the same. But there is more to say. Again, consider the following code. Note the line:
 
-`_enum = _enum == TonOff::e::off ? TonOff::e::on : TonOff::e::off;`
+`_enum = _enum == TonOff::off ? TonOff::on : TonOff::off;`
 
 This line is just toggling the enum's value if you are not familiar with this C++ syntax.
 ```C++
 sdds_enum(on,off) TonOff;
 
 void changeEnumByVal(TonOff _enum){
-    _enum = _enum == TonOff::e::off ? TonOff::e::on : TonOff::e::off;
+    _enum = _enum == TonOff::off ? TonOff::on : TonOff::off;
 }
 
 void changeEnumByValMoreEfficient(TonOff::dtype _enum){
-    _enum = _enum == TonOff::e::off ? TonOff::e::on : TonOff::e::off;
+    _enum = _enum == TonOff::off ? TonOff::on : TonOff::off;
 }
 
 void changeEnumByRef(TonOff& _enum){
-    _enum = _enum == TonOff::e::off ? TonOff::e::on : TonOff::e::off;
+    _enum = _enum == TonOff::off ? TonOff::on : TonOff::off;
 }
 
 void passEnumConstAndLog(TonOff::dtype _enum){
@@ -591,7 +593,7 @@ class TuserStruct : public TmenuHandle{
             };
 
             //this will log "on"
-            mySwitch = TonOff::e::on;
+            mySwitch = TonOff::on;
 
             //won't lof something
             changeEnumByVal(mySwitch);
@@ -601,7 +603,7 @@ class TuserStruct : public TmenuHandle{
             changeEnumByRef(mySwitch);
 
             //this will log "off" again
-            passEnumConstAndLog(TonOff::e::off);
+            passEnumConstAndLog(TonOff::off);
         }
 } userStruct;
 ```
@@ -735,7 +737,7 @@ class TmyComponent{
   TonOffState mySwitch;
 };
 ```
-However, it is much more powerful because of the capability to translate the numeric value back into its string representation, which is impossible in native C++. Read more about the usage of enums [here](#calling-functions-with-sdds-enums). The only thing to take further note of here is that you have to use `TonOffState::e::on/off` instead of just `TonOffState::on/off` for a regular C++ class enum.
+However, it is much more powerful because of the capability to translate the numeric value back into its string representation, which is impossible in native C++. Read more about the usage of enums [here](#calling-functions-with-sdds-enums). The only thing to take further note of here is that you have to use `TonOffState::on/off` instead of just `TonOffState::on/off` for a regular C++ class enum.
 
 #### Structs
 Structs are a collection of primitive values bundled together. Structs can be nested to form the [tree](#the-data-structure). You can also derive a struct from a base struct.
@@ -809,7 +811,7 @@ Find a list of all available commands in the following table.
 | Type            | Func | Port | Data           | Example |
 |-----------------|------|------|----------------|---------|
 | Type request    | T    |  %d+ | Path           | T 11 led |
-| Type answer     | t    |  %d+ | JSON           | T 11 [{"type": 1, "opt": 0, "value":1},...] |
+| Type answer     | t    |  %d+ | JSON           | T 11 {"d":[[1,0,"value"],...} |
 | Link request    | L    |  %d+ | Path           | L 33 led |
 | Link answer     | l    |  %d+ | First \| JSON  | l 33 0 [1,1.4,"stringVal",...] |
 | Unlink request  | U    |  %d+ | -              | U 3 |
@@ -893,7 +895,7 @@ In the interrupt handler, we just signal our global interrupt-safe event. On the
   ...
   attachInterrupt(digitalPinToInterrupt(BTN_PIN),pinChangeISR,CHANGE);
   on(evISR){
-      btn = digitalRead(BTN_PIN) ? TbtnState::e::up : TbtnState::e::down;
+      btn = digitalRead(BTN_PIN) ? TbtnState::up : TbtnState::down;
   };
 ```
 
@@ -917,8 +919,8 @@ class TuserStruct : public TmenuHandle{
           pinMode(BTN_PIN2,INPUT);
           attachInterrupt(digitalPinToInterrupt(BTN_PIN2),pinChangeISR,CHANGE);
           on(evISR){
-              btn1 = digitalRead(BTN_PIN1) ? TbtnState::e::up : TbtnState::e::down;
-              btn2 = digitalRead(BTN_PIN2) ? TbtnState::e::up : TbtnState::e::down;
+              btn1 = digitalRead(BTN_PIN1) ? TbtnState::up : TbtnState::down;
+              btn2 = digitalRead(BTN_PIN2) ? TbtnState::up : TbtnState::down;
           };
 
 } userStruct;
@@ -1006,9 +1008,45 @@ Changes that will break user code will be listed here.
 
 ### Non-breaking changes
 
+#### 2025/08: Enums – `e` prefix no longer required
+
+Previously, accessing internal enumerations required the `e` scope qualifier. For example, the following code was necessary:
+
+```C++
+...
+  sdds_enum(OFF,ON) TonOffState;
+  //...
+  ledSwitch = TonOffState::ON;
+  if (ledSwitch == TonOffState::ON) {//...};
+```
+
+Now, a more convenient and familiar C++-style syntax is supported:
+
+```C++
+...
+  sdds_enum(OFF,ON) TonOffState;
+  //...
+  ledSwitch = TonOffState::ON;
+  if (ledSwitch == TonOffState::ON) {//...};
+```
+
+Old code using `TonOffState::e::...` still works and remains fully compatible.
+
+
 #### 2025/07: More efficient repsonse to T command
 
-toDo: give some expamples...
+The format of the T command was updated to reduce unnecessary overhead.
+In the old version, every item included redundant keys ("type", "opt", "name") and duplicated enum definitions for each field.
+The new format eliminates this duplication, resulting in a more compact and efficient structure. Also, the "value" field has been removed, since retrieving the initial values for every item is not necessary.
+
+Old Format:
+
+```t 0 [{"type":66,"opt":0,"name":"led","value":[{"type":49,"opt":0,"name":"ledSwitch","value":"OFF","enums":["OFF","ON"]},{"type":49,"opt":0,"name":"blinkSwitch","value":"OFF","enums":["OFF","ON"]},{"type":2,"opt":128,"name":"onTime","value":500},{"type":2,"opt":128,"name":"offTime","value":500}```
+
+New Format:
+
+```t 0 {"e":{"0":["OFF","ON"]},"d":[[66,0,"led",[[49,128,"ledSwitch",0],[49,128,"blinkSwitch",0],[2,128,"onTime"],[2,128,"offTime"]]]]}```
+
 
 #### 2025/01: sdds_struct not needed anymore
 
@@ -1053,7 +1091,7 @@ class Tled : public TmenuHandle{
   public:
     Tled(){
       on(ledSwitch){
-        if (ledSwitch == TonOffState::e::ON) digitalWrite(LED_BUILTIN,1);
+        if (ledSwitch == TonOffState::ON) digitalWrite(LED_BUILTIN,1);
         else digitalWrite(LED_BUILTIN,0);
       };
     }
@@ -1065,7 +1103,7 @@ to
 class Tled : public TmenuHandle{
   public:
     void onLedSwitch(){
-      if (ledSwitch == TonOffState::e::ON) digitalWrite(LED_BUILTIN,1);
+      if (ledSwitch == TonOffState::ON) digitalWrite(LED_BUILTIN,1);
       else digitalWrite(LED_BUILTIN,0);
     }
 

@@ -128,9 +128,20 @@ namespace sdds{
     namespace opt{
 		typedef dtypes::uint8 Ttype;
 
-        constexpr int nothing   = 0;
-        constexpr int readonly  = 0x01;
-        constexpr int saveval   = 0x80;
+		/*
+		;	 SaveValue
+		;	 | LimitUpdate
+		;	 | |
+		;	 | | |
+		;	 | | | |   ShowMode
+		;	 | | | |   | | | ReadOnly
+		;    | | | |   | | | |
+		;  | X X X X | X X X X |
+		*/
+        constexpr int nothing   	= 0;
+        constexpr int readonly  	= 0x01;
+        constexpr int saveval   	= 0x80;
+        constexpr int limitUpdate   = 0x40;
 
         constexpr int mask_show 	= 0x0E;
         constexpr int showHex 		= 0x04;
@@ -140,7 +151,6 @@ namespace sdds{
         constexpr int timeRel   	= 0x02;
         constexpr int timeAbs   	= 0x00;
 
-		constexpr int lt100ms		= TlinkTime::INT_100ms<<8;
     }
 
     namespace typeIds{
@@ -274,6 +284,7 @@ class Tdescr : public TlinkedListElement{
 		sdds::Toption showOption(){ return (meta().option & sdds::opt::mask_show); }
         bool saveval() { return ((meta().option & sdds::opt::saveval) > 0); }
         bool readonly() { return ((meta().option & sdds::opt::readonly) > 0); }
+        bool limitUpdate() { return ((meta().option & sdds::opt::limitUpdate) > 0); }
 
         dtypes::uint8 typeId(){ return static_cast<dtypes::uint8>(type()); }
         dtypes::uint8 valSize() { return static_cast<uint8_t>(type()) & sdds::typeIds::size_mask; }
@@ -419,75 +430,71 @@ template <class ValType, sdds::Ttype _type_id> class TdescrTemplate: public Tdes
         }
         TrawString to_string() override { return Tdescr::_valToStr(Fvalue); };
 #endif
-        inline ValType value(){return Fvalue; }
-
-        operator ValType() const
-        {
-            return Fvalue;
-        }
-
-        /*
-        ValType operator+(TdescrTemplate<ValType,_type_id>& _inp){
-            ValType* pVal = static_cast<ValType*>(_inp.pValue());
-            if (!pVal) return Fvalue;
-            return Fvalue + (*pVal);
-        }
-        */
-
-        template <typename T>
-        ValType operator++(T) { Fvalue++; signalEvents(); return Fvalue; };
-
-        template <typename T>
-        ValType operator--(T) { Fvalue--; signalEvents(); return Fvalue; };
-
-        void operator+=(TdescrTemplate<ValType,_type_id>& _inp){
-            ValType* pVal = static_cast<ValType*>(_inp.pValue());
-            if (!pVal) return;
-            Fvalue += (*pVal);
-            signalEvents();
-        }
-
-        template <typename T>
-        void operator+=(T _inp){ Fvalue += _inp; signalEvents(); }
-
-        void operator-=(TdescrTemplate<ValType,_type_id>& _inp){
-            ValType* pVal = static_cast<ValType*>(_inp.pValue());
-            if (!pVal) return;
-            Fvalue -= (*pVal);
-            signalEvents();
-        }
-
-        template <typename T>
-        void operator-=(T _inp){ Fvalue -= _inp; signalEvents(); }
-
-        void operator*=(TdescrTemplate<ValType,_type_id>& _inp){
-            ValType* pVal = static_cast<ValType*>(_inp.pValue());
-            if (!pVal) return;
-            Fvalue *= (*pVal);
-            signalEvents();
-        }
-        template <typename T>
-        void operator*=(T _inp){ Fvalue *= _inp; signalEvents(); }
-
-        template <typename T>
-        void operator<<=(T _inp){ Fvalue <<= _inp; signalEvents(); }
-
-        template <typename T>
-        void operator>>=(T _inp){ Fvalue >>= _inp; signalEvents(); }
-
-        bool operator==(TdescrTemplate<ValType,_type_id>& _inp){
-            ValType* pVal = static_cast<ValType*>(_inp.pValue());
-            if (!pVal) return false;
-            return (Fvalue==(*pVal));
-        }
-
-        template <typename T>
-        void operator=(T _val){__setValue(_val); }
-
+		inline ValType value(){return Fvalue; }
+		
 		void __setValue(ValType _value){
 			Fvalue=_value;
-            signalEvents();
+			signalEvents();
 		}
+		
+		operator ValType() const
+		{
+			return Fvalue;
+		}
+
+		/** Operator++ */
+		ValType operator++(int) { ValType temp = Fvalue++; signalEvents(); return temp; };
+
+		/** ++Operator */
+		ValType operator++() { __setValue(++Fvalue); return Fvalue; };
+
+		/** Operator-- */
+		ValType operator--(int) { ValType temp = Fvalue--; signalEvents(); return temp; };
+
+		/** --Operator */
+		ValType operator--() { __setValue(--Fvalue); return Fvalue; };
+
+		/** Operator+= */
+		ValType operator+=(TdescrTemplate<ValType,_type_id>& _inp){ __setValue(Fvalue += _inp.Fvalue); return Fvalue; }
+		template <typename T>
+		ValType operator+=(T _inp){ __setValue(Fvalue += _inp); return Fvalue; }
+
+		/** Operator-= */
+		ValType operator-=(TdescrTemplate<ValType,_type_id>& _inp){ __setValue(Fvalue -= _inp.Fvalue); return Fvalue; }
+		template <typename T>
+		ValType operator-=(T _inp){ __setValue(Fvalue -= _inp); return Fvalue; }
+
+		/** Operator*= */
+		ValType operator*=(TdescrTemplate<ValType,_type_id>& _inp){ __setValue(Fvalue *= _inp.Fvalue); return Fvalue; }
+		template <typename T>
+		ValType operator*=(T _inp){ __setValue(Fvalue *= _inp); return Fvalue; }
+
+		/** Operator/= */
+		ValType operator/=(TdescrTemplate<ValType,_type_id>& _inp){ __setValue(Fvalue /= _inp.Fvalue); return Fvalue; }
+		template <typename T>
+		ValType operator/=(T _inp){ __setValue(Fvalue /= _inp); return Fvalue; }
+
+		/** Operator<<= */
+		template <typename T>
+		ValType operator<<=(T _inp){ __setValue(Fvalue <<= _inp); return Fvalue; }
+
+		/** Operator>>= */
+		template <typename T>
+		ValType operator>>=(T _inp){ __setValue(Fvalue >>= _inp); return Fvalue; }
+
+		/** Operator|= */
+		template <typename T>
+		ValType operator|=(T _inp){ __setValue(Fvalue |= _inp); return Fvalue; }
+
+		/** Operator&= */
+		template <typename T>
+		ValType operator&=(T _inp){ __setValue(Fvalue &= _inp); return Fvalue; }
+
+		/** Operator== */
+		bool operator==(TdescrTemplate<ValType,_type_id>& _inp){return (Fvalue==_inp.Fvalue);}
+
+		template <typename T>
+		void operator=(T _val){__setValue(_val); }
 };
 
 
@@ -590,11 +597,18 @@ template <typename ValType, sdds::Ttype _type_id=sdds::Ttype::ENUM> class TenumT
 
 };
 
-#define __sdds_namedEnum(_name, ...) \
-    sdds_enumClass(_name,__VA_ARGS__);\
-    typedef TenumTemplate<_name>
+#define iSdds_enum_constexprEnums(x) constexpr static dtype x = dtype::x;
 
-#define sdds_enum(...) __sdds_namedEnum(sdds_SM_CONCAT(Tenum,__VA_ARGS__),__VA_ARGS__)
+#define __sdds_namedEnum(_name, _nameInst, ...) \
+	sdds_enumClass(_name,__VA_ARGS__);\
+	class _nameInst : public TenumTemplate<_name>{\
+		public:\
+			sdds_SM_ITERATE(iSdds_enum_constexprEnums,__VA_ARGS__)\
+			void operator=(dtype _value){ __setValue(_value); }\
+	};\
+	typedef _nameInst
+
+#define sdds_enum(...) __sdds_namedEnum(sdds_SM_CONCAT(Tenum,__VA_ARGS__),sdds_SM_CONCAT(TenumInst,__VA_ARGS__),__VA_ARGS__)
 
 
 /************************************************************************************

@@ -97,6 +97,135 @@ class TtestTypedef : public TtestCase{
             return true;
     }
 
+	template <typename T, typename V>
+	int sameValues(T _sddsVar, V _rawValue, const char* _msg=""){
+		if (_sddsVar != _rawValue){
+			 debug::log("(%s)value is not equal",_msg);
+			 return 1;
+		}
+		return 0;
+	}
+
+	template<class T, typename V, typename W>
+	bool testOperators(T& _val, V _testValue=10, W _f=5){
+		typename T::dtype rawValue = _testValue;
+		int err = 0; 
+		
+		rawValue=_testValue; _val=rawValue;
+		err += sameValues(_val,rawValue,"val=");
+
+		/** Operator++ */
+		rawValue=_testValue; _val=rawValue;
+		_val++; rawValue++;
+		err += sameValues(_val,rawValue,"val++");
+
+		/** Operator++ test post increment*/
+		rawValue=_testValue; _val=rawValue;
+		err += sameValues(_val++,rawValue++,"val++ postincrement");
+
+		/** ++Operator */
+		rawValue=_testValue; _val=rawValue;
+		++_val; ++rawValue;
+		err += sameValues(_val,rawValue,"++val");
+
+		/** ++Operator test pre increment*/
+		rawValue=_testValue; _val=rawValue;
+		err += sameValues(++_val,++rawValue,"++val predincrement");
+
+
+		/** Operator-- */
+		rawValue=_testValue; _val=rawValue;
+		_val--; rawValue--;
+		err += sameValues(_val,rawValue,"val--");
+
+		/** Operator-- test post decrement*/
+		rawValue=_testValue; _val=rawValue;
+		err += sameValues(_val--,rawValue--,"val-- postdecrement)");
+
+		/** --Operator */
+		rawValue=_testValue; _val=rawValue;
+		--_val; --rawValue;
+		err += sameValues(_val,rawValue,"--val");
+
+		/** --Operator test pre decrement*/
+		rawValue=_testValue; _val=rawValue;
+		err += sameValues(--_val,--rawValue,"--val predecrement");
+
+
+		/** Operator+= */
+		rawValue=_testValue; _val=rawValue;
+		err += sameValues(_val+=_f,rawValue+=_f,"+=");
+
+		/** Operator-= */
+		rawValue=_testValue; _val=rawValue;
+		err += sameValues(_val-=_f,rawValue-=_f,"-=");
+
+		/** Operator*= */
+		rawValue=_testValue; _val=rawValue;
+		err += sameValues(_val*=_f,rawValue*=_f,"*=");
+
+		/** Operator/= */
+		rawValue=_testValue; _val=rawValue;
+		err += sameValues(_val/=_f,rawValue/=_f,"/=");
+
+		/** Operator<<= */
+		rawValue=_testValue; _val=rawValue;
+		err += sameValues(_val<<=2,rawValue<<=2,"<<=");
+
+		/** Operator>>= */
+		rawValue=_testValue; _val=rawValue;
+		err += sameValues(_val>>=2,rawValue>>=2,">>=");
+
+		/** Operator|= */
+		rawValue=_testValue; _val=rawValue;
+		err += sameValues(_val|=2,rawValue|=2,"|=");
+
+		/** Operator&= */
+		rawValue=_testValue; _val=rawValue;
+		err += sameValues(_val&=2,rawValue&=2,"&=");
+
+		_val = _testValue; rawValue = _testValue;
+		err += sameValues(_val == rawValue, true, "val == rawValue");
+		err += sameValues(_val != (rawValue+1), true, "val != rawValue+1");
+		err += sameValues(_val < (rawValue + 1), true, "val < rawValue+1");
+		err += sameValues(_val <= rawValue, true, "val <= rawValue");
+		err += sameValues(_val > (rawValue - 1), true, "val > rawValue-1");
+		err += sameValues(_val >= rawValue, true, "val >= rawValue");
+
+		return (err==0);
+	}
+
+	void testOperators(){
+        doTest([this](){
+	        Tuint8 val;
+            return testOperators(val,10,5);
+        },"Operators for Tuint8");
+/*
+        doTest([this](){
+	        Tuint16 val;
+            return testOperators(val,10,5);
+        },"Operators for Tuint16");
+        doTest([this](){
+	        Tuint32 val;
+            return testOperators(val,10,5);
+        },"Operators for Tuint32");
+
+        doTest([this](){
+	        Tint8 val;
+            return testOperators(val,10,5);
+        },"Operators for Tint8");
+        doTest([this](){
+	        Tint16 val;
+            return testOperators(val,10,5);
+        },"Operators for Tint16");
+        doTest([this](){
+	        Tint32 val;
+            return testOperators(val,10,5);
+        },"Operators for Tint32");
+		*/
+
+	};
+
     /*
     so far tests no test check the default values from the ssds_var(). This might better be done
     in a separate step because probably the to_string method will change it's formatting
@@ -114,39 +243,40 @@ class TtestTypedef : public TtestCase{
     bool test() override {
         doTest([this](){
             TbaseStruct s;
-            return testStruct(s,R"([{"type":36,"opt":0,"name":"val1"}])");
+            return testStruct(s,R"({"e":{},"d":[[36,0,"val1"]]})");
         },"TbaseStruct");
 
         doTest([this](){
             TstructAllTypes s;
-            return testStruct(s,R"([{"type":49,"opt":0,"name":"onOff","enums":["on","off","___"]},{"type":1,"opt":128,"name":"Fuint8"},{"type":2,"opt":128,"name":"Fuint16"},{"type":4,"opt":128,"name":"Fuint32"},{"type":17,"opt":128,"name":"Fint8"},{"type":18,"opt":128,"name":"Fint16"},{"type":20,"opt":128,"name":"Fint32"},{"type":36,"opt":128,"name":"Ffloat32"},{"type":6,"opt":128,"name":"Ftime"}])");
+            return testStruct(s,R"({"e":{"0":["on","off","___"]},"d":[[49,0,"onOff",0],[1,128,"Fuint8"],[2,128,"Fuint16"],[4,128,"Fuint32"],[17,128,"Fint8"],[18,128,"Fint16"],[20,128,"Fint32"],[36,128,"Ffloat32"],[6,128,"Ftime"]]})");
         },"TstructAllTypes");
 
         doTest([this](){
             TderivedStruct s;
-            return testStruct(s,R"([{"type":36,"opt":0,"name":"val1"},{"type":36,"opt":0,"name":"val2"},{"type":36,"opt":0,"name":"val3"}])");
+            return testStruct(s,R"({"e":{},"d":[[36,0,"val1"],[36,0,"val2"],[36,0,"val3"]]})");
         },"TderivedStruct struct");
 
         doTest([this](){
             TdoubleDerivedStruct s;
-            return testStruct(s,R"([{"type":36,"opt":0,"name":"val1"},{"type":36,"opt":0,"name":"val2"},{"type":36,"opt":0,"name":"val3"},{"type":36,"opt":0,"name":"val4"}])");
+            return testStruct(s,R"({"e":{},"d":[[36,0,"val1"],[36,0,"val2"],[36,0,"val3"],[36,0,"val4"]]})");
         },"TdoubleDerivedStruct struct");
 
         doTest([this](){
             TnestedStruct s;
-            return testStruct(s,R"([{"type":1,"opt":0,"name":"rootVal0"},{"type":66,"opt":0,"name":"doubleDerived","value":[{"type":36,"opt":0,"name":"val1"},{"type":36,"opt":0,"name":"val2"},{"type":36,"opt":0,"name":"val3"},{"type":36,"opt":0,"name":"val4"}]},{"type":1,"opt":0,"name":"rootValN"}])");
+            return testStruct(s,R"({"e":{},"d":[[1,0,"rootVal0"],[66,0,"doubleDerived",[[36,0,"val1"],[36,0,"val2"],[36,0,"val3"],[36,0,"val4"]]],[1,0,"rootValN"]]})");
         },"TnestedStruct struct");
 
         doTest([this](){
             TdoubleNestedStruct s;
-            return testStruct(s,R"([{"type":66,"opt":0,"name":"nestedStruct","value":[{"type":1,"opt":0,"name":"rootVal0"},{"type":66,"opt":0,"name":"doubleDerived","value":[{"type":36,"opt":0,"name":"val1"},{"type":36,"opt":0,"name":"val2"},{"type":36,"opt":0,"name":"val3"},{"type":36,"opt":0,"name":"val4"}]},{"type":1,"opt":0,"name":"rootValN"}]},{"type":1,"opt":0,"name":"ValN"}])");
+            return testStruct(s,R"({"e":{},"d":[[66,0,"nestedStruct",[[1,0,"rootVal0"],[66,0,"doubleDerived",[[36,0,"val1"],[36,0,"val2"],[36,0,"val3"],[36,0,"val4"]]],[1,0,"rootValN"]]],[1,0,"ValN"]]})");
         },"TdoubleNestedStruct struct");
 
         doTest([this](){
             TderivedDoubleNestedStruct s;
-            return testStruct(s,R"([{"type":66,"opt":0,"name":"nestedStruct","value":[{"type":1,"opt":0,"name":"rootVal0"},{"type":66,"opt":0,"name":"doubleDerived","value":[{"type":36,"opt":0,"name":"val1"},{"type":36,"opt":0,"name":"val2"},{"type":36,"opt":0,"name":"val3"},{"type":36,"opt":0,"name":"val4"}]},{"type":1,"opt":0,"name":"rootValN"}]},{"type":1,"opt":0,"name":"ValN"},{"type":1,"opt":0,"name":"valEnd"}])");
+            return testStruct(s,R"({"e":{},"d":[[66,0,"nestedStruct",[[1,0,"rootVal0"],[66,0,"doubleDerived",[[36,0,"val1"],[36,0,"val2"],[36,0,"val3"],[36,0,"val4"]]],[1,0,"rootValN"]]],[1,0,"ValN"],[1,0,"valEnd"]]})");
         },"TdoubleNestedStruct struct");
 
+		testOperators();
         return false;
     };
 } typedef_test("typedef_test");
