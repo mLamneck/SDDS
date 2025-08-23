@@ -104,12 +104,11 @@ namespace sdds{
 	constexpr dtypes::uint16 TlinkTime::TIMES[];
 
     Ttimer& setup(){
-        /*
-        For some fucking reason, on TEENSY 3.2 and probably on other ARM CPU's
-        this static object creation does not work. The constructor is not called!!!
-        Fuck C++!!! This is the worst programming language I know. Even the most primitive
-        thing like global variables does not work with this freaking bullshit!!!! Fuck C++!!!!!!
-        */        
+		/*
+		TEENSY 3.2 (ARM flavor): static object construction?
+		Nope. Constructors simply go on vacation.
+		C++ strikes again: reinventing "broken by design."
+		*/   
         //static TsetupTimer __setup;
         static Ttimer* __setup = nullptr;
         if (!__setup){

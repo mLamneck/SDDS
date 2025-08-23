@@ -20,6 +20,8 @@ toDo:
 	#define __SDDS_UTYPEDEF_COMPILE_STRCONV 1
 #endif
 
+// Dear AVR-GCC, thanks for keeping C++ interesting:
+// every line of portable code becomes a new adventure here.
 #ifdef SDDS_ON_AVR
     //functional not available in AVR-gcc
 #else
@@ -175,8 +177,10 @@ namespace sdds{
         INT32   = 0x14,
         
         FLOAT32 = 0x24,
+#if iSDDS_COMPILE_FLOAT64
         FLOAT64 = 0x28,
-        
+#endif
+
         ENUM    = 0x31,
 
         STRUCT  = 0x42,
@@ -364,8 +368,9 @@ class Tdescr : public TlinkedListElement{
 
         //floating point
         static bool _strToValue(const char* _str, dtypes::float32& _value){return Tdescr::_strToNumber<dtypes::float32>(_str,_value);}
+#if iSDDS_COMPILE_FLOAT64
         static bool _strToValue(const char* _str, dtypes::float64& _value){return Tdescr::_strToNumber<dtypes::float64>(_str,_value);}
-
+#endif
         static bool _strToValue(const char* _str, dtypes::string& _value){ _value = _str; return true; }
 
         //DateTime
@@ -636,6 +641,7 @@ class Tfloat32 : public TdescrTemplate<dtypes::float32,sdds::Ttype::FLOAT32>{
 		bool isNan(){ return Fvalue!=Fvalue; }
 };
 
+#if iSDDS_COMPILE_FLOAT64
 class Tfloat64 : public TdescrTemplate<dtypes::float64,sdds::Ttype::FLOAT64>{
 	public:
 		void operator=(dtype _v){ __setValue(_v); }
@@ -646,6 +652,7 @@ class Tfloat64 : public TdescrTemplate<dtypes::float64,sdds::Ttype::FLOAT64>{
 		static bool isNan(dtype _val) { return (_val != _val); }
 		bool isNan(){ return Fvalue!=Fvalue; }
 };
+#endif
 
 typedef TdescrTemplate<dtypes::TdateTime,sdds::Ttype::TIME> Ttime;
 

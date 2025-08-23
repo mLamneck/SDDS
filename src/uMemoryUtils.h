@@ -1,7 +1,7 @@
 #ifndef UMEMORYUTILS_H
 #define UMEMORYUTILS_H
 
-#include <type_traits>
+#include "uPlatform.h"
 
 namespace sdds{
 	namespace memUtils{
@@ -168,143 +168,9 @@ namespace sdds{
 				constexpr dtypes::uint8 readValFromOfs() {
 					return Fbuffer[OFS];
 				}
-		};
+		}; //TbufferStream
 
-
-		/**
-		 * @file uSingletonContainer.h
-		 * 
-		 * @brief This header file defines the `TsingletonContainer` template class.
-		 * 
-		 * The `TsingletonContainer` class is a container for managing a single instance of 
-		 * derived classes from a base class `TbaseClass`. It ensures that only one instance 
-		 * of a specific type exists in the container at any time, and that type must be selected 
-		 * from a predefined list of types (`Ts...`). The class also provides mechanisms to ensure 
-		 * that only valid types from this list can be instantiated.
-		 * 
-		 * @tparam TbaseClass The base type from which all allowed types must derive.
-		 * @tparam Ts... A variadic list of types that defines the allowed derived types.
-		 * 
-		 * @example
-		 * 	class TeditorContainer: public TsingletonContainer<TeditorBase
-		 *		,TenumEditor
-		*		,TintEditor<Tuint8>
-		*		,TintEditor<Tuint16>
-		*		,TintEditor<Tuint32>
-		*		,TintEditor<Tint8>
-		*		,TintEditor<Tint16>
-		*		,TintEditor<Tint32>
-		*		,TintEditor<Tfloat32>
-		*		> 
-		*	{
-		*		public:
-		*			TeditorBase* create(Tdescr* _d, const int _displayWidth){
-		*				switch(_d->type()){
-		*					case sdds::Ttype::INT8:
-		*						return TsingletonContainer::create<TintEditor<Tint8>>(_d,_displayWidth);
-		*					case sdds::Ttype::INT16:
-		*						return TsingletonContainer::create<TintEditor<Tint16>>(_d,_displayWidth);
-		*					case sdds::Ttype::INT32:
-		*						return TsingletonContainer::create<TintEditor<Tint32>>(_d,_displayWidth);
-		*					case sdds::Ttype::UINT8:
-		*						return TsingletonContainer::create<TintEditor<Tuint8>>(_d,_displayWidth);
-		*					case sdds::Ttype::UINT16:
-		*						return TsingletonContainer::create<TintEditor<Tuint16>>(_d,_displayWidth);
-		*					case sdds::Ttype::UINT32:
-		*						return TsingletonContainer::create<TintEditor<Tuint32>>(_d,_displayWidth);
-		*					case sdds::Ttype::ENUM:
-		*						return TsingletonContainer::create<TenumEditor>();
-		*					case sdds::Ttype::FLOAT32:
-		*						return TsingletonContainer::create<TintEditor<Tfloat32>>(_d,_displayWidth);
-		*				}
-		*				return nullptr;
-		*			}
-		*
-		*	};
-		*/
-
-		template <class TbaseClass, typename... Ts>
-		class TsingletonContainer {
-
-			/***************************************
-			 * retrieve size an alignment for all types
-			****************************************/
-
-			template <typename T, typename... Rest>
-			struct MaxSizeAlign {
-				static constexpr size_t maxSize = 
-					sizeof(T) > MaxSizeAlign<Rest...>::maxSize
-					? sizeof(T)
-					: MaxSizeAlign<Rest...>::maxSize;
-
-				static constexpr size_t maxAlign = 
-					alignof(T) > MaxSizeAlign<Rest...>::maxAlign
-					? alignof(T)
-					: MaxSizeAlign<Rest...>::maxAlign;
-			};
-
-			template <typename T>
-			struct MaxSizeAlign<T> {
-				static constexpr size_t maxSize = sizeof(T);
-				static constexpr size_t maxAlign = alignof(T);
-			};
-
-
-			/***************************************
-			 * check item is in List
-			 ***************************************/
-
-			template <typename X, typename Y, typename... Rest>
-			struct ContainsItem{
-				static constexpr bool value = std::is_same<X,Y>::value||ContainsItem<X,Rest...>::value;
-			};
-
-			template <typename X, typename Y>
-			struct ContainsItem<X,Y>{
-				static constexpr bool value = std::is_same<X,Y>::value;
-			};
-
-			/***************************************/
-
-			static constexpr size_t MAX_SIZE = MaxSizeAlign<Ts...>::maxSize;
-			static constexpr size_t MAX_ALIGN = MaxSizeAlign<Ts...>::maxAlign;
-			using TcontainerType = typename std::aligned_storage<MAX_SIZE, MAX_ALIGN>::type;
-
-		private:
-			TcontainerType Fcontainer;
-			TbaseClass* Finstance = nullptr;
-			
-		public:				
-			template <typename T, typename... Args>
-			TbaseClass* create(Args&&... args) {
-				static_assert(std::is_base_of<TbaseClass, T>::value, "T must derive from Base");
-				static_assert(ContainsItem<T,Ts...>::value, "attemp to create an item that is not specified in the list of possible classes for this Singleton");
-
-				if (Finstance) {
-					Finstance->~TbaseClass();
-				}
-
-				Finstance = new (&Fcontainer) T(std::forward<Args>(args)...);
-				return Finstance;
-			}
-
-			void destroy(){
-				if (Finstance) {
-					Finstance->~TbaseClass();
-					Finstance = nullptr;
-				}
-			}
-
-			TbaseClass* getInstance() const {
-				return Finstance;
-			}
-
-			~TsingletonContainer() {
-				destroy();
-			}
-		};
-
-			}
-		};
+	} //namespace memUtils
+} //namespace sdds
 
 #endif //UMEMORYUTILS_H

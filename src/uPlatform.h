@@ -5,6 +5,7 @@
  * UPLATFORM
  *
  * compiler flags:
+ *  iSDDS_COMPILE_FLOAT64
  * 	if sdds_noDebugOuput == 1		//prevent debug::write/log to print to the console
  * 	#ifdef STM32_CUBE				//use stm32
  *  #ifdef SDDS_ON_AVR
@@ -18,7 +19,9 @@
 *************************************************************************************/
 
 #ifdef __AVR__
-    #define SDDS_ON_AVR
+    #define SDDS_ON_AVR 1
+#else
+	#define iSDDS_COMPILE_FLOAT64 1
 #endif
 
 #ifdef PARTICLE
@@ -53,7 +56,9 @@ namespace dtypes {
 
 	//floating point
 	typedef float float32;
+#if iSDDS_COMPILE_FLOAT64
 	typedef double float64;
+#endif
 
 	/**
 	 * @brief TtickCount defines the type used for our timebase. It is stored in time events
@@ -96,8 +101,10 @@ namespace dtypes {
 	template <> constexpr int64 low<int64>() { return -9223372036854775807LL - 1; }
 	template <> constexpr float32 high<float32>() { return 3.402823e+38F; }
 	template <> constexpr float32 low<float32>() { return -3.402823e+38F; }
+#if iSDDS_COMPILE_FLOAT64
 	template <> constexpr float64 high<float64>() { return 1.7976931348623157e+308; }
 	template <> constexpr float64 low<float64>() { return -1.7976931348623157e+308; }
+#endif
 }
 
 
