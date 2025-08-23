@@ -25,7 +25,7 @@ A lightweight C++ library for event-driven applications with auto-generated user
   - [The Data Structure (Tree)](#the-data-structure)
   - [Declaring variables](#declaring-variables)
   - [Calling functions with SDDS variables](#calling-functions-with-sdds-variables)
-  - [Calling functions with SDDS enums](#calling-funtions-with-sdds-enums)
+  - [Calling functions with SDDS enums](#calling-functions-with-sdds-enums)
   - [Data types](#data-types)
     - [Primitve types](#primitives)
     - [Time](#ttime)    
@@ -557,7 +557,7 @@ They receive the variable `_val` by value (a copy of it). The main difference be
 The third function `void incByRef(Tuint8& _val)`, as expected, receives a reference to the variable and thus modifying the value has the same effect as it would outside of the function.
 
 
-### Calling Funtions with SDDS Enums
+### Calling Functions with SDDS Enums
 
 The usage of enums as function arguments is basically the same. But there is more to say. Again, consider the following code. Note the line:
 
@@ -737,7 +737,7 @@ class TmyComponent{
   TonOffState mySwitch;
 };
 ```
-However, it is much more powerful because of the capability to translate the numeric value back into its string representation, which is impossible in native C++. Read more about the usage of enums [here](#calling-functions-with-sdds-enums). The only thing to take further note of here is that you have to use `TonOffState::on/off` instead of just `TonOffState::on/off` for a regular C++ class enum.
+However, it is much more powerful because of the capability to translate the numeric value back into its string representation, which is impossible in native C++. Read more about the usage of enums [here](#calling-functions-with-sdds-enums).
 
 #### Structs
 Structs are a collection of primitive values bundled together. Structs can be nested to form the [tree](#the-data-structure). You can also derive a struct from a base struct.
