@@ -1016,8 +1016,8 @@ Previously, accessing internal enumerations required the `e` scope qualifier. Fo
 ...
   sdds_enum(OFF,ON) TonOffState;
   //...
-  ledSwitch = TonOffState::ON;
-  if (ledSwitch == TonOffState::ON) {//...};
+  ledSwitch = TonOffState::e::ON;
+  if (ledSwitch == TonOffState::e::ON) {//...};
 ```
 
 Now, a more convenient and familiar C++-style syntax is supported:
