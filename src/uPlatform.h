@@ -20,12 +20,11 @@
 
 #ifdef __AVR__
     #define SDDS_ON_AVR 1
-#else
-	#define iSDDS_COMPILE_FLOAT64 1
 #endif
 
 #ifdef PARTICLE
 #define SDDS_ON_PARTICLE 1
+#define iSDDS_COMPILE_FLOAT64 1
 #endif
 
 #ifndef STM32_CUBE
