@@ -9,8 +9,9 @@
 #define MHAL_UART_H_
 
 #include "uPlatform.h"
+#include "stm32g4xx_ll_usart.h"
 
-#ifdef __STM32G474xx_H
+#if defined(__STM32G474xx_H) || defined(STM32G431xx)
 	#define RCC_USART1CLKSOURCE RCC_USART1CLKSOURCE_PCLK2
 	#define __mhal_UART_AF LL_GPIO_AF_7
 #else
@@ -24,9 +25,11 @@ namespace mhal{
 	class Tuart{
 			constexpr static USART_TypeDef* pUart(){ return (USART_TypeDef*)UART_BASE_ADDR; }
 			constexpr static IRQn_Type uart_irq_type(){
-				static_assert(UART_BASE_ADDR==USART1_BASE || UART_BASE_ADDR==USART3_BASE, "uart not implemented yet");
+				static_assert(UART_BASE_ADDR==USART1_BASE || UART_BASE_ADDR==USART2_BASE || UART_BASE_ADDR==USART3_BASE , "uart not implemented yet");
 				if (UART_BASE_ADDR == USART1_BASE)
 					return USART1_IRQn;
+				else if (UART_BASE_ADDR == USART2_BASE)
+					return USART2_IRQn;
 				else if (UART_BASE_ADDR == USART3_BASE)
 					return USART3_IRQn;
 			}
@@ -44,6 +47,11 @@ namespace mhal{
 					PeriphClkInit.Usart1ClockSelection = RCC_USART1CLKSOURCE_PCLK2;
 					LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_USART1);
 				}
+				else if (UART_BASE_ADDR == USART2_BASE){
+					  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART2;
+					  PeriphClkInit.Usart2ClockSelection = RCC_USART2CLKSOURCE_PCLK1;
+					  LL_APB1_GRP1_EnableClock(LL_APB1_GRP1_PERIPH_USART2);
+				}
 				else if (UART_BASE_ADDR == USART3_BASE){
 					  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART3;
 					  PeriphClkInit.Usart3ClockSelection = RCC_USART3CLKSOURCE_PCLK1;
@@ -51,7 +59,8 @@ namespace mhal{
 				}
 				if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
 				{
-					Error_Handler();
+					__disable_irq();
+					while (1) {  }
 				}
 
 				RX_PIN::enableClock();
@@ -59,7 +68,7 @@ namespace mhal{
 				GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_VERY_HIGH;
 				GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
 				GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
-				GPIO_InitStruct.Pin = TX_PIN::GPIO_PIN;
+				GPIO_InitStruct.Pin = TX_PIN::GPIO_PIN_LL;
 				GPIO_InitStruct.Alternate = __mhal_UART_AF;
 				LL_GPIO_Init(TX_PIN::PORT(), &GPIO_InitStruct);
 
@@ -68,7 +77,7 @@ namespace mhal{
 				GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_VERY_HIGH;
 				GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
 				GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
-				GPIO_InitStruct.Pin = RX_PIN::GPIO_PIN;
+				GPIO_InitStruct.Pin = RX_PIN::GPIO_PIN_LL;
 				GPIO_InitStruct.Alternate = __mhal_UART_AF;
 				LL_GPIO_Init(RX_PIN::PORT(), &GPIO_InitStruct);
 
@@ -89,11 +98,6 @@ namespace mhal{
 				LL_USART_EnableFIFO(pUart());
 				LL_USART_ConfigAsyncMode(pUart());
 
-				//toDo: remove this block!!! this is for debugging
-				/*
-				rto_setRxTimeout(20);
-				rto_enableRxTimeout();
-				*/
 				LL_USART_Enable(pUart());
 				while((!(LL_USART_IsActiveFlag_TEACK(pUart()))) || (!(LL_USART_IsActiveFlag_REACK(pUart()))))
 				{
@@ -109,7 +113,12 @@ namespace mhal{
 			constexpr static uint32_t ddr_notEmpty(){ return LL_USART_IsActiveFlag_RXNE_RXFNE(pUart()); }
 			constexpr static uint32_t ddr_empty(){ return !LL_USART_IsActiveFlag_RXNE_RXFNE(pUart()); }
 
-			constexpr static uint32_t tdr_notEmpty(){ return LL_USART_IsActiveFlag_TXE_TXFNF(pUart()); }
+			/**
+			 * this was the wrong name. In my understanding now the function returns if the transmit
+			 * data register is empty or the tx fifo is not full...
+			 */
+			//constexpr static uint32_t tdr_notEmpty(){ return LL_USART_IsActiveFlag_TXE_TXFNF(pUart()); }
+			constexpr static uint32_t tdr_empty(){ return LL_USART_IsActiveFlag_TXE_TXFNF(pUart()); }
 
 			//read data register
 			constexpr static uint8_t ddr_read(){ return LL_USART_ReceiveData8(pUart()); }
@@ -146,7 +155,7 @@ namespace mhal{
 			constexpr static auto isr_rto_flagSet(){ return LL_USART_IsActiveFlag_RTO(pUart()); }
 			constexpr static void isr_rto_clearFlag(){ LL_USART_ClearFlag_RTO(pUart()); }
 
-			constexpr static uint32_t uart_hardware_error(){ return (USART1->ISR & ERR_MASK); }
+			constexpr static uint32_t uart_hardware_error(){ return (pUart()->ISR & ERR_MASK); }
 			constexpr static void uart_hardware_clearErrors(){
 				// Handle Overrun Error
 				if (pUart()->ISR & USART_ISR_ORE) {

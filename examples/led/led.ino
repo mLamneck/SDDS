@@ -17,22 +17,22 @@ class Tled : public TmenuHandle{
           pinMode(LED_BUILTIN, OUTPUT);
 
           on(ledSwitch){
-              if (ledSwitch == TonOffState::e::ON) digitalWrite(LED_BUILTIN,0);
+              if (ledSwitch == TonOffState::ON) digitalWrite(LED_BUILTIN,0);
               else digitalWrite(LED_BUILTIN,1);
           };
 
           on(blinkSwitch){
-              if (blinkSwitch == TonOffState::e::ON) timer.start(0);
+              if (blinkSwitch == TonOffState::ON) timer.start(0);
               else timer.stop();
           };
 
           on(timer){
-              if (ledSwitch == TonOffState::e::ON){
-                  ledSwitch = TonOffState::e::OFF;
+              if (ledSwitch == TonOffState::ON){
+                  ledSwitch = TonOffState::OFF;
                   timer.start(offTime);
               } 
               else {
-                  ledSwitch = TonOffState::e::ON;
+                  ledSwitch = TonOffState::ON;
                   timer.start(onTime);
               }
           };

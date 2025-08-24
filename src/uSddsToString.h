@@ -36,37 +36,18 @@ namespace sdds{
 	/****************** */
 	// integers
 
-	template <typename T>
-	typename std::enable_if<std::is_integral<T>::value && !std::is_unsigned<T>::value, void>::type
-	to_string(dtypes::string& _out, T _val) {
-		to_string_fmt(_out,_val,"%d");
-	}
-
-	template <typename T>
-	typename std::enable_if<std::is_integral<T>::value && std::is_unsigned<T>::value, void>::type
-	to_string(dtypes::string& _out, T _val) {
-		to_string_fmt(_out,_val,"%u");
-	}
-
-    template <typename T>
-    typename std::enable_if<std::is_integral<T>::value, dtypes::string>::type
-    to_string(T _val) {
-		dtypes::string res;
-        to_string(res,_val);
-		return res;
-    }    
+	void to_string(dtypes::string& _out, dtypes::uint8 _val) 	{ to_string_fmt(_out,_val,"%u"); }
+	void to_string(dtypes::string& _out, dtypes::uint16 _val)	{ to_string_fmt(_out,_val,"%u"); }
+	void to_string(dtypes::string& _out, dtypes::uint32 _val)	{ to_string_fmt(_out,_val,"%u"); }
+	void to_string(dtypes::string& _out, dtypes::int8 _val)		{ to_string_fmt(_out,_val,"%d"); }
+	void to_string(dtypes::string& _out, dtypes::int16 _val)	{ to_string_fmt(_out,_val,"%d"); }
+	void to_string(dtypes::string& _out, dtypes::int32 _val)	{ to_string_fmt(_out,_val,"%d"); }
 
 	/****************** */
 	// float
 
 	inline void to_string(dtypes::string& _out, dtypes::float32 _val){
 		to_string_fmt(_out,_val,"%.4g");
-	}
-
-	inline dtypes::string to_string(dtypes::float32 _val) {
-		dtypes::string res;
-		to_string(res,_val);
-		return res;
 	}
 
 	/****************** */
@@ -138,22 +119,33 @@ namespace sdds{
 	/****************** */
 	// by descr
 
-	void to_string(dtypes::string& _out, Tstring& _val) { _out = _val.Fvalue; }
+	//integers
+	void to_string(dtypes::string& _out, Tuint8& _val) 	{ to_string(_out,_val.value()); }
+	void to_string(dtypes::string& _out, Tuint16& _val) { to_string(_out,_val.value()); }
+	void to_string(dtypes::string& _out, Tuint32& _val) { to_string(_out,_val.value()); }
+	void to_string(dtypes::string& _out, Tint8& _val) 	{ to_string(_out,_val.value()); }
+	void to_string(dtypes::string& _out, Tint16& _val) 	{ to_string(_out,_val.value()); }
+	void to_string(dtypes::string& _out, Tint32& _val) 	{ to_string(_out,_val.value()); }
 	
-	void to_string(dtypes::string& _out, Tstruct& _val) { _out = _val.value() ? ">" : "NIL"; }
-
+	//time
 	inline void to_string(dtypes::string& _out, Ttime& _time){
 		auto dt = static_cast<dtypes::TdateTime*>(_time.pValue());
 		if (_time.showOption() == sdds::opt::timeRel) _out = timeToString(*dt,"%H:%M:%S");
         else _out = timeToString(*dt);
 	}
-
-	template<typename T>
-	typename std::enable_if<std::is_base_of<Tdescr,T>::value, void>::type
-	to_string(dtypes::string& _out, T& _val) { 
-		to_string(_out,_val.value()); 
-	}
 	
+	//enums
+	void to_string(dtypes::string& _out, TenumBase& _val) { return to_string(_out,&_val,*static_cast<dtypes::uint8*>(_val.pValue())); }
+
+	//string
+	void to_string(dtypes::string& _out, Tstring& _val) { _out = _val.Fvalue; }	
+	
+	//struct
+	void to_string(dtypes::string& _out, Tstruct& _val) { _out = _val.value() ? ">" : "NIL"; }
+	
+	/****************** */
+	// by Tdescr
+
 	inline void to_string(dtypes::string& _out, Tdescr* _d){
 		auto opt = _d->showOption();
 		if (opt == opt::showHex) _out = to_string_hex(_d);
@@ -182,6 +174,13 @@ namespace sdds{
 		to_string(res,_d);
 		return res;
 	}
+
+	template <typename T>
+	dtypes::string to_string(T _val) {
+		dtypes::string res;
+		to_string(res,_val);
+		return res;
+	}    
 
 }
 

@@ -14,11 +14,14 @@ toDo:
 #include "uStrings.h"
 #include "uEnumMacros.h"
 #include "uTime.h"
+#include "uMmath.h"
 
 #ifndef __SDDS_UTYPEDEF_COMPILE_STRCONV
 	#define __SDDS_UTYPEDEF_COMPILE_STRCONV 1
 #endif
 
+// Dear AVR-GCC, thanks for keeping C++ interesting:
+// every line of portable code becomes a new adventure here.
 #ifdef SDDS_ON_AVR
     //functional not available in AVR-gcc
 #else
@@ -116,17 +119,31 @@ namespace sdds{
 			
 			uint16_t toMseconds(){ return TlinkTime::TIMES[FlinkTime]; }
 			bool load(uint8_t _ordLinkTime){
-				FlinkTime = _ordLinkTime;
-				return (_ordLinkTime < sizeof(TlinkTime::TIMES)/sizeof(TlinkTime::TIMES[0]));
+				if (_ordLinkTime < sizeof(TlinkTime::TIMES)/sizeof(TlinkTime::TIMES[0])){
+					FlinkTime = _ordLinkTime;
+					return true;
+				};
+				return false;
 			}
 	};
 
     namespace opt{
 		typedef dtypes::uint8 Ttype;
 
-        constexpr int nothing   = 0;
-        constexpr int readonly  = 0x01;
-        constexpr int saveval   = 0x80;
+		/*
+		;	 SaveValue
+		;	 | LimitUpdate
+		;	 | |
+		;	 | | |
+		;	 | | | |   ShowMode
+		;	 | | | |   | | | ReadOnly
+		;    | | | |   | | | |
+		;  | X X X X | X X X X |
+		*/
+        constexpr int nothing   	= 0;
+        constexpr int readonly  	= 0x01;
+        constexpr int saveval   	= 0x80;
+        constexpr int limitUpdate   = 0x40;
 
         constexpr int mask_show 	= 0x0E;
         constexpr int showHex 		= 0x04;
@@ -136,7 +153,6 @@ namespace sdds{
         constexpr int timeRel   	= 0x02;
         constexpr int timeAbs   	= 0x00;
 
-		constexpr int lt100ms		= TlinkTime::INT_100ms<<8;
     }
 
     namespace typeIds{
@@ -161,7 +177,10 @@ namespace sdds{
         INT32   = 0x14,
         
         FLOAT32 = 0x24,
-        
+#if iSDDS_COMPILE_FLOAT64
+        FLOAT64 = 0x28,
+#endif
+
         ENUM    = 0x31,
 
         STRUCT  = 0x42,
@@ -269,6 +288,7 @@ class Tdescr : public TlinkedListElement{
 		sdds::Toption showOption(){ return (meta().option & sdds::opt::mask_show); }
         bool saveval() { return ((meta().option & sdds::opt::saveval) > 0); }
         bool readonly() { return ((meta().option & sdds::opt::readonly) > 0); }
+        bool limitUpdate() { return ((meta().option & sdds::opt::limitUpdate) > 0); }
 
         dtypes::uint8 typeId(){ return static_cast<dtypes::uint8>(type()); }
         dtypes::uint8 valSize() { return static_cast<uint8_t>(type()) & sdds::typeIds::size_mask; }
@@ -348,7 +368,9 @@ class Tdescr : public TlinkedListElement{
 
         //floating point
         static bool _strToValue(const char* _str, dtypes::float32& _value){return Tdescr::_strToNumber<dtypes::float32>(_str,_value);}
-
+#if iSDDS_COMPILE_FLOAT64
+        static bool _strToValue(const char* _str, dtypes::float64& _value){return Tdescr::_strToNumber<dtypes::float64>(_str,_value);}
+#endif
         static bool _strToValue(const char* _str, dtypes::string& _value){ _value = _str; return true; }
 
         //DateTime
@@ -372,11 +394,12 @@ template for the actual descriptive types
 template <class ValType, sdds::Ttype _type_id> class TdescrTemplate: public Tdescr{
     private:
     protected:
-        ValType Fvalue;
     public:
         friend class TmenuHandle;
         typedef ValType dtype;
         constexpr static sdds::Ttype TYPE_ID = _type_id;
+
+		ValType Fvalue;
 
 		Tmeta meta() override { return Tmeta{TYPE_ID,0,""}; }
 
@@ -412,75 +435,71 @@ template <class ValType, sdds::Ttype _type_id> class TdescrTemplate: public Tdes
         }
         TrawString to_string() override { return Tdescr::_valToStr(Fvalue); };
 #endif
-        inline ValType value(){return Fvalue; }
-
-        operator ValType() const
-        {
-            return Fvalue;
-        }
-
-        /*
-        ValType operator+(TdescrTemplate<ValType,_type_id>& _inp){
-            ValType* pVal = static_cast<ValType*>(_inp.pValue());
-            if (!pVal) return Fvalue;
-            return Fvalue + (*pVal);
-        }
-        */
-
-        template <typename T>
-        ValType operator++(T) { Fvalue++; signalEvents(); return Fvalue; };
-
-        template <typename T>
-        ValType operator--(T) { Fvalue--; signalEvents(); return Fvalue; };
-
-        void operator+=(TdescrTemplate<ValType,_type_id>& _inp){
-            ValType* pVal = static_cast<ValType*>(_inp.pValue());
-            if (!pVal) return;
-            Fvalue += (*pVal);
-            signalEvents();
-        }
-
-        template <typename T>
-        void operator+=(T _inp){ Fvalue += _inp; signalEvents(); }
-
-        void operator-=(TdescrTemplate<ValType,_type_id>& _inp){
-            ValType* pVal = static_cast<ValType*>(_inp.pValue());
-            if (!pVal) return;
-            Fvalue -= (*pVal);
-            signalEvents();
-        }
-
-        template <typename T>
-        void operator-=(T _inp){ Fvalue -= _inp; signalEvents(); }
-
-        void operator*=(TdescrTemplate<ValType,_type_id>& _inp){
-            ValType* pVal = static_cast<ValType*>(_inp.pValue());
-            if (!pVal) return;
-            Fvalue *= (*pVal);
-            signalEvents();
-        }
-        template <typename T>
-        void operator*=(T _inp){ Fvalue *= _inp; signalEvents(); }
-
-        template <typename T>
-        void operator<<=(T _inp){ Fvalue <<= _inp; signalEvents(); }
-
-        template <typename T>
-        void operator>>=(T _inp){ Fvalue >>= _inp; signalEvents(); }
-
-        bool operator==(TdescrTemplate<ValType,_type_id>& _inp){
-            ValType* pVal = static_cast<ValType*>(_inp.pValue());
-            if (!pVal) return false;
-            return (Fvalue==(*pVal));
-        }
-
-        template <typename T>
-        void operator=(T _val){__setValue(_val); }
-
+		inline ValType value(){return Fvalue; }
+		
 		void __setValue(ValType _value){
 			Fvalue=_value;
-            signalEvents();
+			signalEvents();
 		}
+		
+		operator ValType() const
+		{
+			return Fvalue;
+		}
+
+		/** Operator++ */
+		ValType operator++(int) { ValType temp = Fvalue++; signalEvents(); return temp; };
+
+		/** ++Operator */
+		ValType operator++() { __setValue(++Fvalue); return Fvalue; };
+
+		/** Operator-- */
+		ValType operator--(int) { ValType temp = Fvalue--; signalEvents(); return temp; };
+
+		/** --Operator */
+		ValType operator--() { __setValue(--Fvalue); return Fvalue; };
+
+		/** Operator+= */
+		ValType operator+=(TdescrTemplate<ValType,_type_id>& _inp){ __setValue(Fvalue += _inp.Fvalue); return Fvalue; }
+		template <typename T>
+		ValType operator+=(T _inp){ __setValue(Fvalue += _inp); return Fvalue; }
+
+		/** Operator-= */
+		ValType operator-=(TdescrTemplate<ValType,_type_id>& _inp){ __setValue(Fvalue -= _inp.Fvalue); return Fvalue; }
+		template <typename T>
+		ValType operator-=(T _inp){ __setValue(Fvalue -= _inp); return Fvalue; }
+
+		/** Operator*= */
+		ValType operator*=(TdescrTemplate<ValType,_type_id>& _inp){ __setValue(Fvalue *= _inp.Fvalue); return Fvalue; }
+		template <typename T>
+		ValType operator*=(T _inp){ __setValue(Fvalue *= _inp); return Fvalue; }
+
+		/** Operator/= */
+		ValType operator/=(TdescrTemplate<ValType,_type_id>& _inp){ __setValue(Fvalue /= _inp.Fvalue); return Fvalue; }
+		template <typename T>
+		ValType operator/=(T _inp){ __setValue(Fvalue /= _inp); return Fvalue; }
+
+		/** Operator<<= */
+		template <typename T>
+		ValType operator<<=(T _inp){ __setValue(Fvalue <<= _inp); return Fvalue; }
+
+		/** Operator>>= */
+		template <typename T>
+		ValType operator>>=(T _inp){ __setValue(Fvalue >>= _inp); return Fvalue; }
+
+		/** Operator|= */
+		template <typename T>
+		ValType operator|=(T _inp){ __setValue(Fvalue |= _inp); return Fvalue; }
+
+		/** Operator&= */
+		template <typename T>
+		ValType operator&=(T _inp){ __setValue(Fvalue &= _inp); return Fvalue; }
+
+		/** Operator== */
+		bool operator==(TdescrTemplate<ValType,_type_id>& _inp){return (Fvalue==_inp.Fvalue);}
+
+		template <typename T>
+		void operator=(T _val){__setValue(_val); }
 };
 
 
@@ -493,11 +512,13 @@ class TenumBase : public Tdescr{
 		struct TenumInfo{
 			const char* buffer;
 			uStrings::TstringArrayIterator iterator;
-			int bufferSize;
-			TenumInfo(uStrings::TstringArrayIterator _iterator, int _bufferSize, const char* _buffer)
+			dtypes::uint16 bufferSize;
+			sdds::metaTypes::TenumId id;
+			TenumInfo(uStrings::TstringArrayIterator _iterator, dtypes::uint16 _bufferSize, const char* _buffer, sdds::metaTypes::TenumId _id)
 			: buffer(_buffer)
 			, iterator(_iterator)
 			, bufferSize(_bufferSize) 
+			, id(_id)
 			{
 
 			}
@@ -510,14 +531,21 @@ class TenumBase : public Tdescr{
 template <typename ValType, sdds::Ttype _type_id=sdds::Ttype::ENUM> class TenumTemplate: public TenumBase{
     private:
     protected:
-        ValType Fvalue;
     public:
+        ValType Fvalue;
         friend class TmenuHandle;
 		constexpr static sdds::Ttype TYPE_ID = _type_id;
 
-        typedef ValType enumClass;
+		/**
+		 * enumClass: 	sdds enum class created by enumMacros
+		 * dtype: 		raw c++ enum class.
+		 * e: 			same as dtype, just to have a shorter access i.e. if (switch::e::on...)
+		 * COUNT		number of elements in the enum
+		 */
+		typedef ValType enumClass;
         typedef typename ValType::e dtype;
         typedef typename ValType::e e;
+		constexpr static int COUNT = enumClass::COUNT;
 
         /* override copy constructor to avoid a deep copy of the object
          * including callbacks and events
@@ -531,7 +559,9 @@ template <typename ValType, sdds::Ttype _type_id=sdds::Ttype::ENUM> class TenumT
 
         void* pValue() override { return &Fvalue.Fvalue; };
 
-		TenumInfo enumInfo() override { return TenumInfo(Fvalue.iterator(),ValType::ENUM_BUFFER_SIZE,Fvalue.enumBuffer()); }
+		TenumInfo enumInfo() override { 
+			return TenumInfo(Fvalue.iterator(),ValType::ENUM_BUFFER_SIZE,Fvalue.enumBuffer(),ValType::id());
+		}
 
 #if __SDDS_UTYPEDEF_COMPILE_STRCONV == 1
 		bool setValue(const char* _str) override {
@@ -548,6 +578,9 @@ template <typename ValType, sdds::Ttype _type_id=sdds::Ttype::ENUM> class TenumT
 
         inline ValType value(){ return Fvalue; }
 
+        static e toEnum(int _ord){ return ValType::toEnum(_ord); }
+		int toInt() { return ValType::toInt(Fvalue); }
+	
         // behave like a plain class enum
         operator dtype() const{ return Fvalue.Fvalue; }
 
@@ -562,13 +595,25 @@ template <typename ValType, sdds::Ttype _type_id=sdds::Ttype::ENUM> class TenumT
 
         // behave like an extended created by macro magic
         operator ValType() const { return Fvalue; }
+
+		/** deprecated */
+		[[deprecated("use toInt() instead")]]
+		int ord() { return ValType::toInt(Fvalue); }
+
 };
 
-#define __sdds_namedEnum(_name, ...) \
-    sdds_enumClass(_name,__VA_ARGS__);\
-    typedef TenumTemplate<_name>
+#define iSdds_enum_constexprEnums(x) constexpr static dtype x = dtype::x;
 
-#define sdds_enum(...) __sdds_namedEnum(sdds_SM_CONCAT(Tenum,__VA_ARGS__),__VA_ARGS__)
+#define __sdds_namedEnum(_name, _nameInst, ...) \
+	sdds_enumClass(_name,__VA_ARGS__);\
+	class _nameInst : public TenumTemplate<_name>{\
+		public:\
+			sdds_SM_ITERATE(iSdds_enum_constexprEnums,__VA_ARGS__)\
+			void operator=(dtype _value){ __setValue(_value); }\
+	};\
+	typedef _nameInst
+
+#define sdds_enum(...) __sdds_namedEnum(sdds_SM_CONCAT(Tenum,__VA_ARGS__),sdds_SM_CONCAT(TenumInst,__VA_ARGS__),__VA_ARGS__)
 
 
 /************************************************************************************
@@ -585,11 +630,31 @@ typedef TdescrTemplate<dtypes::int8,sdds::Ttype::INT8> Tint8;
 typedef TdescrTemplate<dtypes::int16,sdds::Ttype::INT16> Tint16;
 typedef TdescrTemplate<dtypes::int32,sdds::Ttype::INT32> Tint32;
 
-//floating point
-typedef TdescrTemplate<dtypes::float32,sdds::Ttype::FLOAT32> Tfloat32;
+class Tfloat32 : public TdescrTemplate<dtypes::float32,sdds::Ttype::FLOAT32>{
+	public:
+		void operator=(dtype _v){ __setValue(_v); }
+		template<typename T>
+		void operator=(T _val){__setValue(_val); }
+
+		static dtype nan() { return 0.0f/0.0f; }
+		static bool isNan(dtype _val) { return (_val != _val); }
+		bool isNan(){ return Fvalue!=Fvalue; }
+};
+
+#if iSDDS_COMPILE_FLOAT64
+class Tfloat64 : public TdescrTemplate<dtypes::float64,sdds::Ttype::FLOAT64>{
+	public:
+		void operator=(dtype _v){ __setValue(_v); }
+		template<typename T>
+		void operator=(T _val){__setValue(_val); }
+
+		static dtype nan() { return 0.0f/0.0f; }
+		static bool isNan(dtype _val) { return (_val != _val); }
+		bool isNan(){ return Fvalue!=Fvalue; }
+};
+#endif
 
 typedef TdescrTemplate<dtypes::TdateTime,sdds::Ttype::TIME> Ttime;
-//typedef TdescrTemplate<dtypes::string,sdds::Ttype::STRING> Tstring;
 
 //composed types
 typedef TdescrTemplate<TmenuHandle*,sdds::Ttype::STRUCT> Tstruct;
@@ -686,8 +751,8 @@ namespace sdds{
 		}
 
 		bool intersection(const Trange& _r) {
-			TrangeItem newFirst = std::max(Ffirst, _r.Ffirst);
-			TrangeItem newLast = std::min(Flast, _r.Flast);
+			TrangeItem newFirst = mmath::max(Ffirst, _r.Ffirst);
+			TrangeItem newLast = mmath::min(Flast, _r.Flast);
 			if (newFirst > newLast) return false;
 
 			Ffirst = newFirst;
@@ -765,10 +830,10 @@ class TobjectEvent : public TlinkedListElement{
 		}
 		TobjectEvent() : TobjectEvent(nullptr) {};
 
-        static TobjectEvent* retrieve(Tevent* _ev){
-            auto __oe = static_cast<TproxyEvent*>(_ev);
-            return __oe->objectEvent();
-        }
+		static TobjectEvent* retrieve(Tevent* _ev){
+			auto __oe = static_cast<TproxyEvent*>(_ev);
+			return __oe->objectEvent();
+		}
 };
 
 class TobjectEventList : public TlinkedList<TobjectEvent>{
@@ -910,6 +975,15 @@ class TmenuHandle : public Tstruct{
         TlinkedList<Tdescr> FmenuItems;
         TobjectEventList FobjectEvents;
         void push_back(Tdescr* d){FmenuItems.push_back(d);}
+		
+		void setParent(Tdescr* _descr){
+            _descr->Fparent = this;
+			if (_descr->isStruct()){
+				auto s = static_cast<Tstruct*>(_descr);
+				if (s->Fvalue)
+					s->Fvalue->Fparent = this;
+			}
+		}
     public:
         TmenuHandle();
 
@@ -930,12 +1004,12 @@ class TmenuHandle : public Tstruct{
         }
 
         void addDescr(Tdescr* _descr){
-            _descr->Fparent = this;
+			setParent(_descr);
             push_back(_descr);
         }
 
 		void addDescr(Tdescr* _descr, int _pos){
-            _descr->Fparent = this;
+			setParent(_descr);
 			auto it = iterator(_pos);
 			it.insert(_descr);
 		}
@@ -1037,7 +1111,6 @@ Ttimer
 
 template <class eventType>
 class TcallbackEvent: public eventType{
-    typedef dtypes::TsystemTime Ttime;
     Tcallbacks Fcallbacks;
     void execute() override{ Fcallbacks.emit(); }
     public:
@@ -1046,7 +1119,7 @@ class TcallbackEvent: public eventType{
 };
 
 class Ttimer: public TcallbackEvent<Tevent>{
-    typedef dtypes::TsystemTime Ttime;
+    typedef multask::Tmilliseconds Ttime;
     public:
         void start(Ttime _waitTime){ setTimeEvent(_waitTime); }
         void stop(){ Tevent::reclaim(); }

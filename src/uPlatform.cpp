@@ -11,6 +11,8 @@
 
 #if MARKI_DEBUG_PLATFORM == 1
 
+#include <chrono>
+
 void debug::write(const char* _fmt...)
 {
 	#if sdds_noDebugOuput == 0
@@ -32,19 +34,16 @@ void debug::log(const char* _fmt...)
 	#endif
 }
 
-dtypes::TsystemTime _millis(){
-    struct timeval tp;
-    gettimeofday(&tp, NULL);
-    return tp.tv_sec * 1000 + tp.tv_usec / 1000;
-}
+namespace sdds{
+	namespace sysTime{
+		dtypes::TtickCount tickCount(){
+			return static_cast<dtypes::TtickCount>(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count());
+		}
+	};
+};
 
-dtypes::TsystemTime startTime = _millis();
 
-dtypes::TsystemTime millis(){
-    return _millis() - startTime;
-}
-
-#else
+#else //MARKI_DEBUG_PLATFORM
 
 
 #if defined(SDDS_ON_ARDUINO)
@@ -52,6 +51,14 @@ dtypes::TsystemTime millis(){
 /************************************************************************************
  * Arduino
 *************************************************************************************/
+
+namespace sdds{
+	namespace sysTime{
+		dtypes::TtickCount tickCount(){
+			return millis();
+		}
+	};
+};
 
 
 #elif defined(STM32_CUBE)
@@ -61,7 +68,29 @@ dtypes::TsystemTime millis(){
  * STM32 Cube
 *************************************************************************************/
 
-HAL_StatusTypeDef HAL_InitTick(uint32_t TickPriority)
+volatile dtypes::uint32 myTickCounter = 0;
+
+namespace sdds{
+	namespace sysTime{
+		dtypes::TtickCount tickCount(){
+			return myTickCounter;
+		}
+	};
+};
+
+extern "C" void HAL_IncTick(void)
+{
+	myTickCounter++;	//increase our tickCounter 100us tickes
+
+    static dtypes::uint32 modCounter = 0;
+    if (++modCounter >= 1000/sdds::sysTime::SYS_TICK_TIMEBASE)
+    {
+        modCounter = 0;
+        uwTick++;
+    }
+}
+
+extern "C" HAL_StatusTypeDef HAL_InitTick(uint32_t TickPriority)
 {
   HAL_StatusTypeDef  status = HAL_OK;
 
@@ -100,4 +129,4 @@ HAL_StatusTypeDef HAL_InitTick(uint32_t TickPriority)
 void debug::log(const char* _fmt...){}
 void debug::write(const char* _fmt...){}
 
-#endif
+#endif //STM32_CUBE

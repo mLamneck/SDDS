@@ -27,7 +27,11 @@
 /*****************************************************************************/
 
 #if SDDS_ON_ARDUINO == 1
+#ifdef SDDS_ON_PARTICLE
+#include <fcntl.h>
+#else
 #include <EEPROM.h>
+#endif
 #elif defined(STM32_CUBE)
 #include <mhal/uFlashProg.h>
 #elif MARKI_DEBUG_PLATFORM == 1
@@ -81,12 +85,95 @@ namespace sdds{
 
 				virtual bool grow(int _size){ return true; }
 
-				virtual void flush(){};
+				virtual bool flush(){ return true; };
 
 				TstreamLength high(){ return FhighWater; }
 		};
 
-#if SDDS_ON_ARDUINO == 1
+#if defined(SDDS_ON_PARTICLE) && defined(HAL_PLATFORM_FILESYSTEM)
+	
+		class TflashStream : public TstreamBase{
+
+			private:
+
+				const char* FparamsFilePath = "/params.dat";
+				uint8_t FreadBuffer[SDDS_PS_MAX_SIZE] = {0};
+				int16_t FbytesRead = -1;
+				uint8_t FwriteBuffer[SDDS_PS_MAX_SIZE] = {0};
+				int16_t FwriteBytesMax = -1;
+				uint16_t Fchanges = 0;
+
+			public:
+
+				bool grow(int _size) override{ return (_size <= SDDS_PS_MAX_SIZE); }
+
+				virtual TstreamLength availableForRead() override { return FbytesRead - curr(); }
+
+				void initRead() override{
+					// reset info
+					FbytesRead = -1;
+					FwriteBytesMax = -1;
+					Fchanges = 0;
+					// read parameters file from file system into buffer
+					int fd = open(FparamsFilePath, O_RDONLY);
+					if (fd != -1) {
+						FbytesRead = read(fd, FreadBuffer, SDDS_PS_MAX_SIZE);
+						close(fd);
+					}
+				}
+
+				bool doReadByte(uint8_t& _byte) override {
+					// read byte from buffer
+					if (curr() < FbytesRead) {
+						_byte = FreadBuffer[curr()];
+						return true;
+					} 
+					return false;
+				}
+
+				void initWrite() override{
+					// get latest read of file to watch for changes
+					initRead();
+				}
+
+				bool doWriteByte(uint8_t _byte) override{
+					// write byte to buffer and keep track if there are changes
+					if (curr() < SDDS_PS_MAX_SIZE) {
+						FwriteBuffer[curr()] = _byte;
+						if (curr() >= FbytesRead || FwriteBuffer[curr()] != FreadBuffer[curr()]) {
+							Fchanges++;
+						}
+						if (curr() > FwriteBytesMax) {
+							FwriteBytesMax = curr() + 1;
+						}
+						return true;
+					}
+					return false;
+				}
+
+				bool flush() override {
+					// write the parameter file to file system
+					if (FwriteBytesMax >= 0) {
+						if (Fchanges == 0) {
+							// no changes to parameters, there's nothing to save
+							return true;
+						}
+						int fd = open(FparamsFilePath, O_WRONLY | O_CREAT | O_TRUNC);
+						if (fd != -1) {
+							int bytesWritten = write(fd, FwriteBuffer, FwriteBytesMax + 1);
+							close(fd);
+							if (bytesWritten == FwriteBytesMax + 1) {
+								// saved successfully
+								return true;
+							}
+						}
+					}
+					return false;
+				}
+		};
+		typedef TflashStream Tstream;
+
+#elif SDDS_ON_ARDUINO == 1
 		class TeepromStream : public TstreamBase{
 				bool grow(int _size) override{ return (_size <= SDDS_PS_MAX_SIZE); }
 
@@ -102,10 +189,11 @@ namespace sdds{
 					return true;
 				}
 
-				void flush() override {
+				bool flush() override {
 					#if SDDS_EEPROM_COMMIT == 1
 					EEPROM.commit();
 					#endif
+					return true;
 				}
 			public:
 				static void INIT() {
@@ -148,11 +236,12 @@ namespace sdds{
 		class TfileStream : public TstringStream{
 				const char* Ffilename;
 
-				void flush() override {
+				bool flush() override {
 					std::ofstream outfile;
 					outfile.open(Ffilename,std::ios::binary);
 					outfile.write(Fbuffer.c_str(),Fbuffer.length());
 					outfile.close();
+					return true;
 				}
 
 				void initRead() override{
@@ -178,9 +267,10 @@ namespace sdds{
 					return mhal::TflashProg::readByte(PS_STARTADDR+curr(),_byte);
 				}
 
-				void flush() override {
+				bool flush() override {
 					mhal::TflashProg f;
 					f.Write(PS_STARTADDR, Fbuffer.c_str(), Fbuffer.length());
+					return true;
 				}
 		};
 		typedef TflashStream Tstream;

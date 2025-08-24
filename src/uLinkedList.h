@@ -52,8 +52,11 @@ class _TlinkedList : public _TlinkedListElement{
             return result;
         }
 
+		T* pop_last();
+
         void push_first(T* _element){
-            if (_element->linked()) return;
+			if (_element == nullptr) return;
+			if (_element->linked()) return;
             _element->Fnext = first();
             setFirst(_element);
         }
@@ -82,11 +85,12 @@ class _TlinkedListIterator{
             Fcurr = _list->next();
         }
         _TlinkedListIterator(T* _list, int _startIdx) : _TlinkedListIterator(_list){
+			if (!hasCurrent()) return;
             while (_startIdx-- > 0 && jumpToNext()) ;
         }
 
 		T* hasCurrent(){ return Fcurr; }
-		T* jumpToNext() { 
+		T* jumpToNext() {
 			Fprev = Fcurr;
 			Fcurr = Fcurr->Fnext;
 			return Fcurr;
@@ -135,6 +139,7 @@ template<class elementType> class TlinkedList : public _TlinkedList{
         TlinkedListIterator<elementType> iterator(int _firstIdx) { return TlinkedListIterator<elementType>(this,_firstIdx); }
         elementType* first() { return (elementType*)_TlinkedList::first(); };
         elementType* pop() { return (elementType*)_TlinkedList::pop(); }
+        elementType* pop_last() { return (elementType*)_TlinkedList::pop_last(); }
         void push_back(elementType* _element){ _TlinkedList::push_back(_element); };
         void push_first(elementType* _element){ _TlinkedList::push_first(_element); };
 };

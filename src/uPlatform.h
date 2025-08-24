@@ -5,6 +5,7 @@
  * UPLATFORM
  *
  * compiler flags:
+ *  iSDDS_COMPILE_FLOAT64
  * 	if sdds_noDebugOuput == 1		//prevent debug::write/log to print to the console
  * 	#ifdef STM32_CUBE				//use stm32
  *  #ifdef SDDS_ON_AVR
@@ -13,11 +14,17 @@
  *  #if defined(SDDS_ON_ARDUINO)
  * 	? __SDDS_UTYPEDEF_COMPILE_STRCONV 0
  *	? __SDDS_UTIME_CAN_PARSE_TEXT 0
+ *	SDDS_ON_PARTICLE
 
 *************************************************************************************/
 
 #ifdef __AVR__
-    #define SDDS_ON_AVR
+    #define SDDS_ON_AVR 1
+#endif
+
+#ifdef PARTICLE
+#define SDDS_ON_PARTICLE 1
+#define iSDDS_COMPILE_FLOAT64 1
 #endif
 
 #ifndef STM32_CUBE
@@ -26,10 +33,9 @@
 	#endif
 #endif
 
+
 /************************************************************************************
- * MARKI_DEBUG_PLATFORM
- *
- * used for development on windows machines
+ * stuff available on all platforms and compilers
 *************************************************************************************/
 
 #include <stdint.h>                         //uint8_t, ...
@@ -47,9 +53,63 @@ namespace dtypes {
 	typedef int32_t int32;
 	typedef int64_t int64;
 
-	//toDo!!! to be checked on each individual compiler and platfom!!!
+	//floating point
 	typedef float float32;
+#if iSDDS_COMPILE_FLOAT64
+	typedef double float64;
+#endif
+
+	/**
+	 * @brief TtickCount defines the type used for our timebase. It is stored in time events
+	 * and compared against sysTime.
+	 *
+	 * This type is intentionally defined as unsigned because signed integer overflow
+	 * results in undefined behavior (UB) in C. Although compiler flags like -fwrapv
+	 * can enforce wrapping behavior for signed integers, they are not reliably supported
+	 * across all platforms and may be silently ignored by some compilers.
+	 *
+	 * Therefore, we define both TtickCount (unsigned) and TtickCount_signed (signed).
+	 * Calculations are performed using the unsigned type to avoid UB, and the result
+	 * is cast to the signed type when needed, for example, to interpret time differences.
+	 *
+	 * Note: While unsigned subtraction is well-defined by the C standard, some compiler
+	 * optimizations could potentially lead to unexpected behavior in specific scenarios.
+	 * This setup aims to balance safety and correctness across platforms and compilers.
+	 */
+	typedef uint32_t TtickCount;
+	typedef int32_t TtickCount_signed;
+
+	//numeric limits
+	template <typename T> constexpr T high();
+	template <typename T> constexpr T low();
+	template <> constexpr uint8 high<uint8>() { return 255; }
+	template <> constexpr uint8 low<uint8>() { return 0; }
+	template <> constexpr uint16 high<uint16>() { return 65535; }
+	template <> constexpr uint16 low<uint16>() { return 0; }
+	template <> constexpr uint32 high<uint32>() { return 4294967295U; }
+	template <> constexpr uint32 low<uint32>() { return 0; }
+	template <> constexpr uint64 high<uint64>() { return 18446744073709551615ULL; }
+	template <> constexpr uint64 low<uint64>() { return 0; }
+	template <> constexpr int8 high<int8>() { return 127; }
+	template <> constexpr int8 low<int8>() { return -128; }
+	template <> constexpr int16 high<int16>() { return 32767; }
+	template <> constexpr int16 low<int16>() { return -32768; }
+	template <> constexpr int32 high<int32>() { return 2147483647; }
+	template <> constexpr int32 low<int32>() { return -2147483648; }
+	template <> constexpr int64 high<int64>() { return 9223372036854775807LL; }
+	template <> constexpr int64 low<int64>() { return -9223372036854775807LL - 1; }
+	template <> constexpr float32 high<float32>() { return 3.402823e+38F; }
+	template <> constexpr float32 low<float32>() { return -3.402823e+38F; }
+#if iSDDS_COMPILE_FLOAT64
+	template <> constexpr float64 high<float64>() { return 1.7976931348623157e+308; }
+	template <> constexpr float64 low<float64>() { return -1.7976931348623157e+308; }
+#endif
 }
+
+
+/************************************************************************************
+ * ESP specific stuff
+*************************************************************************************/
 
 #if defined(ESP32)
 	#include "freertos/FreeRTOS.h"
@@ -62,6 +122,13 @@ namespace dtypes {
 		portEXIT_CRITICAL(&__sdds_mux);
 #elif defined(ESP8266)
 #endif
+
+
+/************************************************************************************
+ * MARKI_DEBUG_PLATFORM
+ *
+ * used for development on windows machines
+*************************************************************************************/
 
 #if defined(__MINGW64__) || defined(WIN32)      //__MINGW64__ works in VS_Code, WIN32 in codeBlocks
     #include <stdint.h>                         //uint8_t, ...
@@ -81,6 +148,7 @@ namespace dtypes {
 		namespace sysTime{
 			constexpr int SYS_TICK_TIMEBASE = 1000;	//time in us for timeoverflow
 		}
+
         namespace simul{
             typedef void(*Tisr)();
             constexpr int PIN_COUNT = 64;
@@ -94,6 +162,7 @@ namespace dtypes {
         }
     }
 
+    inline void __sdds_systemReset(){}
     inline void __sdds_isr_disable(){}
     inline void __sdds_isr_enable(){}
 	#define __sdds_isr_critical(_code)
@@ -108,15 +177,12 @@ namespace dtypes {
 
     namespace dtypes{
         typedef std::string string;
-        typedef int64_t TsystemTime;
     }
 
     namespace strConv{
         template<typename valType>
         inline dtypes::string to_string(valType _val) { return std::to_string(_val); }
     }
-
-    dtypes::TsystemTime millis();
 
 
 #elif defined(STM32_CUBE)
@@ -136,6 +202,8 @@ namespace dtypes {
 	#include "stm32g4xx_hal.h"
 #endif
 
+inline void __sdds_systemReset(){ NVIC_SystemReset(); }
+
 #define __sdds_isr_disable() __disable_irq()
 #define __sdds_isr_enable() __enable_irq()
 #ifndef __sdds_isr_critical
@@ -149,7 +217,6 @@ namespace dtypes {
 
 namespace dtypes {
 	typedef std::string string;
-	typedef uint32_t TsystemTime;
 }
 
 namespace strConv {
@@ -163,10 +230,6 @@ namespace sdds{
 	namespace sysTime{
 		constexpr int SYS_TICK_TIMEBASE = 100; //time in us for timeoverflow
 	}
-}
-extern volatile uint32_t uwTick;
-inline dtypes::TsystemTime millis() {
-	return uwTick;
 }
 
 #else
@@ -200,7 +263,6 @@ inline dtypes::TsystemTime millis() {
 
     namespace dtypes{
         typedef String string;                      //for Arduino this seems to be the best option for dynamic strings
-        typedef long int TsystemTime;               //millis on Arduino returns... what is this exactly? unsigned long int?
     }
     namespace strConv{
         template<typename valType>
@@ -212,48 +274,10 @@ inline dtypes::TsystemTime millis() {
 	#define PROGMEM
 #endif
 
-//available on all compilers?
-namespace dtypes {
-	//signed integers
-	typedef uint8_t uint8;
-	typedef uint16_t uint16;
-	typedef uint32_t uint32;
-	typedef uint64_t uint64;
-
-	//unsigned integers
-	typedef int8_t int8;
-	typedef int16_t int16;
-	typedef int32_t int32;
-	typedef int64_t int64;
-
-	//toDo!!! to be checked on each individual compiler and platfom!!!
-	typedef float float32;
-
-	template <typename T> constexpr T high();
-	template <typename T> constexpr T low();
-	template <> constexpr uint8 high<uint8>() { return 255; }
-	template <> constexpr uint8 low<uint8>() { return 0; }
-	template <> constexpr uint16 high<uint16>() { return 65535; }
-	template <> constexpr uint16 low<uint16>() { return 0; }
-	template <> constexpr uint32 high<uint32>() { return 4294967295U; }
-	template <> constexpr uint32 low<uint32>() { return 0; }
-	template <> constexpr uint64 high<uint64>() { return 18446744073709551615ULL; }
-	template <> constexpr uint64 low<uint64>() { return 0; }
-	template <> constexpr int8 high<int8>() { return 127; }
-	template <> constexpr int8 low<int8>() { return -128; }
-	template <> constexpr int16 high<int16>() { return 32767; }
-	template <> constexpr int16 low<int16>() { return -32768; }
-	template <> constexpr int32 high<int32>() { return 2147483647; }
-	template <> constexpr int32 low<int32>() { return -2147483648; }
-	template <> constexpr int64 high<int64>() { return 9223372036854775807LL; }
-	template <> constexpr int64 low<int64>() { return -9223372036854775807LL - 1; }
-	template <> constexpr float32 high<float32>() { return 3.402823e+38F; }
-	template <> constexpr float32 low<float32>() { return -3.402823e+38F; }
-}
-
 namespace sdds{
 	namespace sysTime{
 		constexpr int MILLIS = 1000/SYS_TICK_TIMEBASE;
+		dtypes::TtickCount tickCount();
 	};
 };
 

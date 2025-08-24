@@ -1,16 +1,22 @@
 #include "uMultask.h"
 #include "uPlatform.h"
+#include "mhal/uSystemInfo.h"
 
 #if defined(__MINGW64__)
     #include <windows.h>
 	#include <chrono>
 #endif
-
 using namespace multask;
+
+dtypes::TtickCount_signed diffTime(TtickCount _t1, TtickCount _t2){
+	return static_cast<dtypes::TtickCount_signed>(_t1-_t2);
+}
 
 /************************************************************************************
 TtaskHandler
 *************************************************************************************/
+
+dtypes::uint32 TtaskHandler::FbusyTicks = 0;
 
 TtaskHandler& taskHandler(){
     static TtaskHandler taskhandler;
@@ -48,30 +54,37 @@ void TtaskHandler::signalEventISR(Tevent* _ev){
 	)
 }
 
-void TtaskHandler::setTimeEvent(Tevent* _ev, const TsystemTime _relTime){
-    unlinkTimeEvent(_ev);
-    TsystemTime now = sysTime();
-    TsystemTime delTime = now +_relTime;
-    auto it = FtimerQ.iterator();
+void TtaskHandler::setTimeEvent(Tevent* _ev, const TtickCount _relTime){
+	unlinkTimeEvent(_ev);
+	TtickCount now = sysTime();
+	TtickCount delTime = now +_relTime;
+	auto it = FtimerQ.iterator();
 
-    while (it.hasCurrent()){
-        auto ev = it.current();
-        if (delTime < ev->deliveryTime()){ break; }
+	while (it.hasCurrent()){
+		auto ev = it.current();
+		if (diffTime(delTime,ev->deliveryTime()) < 0){ break; }
 		it.jumpToNext();
-    }
-    _ev->FdeliveryTime = delTime;
-    #if MULTASK_DEBUG
-    debug::log("insert event %s, delT=%d before event %s, delT=%d",_ev->Fname,delTime,it.prev()==&FtimerQ?"null":static_cast<Tevent*>(it.prev())->Fname,it.prev()==&FtimerQ?-1:static_cast<Tevent*>(it.prev())->deliveryTime());
-    #endif
-    it.insert(_ev);
+	}
+	_ev->FdeliveryTime = delTime;
+	#if MULTASK_DEBUG
+	debug::log("insert event %s, delT=%d before event %s, delT=%d",_ev->Fname,delTime,it.prev()==&FtimerQ?"null":static_cast<Tevent*>(it.prev())->Fname,it.prev()==&FtimerQ?-1:static_cast<Tevent*>(it.prev())->deliveryTime());
+	#endif
+	it.insert(_ev);
 }
 
 void TtaskHandler::reclaimEvent(Tevent* _ev){
-    if (FprocQ.remove(_ev)) return;
-    if (FtimerQ.remove(_ev)) return;
+	if (FprocQ.remove(_ev)) return;
+	if (FtimerQ.remove(_ev)) return;
+	if (_ev->Fowner)
+		_ev->Fowner->FtaskQ.remove(_ev);
 }
 
 void TtaskHandler::dispatchEvent(Tevent* _ev, bool _eventFromIsr){
+	if (!FscheduleState){
+		FscheduleState = 1;
+		FswBusy.start();
+	}
+
     FcurrTask = _ev->Fowner;
     if (_ev->Fowner) {
 		//never put an event from isr to the taskQ!!! race condition!!!
@@ -93,57 +106,83 @@ void TtaskHandler::dispatchEvent(Tevent* _ev, bool _eventFromIsr){
 void TtaskHandler::calcTime(){
     #if MARKI_DEBUG_PLATFORM == 1
     #else
-        FsysTime = millis();
+        FsysTime = sdds::sysTime::tickCount();
     #endif
 }
 
 bool TtaskHandler::_handleEvent(){
-    Tevent* ev = nullptr;
+	Tevent* ev = nullptr;
 
-    if (FinterruptQ.hasElements()){
-    	__sdds_isr_critical(
-    		ev = FinterruptQ.pop();
-    	)
-        if (ev){
-            dispatchEvent(ev,true);
-            return true;
-        }
-    }
+	int eventHandled = 0;
+	
+	int loopCnt = 0;
+	while (FinterruptQ.hasElements()){
+		__sdds_isr_critical(
+			ev = FinterruptQ.pop();
+		)
+		if (!ev) break;
 
-    calcTime();
-    ev = FtimerQ.first();
-    if (ev){
-        TsystemTime delTime = ev->deliveryTime();
-        if (sysTime() >= delTime){
-            FtimerQ.pop();
-            dispatchEvent(ev,false);
-            return true;
-        }
-    }
+		dispatchEvent(ev,true);
+		eventHandled = 1;
+		if (++loopCnt >= 5){
+			//store this event for debugging
+			break;
+		}
+	}
 
-    ev = FprocQ.pop();
-    if (ev){
-        dispatchEvent(ev,false);
-        return true;
-    }
+	loopCnt = 0;
+	ev = FtimerQ.first();
+	while (ev){
+		calcTime();
 
-    return false;
+		TtickCount delTime = ev->deliveryTime();
+		if (diffTime(sysTime(),delTime) < 0) break;
+
+		FtimerQ.pop();
+		dispatchEvent(ev,false);
+		eventHandled = 1;
+		if (++loopCnt >= 5){
+			//store this event for debugging
+			break;
+		}
+		ev = FtimerQ.first();
+	}
+
+	ev = FprocQ.pop();
+	if (ev){
+		dispatchEvent(ev,false);
+		eventHandled = 1;
+	}
+
+	if (!eventHandled){
+		if (FscheduleState > 0){
+			FbusyTicks += FswBusy.getTicks();
+			FscheduleState = 0;
+		}
+	}
+
+	return eventHandled;
 };
 
 void TtaskHandler::_handleEvents(){
-    while (_handleEvent()){};
-    #if MARKI_DEBUG_PLATFORM == 1
-    auto ev = FtimerQ.first();
-    if (ev){
-        TsystemTime now = sysTime();
-        TsystemTime waitTime = ev->deliveryTime() - now;
-		auto start = std::chrono::high_resolution_clock::now();
-		Sleep(waitTime);
-		auto end = std::chrono::high_resolution_clock::now();
-		auto actualWaitTime = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-		FsysTime += actualWaitTime;
-    }
-    #endif
+	while ( _handleEvent()){};
+
+	#if MARKI_DEBUG_PLATFORM == 1
+	while (_handleEvent()){};
+	auto ev = FtimerQ.first();
+	if (ev){
+		calcTime();
+		TtickCount now = sysTime();
+		TtickCount waitTime = ev->deliveryTime() - now;
+		if (waitTime > 0){
+			auto start = std::chrono::high_resolution_clock::now();
+			Sleep(waitTime);
+			auto end = std::chrono::high_resolution_clock::now();
+			auto actualWaitTime = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+			FsysTime += actualWaitTime;
+		}
+	}
+	#endif
 }
 
 
@@ -175,15 +214,19 @@ void Tevent::signalFromIsr(){
     taskHandler().signalEventISR(this);
 }
 
-constexpr TsystemTime timeToMilliseconds(const TsystemTime _time){
+constexpr Tmilliseconds ticksToMillis(const TtickCount _time){
+	return _time/sdds::sysTime::MILLIS;
+}
+
+constexpr TtickCount millisToTicks(const Tmilliseconds _time){
 	return _time*sdds::sysTime::MILLIS;
 }
 
-void Tevent::setTimeEvent(const TsystemTime _relTime){
-	taskHandler().setTimeEvent(this, timeToMilliseconds(_relTime));
+void Tevent::setTimeEvent(const Tmilliseconds _relTime){
+	taskHandler().setTimeEvent(this, millisToTicks(_relTime));
 }
 
-void Tevent::setTimeEventTicks(const TsystemTime _relTime){
+void Tevent::setTimeEventTicks(const TtickCount _relTime){
 	taskHandler().setTimeEvent(this,_relTime);
 }
 
@@ -191,7 +234,13 @@ void Tevent::reclaim(){
     taskHandler().reclaimEvent(this);
 }
 
-void TisrEvent::signal(){
+void Tevent::setOwner(Tthread* _owner) { 
+	if (Fowner)
+		Fowner->FtaskQ.remove(this);	//remove event from taskQ if owner is about to be switched or set to null
+	Fowner = _owner; 
+}
+
+void multask::TisrEvent::signal(){
     taskHandler().signalEventISR(this);
 }
 
@@ -213,3 +262,17 @@ void Tthread::setPriority(multask::Tpriority _priority, bool _transferEvents){
     taskHandler().setTaskPriority(this,_priority,_transferEvents);
 }
 
+
+/************************************************************************************
+TstopWatch
+*************************************************************************************/
+
+namespace multask{
+	void TstopWatch::start(){
+		FlastTicks = mhal::TsystemInfo::getCycleCount();
+	}
+
+	TtickCount TstopWatch::getTicks(){
+		return mhal::TsystemInfo::getCycleCount()-FlastTicks;
+	}
+}

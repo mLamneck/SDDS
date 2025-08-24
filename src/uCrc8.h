@@ -29,7 +29,13 @@ namespace crc8{
 
 	inline void calc(Tcrc& _crc, const void* _in, uint8_t _inLen){
 		const uint8_t* p = static_cast<const uint8_t*>(_in);
-		while (_inLen-- > 0) calc(_crc,*p);
+		while (_inLen-- > 0) calc(_crc,*p++);
+	}
+
+	inline Tcrc calc(const void* _in, uint8_t _inLen){
+		Tcrc c = 0;
+		calc(c,_in,_inLen);
+		return c;
 	}
 }
 

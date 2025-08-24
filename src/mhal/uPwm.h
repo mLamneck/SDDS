@@ -16,13 +16,16 @@ namespace mhal{
 	class TtimerBase{
 	public:
 		constexpr static void setCounter(uint32_t _value){ };
+		static int getArr() {return 8000; };
 	};
 
 	template<class _Ttimer, class _TgpioPin, uint32_t _CH>
 	class TpwmChannelBase{
 	public:
+		using TIMER = _Ttimer;
 		typedef _TgpioPin GPIO_PIN;
 		constexpr static void setCompareChannel(uint32_t _value){ };
+		static void init() {};
 	};
 
 }
@@ -51,6 +54,14 @@ namespace mhal{
 #define TIM2_BASE 0
 #define TIM3_BASE 0
 #define TIM4_BASE 0
+#define TIM5_BASE 0
+#define TIM6_BASE 0
+#define TIM7_BASE 0
+#define TIM8_BASE 0
+#define TIM15_BASE 0
+#define TIM16_BASE 0
+#define TIM17_BASE 0
+#define TIM20_BASE 0
 #endif
 
 #endif /* MHAL_UPWM_H_ */

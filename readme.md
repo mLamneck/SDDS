@@ -1,5 +1,5 @@
 # SDDS (Self-Describing-Data-Structure)
-A lightweight, dependency-free C++ library to write event-driven processes with self-generating user interfaces primarily for Arduino.
+A lightweight C++ library for event-driven applications with auto-generated user interfaces.
 
 ## Table of contents
 - [Why use this library](#why-use-this-library)
@@ -7,8 +7,6 @@ A lightweight, dependency-free C++ library to write event-driven processes with 
   - [Arduino IDE](#arduino-ide)
   - [PlatformIO](#platformio)
     - [Coding with PlatformIO](#coding-platformIO)
-- [Supported platforms](#supported-platforms)
-- [Changes in the library](#changes-in-the-library)
 - [Example for this documentation](#example-for-this-documentation)
 - [Coding the example](#coding-the-example)
   - [Defining the structure](#defining-the-structure)
@@ -27,7 +25,7 @@ A lightweight, dependency-free C++ library to write event-driven processes with 
   - [The Data Structure (Tree)](#the-data-structure)
   - [Declaring variables](#declaring-variables)
   - [Calling functions with SDDS variables](#calling-functions-with-sdds-variables)
-  - [Calling functions with SDDS enums](#calling-funtions-with-sdds-enums)
+  - [Calling functions with SDDS enums](#calling-functions-with-sdds-enums)
   - [Data types](#data-types)
     - [Primitve types](#primitives)
     - [Time](#ttime)    
@@ -43,6 +41,9 @@ A lightweight, dependency-free C++ library to write event-driven processes with 
      - [Guidelines](#interrupt-guidelines)
      - [Interrupts are evil](#interrupts-are-evil)
      - [How to use interrupts with SDDS](#how-to-use-interrupts-with-sdds)
+
+- [Supported platforms](#supported-platforms)
+- [Changes in the library](#changes-in-the-library)
 
 - [Known Issues](#known-issues)
   - [Boards with AVR CPU's](#boards-with-avr-cpus)
@@ -110,98 +111,6 @@ We provide some useful snippets to further speed up your development process and
 </p>
 
 
-## Supported platforms
-
-
-The library is intended to be highly scalable, i.e., capable of running with minimal RAM and/or ROM, as well as on more powerful platforms like the ESP32 or different TEENSY boards. It's also intended to be independent of Arduino. Essentially, it's possible to use it within Espressif IDF or STM32Cube. So far, the library has been tested on the following boards using the Arduino platform:
-
-- Teensy 3.2
-- ESP32
-  - ESP-WROOM-32
-  - WEMOS LOLIN32 Lite
-- ESP8266
-  - LOLIN D1 mini
-  - LOLIN D1 mini lite
-- Arduino
-  - UNO [*](#reacting-to-state-changes-on-avr)
-
-We would appreciate feedback to further extend this list.
-
-For STM32Cube, we have tested on the following boards:
-- NUCLEO C031C6
-- NUCLEO-G474RE
-- Custom boards with STM32 MCUs
-
-As the IDE, we have used the [STM32CubeIDE](https://www.st.com/en/development-tools/stm32cubeide.html). So far, we cannot provide ready-to-use examples for STM32, because we have only used it with the vbusSpike, and there is currently no implementation for the serialSpike.
-
-Nevertheless, we want to give a rough example:
-
-First of all, it's important to create a C++ project and not a C project, which is the default in STM32CubeIDE. Choosing C++ in the new project's wizard is not enough. By default, this creates a `main.c`. In order to make use of the C++ language, you have to manually add a `.cpp` file. There are some good examples on the internet on how to do this. After creating the project, you have to specify a compiler flag `STM32_CUBE`. In the STM32CubeIDE, you can add this flag under **Project Properties -> C/C++ General -> Path and Symbols -> Symbols**. Add `STM32_CUBE` without a value. This adds `-DSTM32_CUBE` to the compiler arguments, which we use to enable conditional compilation. The IDE does a good job creating the boilerplate code for a new project. With some minor adjustments, this should look almost like an Arduino project. A typical `main.cpp` would look like this:
-
-
-```C++
-#include "main.h"
-#include "uTypedef.h"
-#include "uMultask.h"
-
-class TuserStruct : public TmenuHandle{
-	...
-	// your code
-};
-
-TuserStruct userStruct;
-//add some spikes
-
-void setup(){
-
-}
-
-void loop(){
-	TtaskHandler::handleEvents();
-}
-
-int main(){
-	HAL_Init();
-	SystemClock_Config();
-
-	setup();
-	while (true)
-	{
-		loop();
-	}
-}
-
-```
-
-
-## Changes in the library
-
-The library is under constant development. Most of the time, this will not affect user code. Changes that affect user code will be listed here in chronologically descending order. We divide these into breaking and non-breaking changes. There's nothing more annoying than breaking changes in libraries, and we do our best to keep this list empty.
-
-### Breaking changes
-
-Changes that will break user code will be listed here.
-
-### Non-breaking changes
-
-#### 2025/01: sdds_struct not needed anymore
-
-From now on, it's no longer necessary to wrap your variables in `sdds_struct`. For example, in the following code from the LED example, you can remove the commented-out lines.
-
-```C++
-class Tled : public TmenuHandle {
-  public:
-    //sdds_struct(
-        sdds_var(TonOffState, ledSwitch, sdds::opt::saveval)
-        sdds_var(TonOffState, blinkSwitch, sdds::opt::saveval)
-        sdds_var(Tuint16, onTime, sdds::opt::saveval, 500)  
-        sdds_var(Tuint16, offTime, sdds::opt::saveval, 500)
-    //)
-};
-```
-
-**Note:** There is no need to remove the lines. Old code will still work.
-
 ## Example for this documentation
 
 The topic addressed by this document is fairly abstract. That's why we provide a simple example that will be used throughout the document to show the connection to a real-world scenario. For this purpose, we want to use an advanced LED blinking code with the following features:
@@ -228,16 +137,15 @@ Otherwise, let's start by defining the data structure for our example. We need t
 #include "uTypedef.h"
 #include "uMultask.h"
 
-ENUM(OFF,ON) TonOffState;
+sdds_enum(OFF,ON) TonOffState;
 
 class Tled : public TmenuHandle{
   public:
-    sdds_struct(
-        sdds_var(TonOffState,ledSwitch,sdds::opt::saveval)
-        sdds_var(TonOffState,blinkSwitch,sdds::opt::saveval)
-        sdds_var(Tuint16,onTime,sdds::opt::saveval,500)  //flag for eeprom save and give a default value	
-        sdds_var(Tuint16,offTime,sdds::opt::saveval,500)
-    )
+	sdds_var(TonOffState,ledSwitch,sdds::opt::saveval)
+	sdds_var(TonOffState,blinkSwitch,sdds::opt::saveval)
+	sdds_var(Tuint16,onTime,sdds::opt::saveval,500)
+	sdds_var(Tuint16,offTime,sdds::opt::saveval,500)
+
     Tled(){
         pinMode(LED_BUILTIN, OUTPUT);
 
@@ -245,7 +153,7 @@ class Tled : public TmenuHandle{
     }
 };
 ```
-We start with the necessary includes followed by an enum definition. Next, we define the necessary process variables for our example by deriving a class from `TmenuHandle` provided by the library. Note the only special thing here is the use of `sdds_struct` and `sdds_var`. Don't care about it; it will always look like this. Just note `sdds_var` has 4 parameters while the last 2 are optional.
+We start with the necessary includes followed by an enum definition. Next, we define the necessary process variables for our example by deriving a class from `TmenuHandle` provided by the library. Note the only special thing here is the use of `sdds_var`. It has 4 parameters while the last 2 are optional.
 
 `sdds_var(dtype,name[,option,defaulValue])`
 1. Data Type
@@ -262,7 +170,7 @@ So far, we have defined our data structure. For the moment, just assume that it 
 Tled(){
   ...
   on(ledSwitch){
-    if (ledSwitch == TonOffState::dtype::ON) digitalWrite(LED_BUILTIN,1);
+    if (ledSwitch == TonOffState::ON) digitalWrite(LED_BUILTIN,1);
     else digitalWrite(LED_BUILTIN,0);
   };
 }
@@ -285,33 +193,32 @@ sdds_enum(OFF,ON) TonOffState;
 class Tled : public TmenuHandle{
     Ttimer timer;	//this is added
     public:
-      sdds_struct(
-          sdds_var(TonOffState,ledSwitch,sdds::opt::saveval)
-          sdds_var(TonOffState,blinkSwitch,sdds::opt::saveval)
-          sdds_var(Tuint16,onTime,sdds::opt::saveval,500)
-          sdds_var(Tuint16,offTime,sdds::opt::saveval,500)
-      )
+      sdds_var(TonOffState,ledSwitch,sdds::opt::saveval)
+      sdds_var(TonOffState,blinkSwitch,sdds::opt::saveval)
+      sdds_var(Tuint16,onTime,sdds::opt::saveval,500)
+      sdds_var(Tuint16,offTime,sdds::opt::saveval,500)
+
       Tled(){
           pinMode(LED_BUILTIN, OUTPUT);
 
           on(ledSwitch){
-              if (ledSwitch == TonOffState::dtype::ON) digitalWrite(LED_BUILTIN,1);
+              if (ledSwitch == TonOffState::ON) digitalWrite(LED_BUILTIN,1);
               else digitalWrite(LED_BUILTIN,0);
           };
 
           // code from here is new
           on(blinkSwitch){
-              if (blinkSwitch == TonOffState::dtype::ON) timer.start(0);
+              if (blinkSwitch == TonOffState::ON) timer.start(0);
               else timer.stop();
           };
 
           on(timer){
-              if (ledSwitch == TonOffState::dtype::ON){
-                  ledSwitch = TonOffState::dtype::OFF;
+              if (ledSwitch == TonOffState::ON){
+                  ledSwitch = TonOffState::OFF;
                   timer.start(offTime);
               } 
               else {
-                  ledSwitch = TonOffState::dtype::ON;
+                  ledSwitch = TonOffState::ON;
                   timer.start(onTime);
               }
           };
@@ -319,7 +226,7 @@ class Tled : public TmenuHandle{
 };
 ```
 
-Note the definition of the `Ttimer` at the top of the class. Just like we did with `ledSwitch`, we defined an event handler for our `blinkSwitch`. If the switch is on, it just starts the timer with the value of 0, which basically means elapse as soon as you can. If the switch is off, we just stop the timer. And how do we react to the elapsed timer? Just like we do with all state changes: `on(timer){...}`. Here we just toggle the LED and start the timer with the corresponding value.
+Note the added definition of the `Ttimer` at the top of the class. Just like we did with `ledSwitch`, we defined an event handler for our `blinkSwitch`. If the switch is on, it just starts the timer with the value of 0, which basically means elapse as soon as you can. If the switch is off, we just stop the timer. And how do we react to the elapsed timer? Just like we do with all state changes: `on(timer){...}`. Here we just toggle the LED and start the timer with the corresponding value.
 
 ### Putting it all together
 
@@ -335,13 +242,13 @@ Now that we have a fully functional component, we can use it, for example, in an
 //...
 
 class TuserStruct : public TmenuHandle{
-    sdds_struct(
+    public:
         sdds_var(Tled,led)
         sdds_var(TparamSaveMenu,params)
-    )
-    TuserStruct(){
-        //you application code goes here... 
-    }
+
+        TuserStruct(){
+            //you application code goes here... 
+        }
 } userStruct;
 
 #include "uSerialSpike.h"
@@ -385,32 +292,31 @@ sdds_enum(OFF,ON) TonOffState;
 class Tled : public TmenuHandle{
     Ttimer timer;
     public:
-      sdds_struct(
-          sdds_var(TonOffState,ledSwitch,sdds::opt::saveval)
-          sdds_var(TonOffState,blinkSwitch,sdds::opt::saveval)
-          sdds_var(Tuint16,onTime,sdds::opt::saveval,500)
-          sdds_var(Tuint16,offTime,sdds::opt::saveval,500)
-      )
-      Tled(){
+        sdds_var(TonOffState,ledSwitch,sdds::opt::saveval)
+        sdds_var(TonOffState,blinkSwitch,sdds::opt::saveval)
+        sdds_var(Tuint16,onTime,sdds::opt::saveval,500)
+        sdds_var(Tuint16,offTime,sdds::opt::saveval,500)
+
+        Tled(){
           pinMode(LED_BUILTIN, OUTPUT);
 
           on(ledSwitch){
-              if (ledSwitch == TonOffState::dtype::ON) digitalWrite(LED_BUILTIN,0);
+              if (ledSwitch == TonOffState::ON) digitalWrite(LED_BUILTIN,0);
               else digitalWrite(LED_BUILTIN,1);
           };
 
           on(blinkSwitch){
-              if (blinkSwitch == TonOffState::dtype::ON) timer.start(0);
+              if (blinkSwitch == TonOffState::ON) timer.start(0);
               else timer.stop();
           };
 
           on(timer){
-              if (ledSwitch == TonOffState::dtype::ON){
-                  ledSwitch = TonOffState::dtype::OFF;
+              if (ledSwitch == TonOffState::ON){
+                  ledSwitch = TonOffState::OFF;
                   timer.start(offTime);
               } 
               else {
-                  ledSwitch = TonOffState::dtype::ON;
+                  ledSwitch = TonOffState::ON;
                   timer.start(onTime);
               }
           };
@@ -419,10 +325,9 @@ class Tled : public TmenuHandle{
 
 class TuserStruct : public TmenuHandle{
   public:
-    sdds_struct(
-        sdds_var(Tled,led)
-        sdds_var(TparamSaveMenu,params)
-    )
+    sdds_var(Tled,led)
+    sdds_var(TparamSaveMenu,params)
+  
     TuserStruct(){
         //you application code goes here... 
     }
@@ -485,11 +390,13 @@ We want to point out here that the following section is not how it's supposed to
    
 #### Request the type description
 3. Send the command ```T```.
-    * The response will look like the following. It's a full description of the data structure you have declared within your code, including options, the current value, possible values for enums, ... This information can be used by software to build a generic user interface like showcased with the webSpike for ESP-based boards. For now, let's continue to explore the fundamentals in the serial monitor.
+    * The response will look like the following. It's a full description of the data structure you have declared within your code, including types, options and possible values for enums. This information can be used by software to build a generic user interface like showcased with the [SDDS-Minimal-Browser](https://github.com/mLamneck/SDDS_minimalBrowser). For now, let's continue to explore the fundamentals in the serial monitor.
      
        ```t 0 [{"type":66,"opt":0,"name":"led","value":[{"type":49,"opt":0,"name":"ledSwitch","value":"OFF","enums":["OFF","ON"]},...```
+
+	   ```t 0 {"e":{"0":["OFF","ON"],"1":["___","save","load"],"2":["___","crc","invStrLen","outOfMem","invVers"]},"d":[[66,0,"led",[[49,128,"ledSwitch",0],[49,128,"blinkSwitch",0],[2,128,"onTime"],[2,128,"offTime"]]],[66,0,"params",[[49,0,"action",1],[49,0,"error",2],[2,0,"size"],[4,0,"time"]]]]}``` 
     
-      Without specifying a path after the ```T```, you get the whole data structure. You can also ask more specifically, i.e., ```T led```, which will give you the description of the component we've created. You can also specify an arbitrary number after the `T`, i.e., `T 88 led`, if you want to do multiple without waiting for the individual responses. If you do not specify a number, you will find a `0` in the response like in the above example.
+      Without specifying a path after the ```T```, you get the whole data structure. You can also ask more specifically, i.e., ```T led```, which will give you the description of the component we've created. You can also specify an arbitrary number after the `T`, i.e., `T 88 led`, if you want to do multiple requests without waiting for the individual responses. If you do not specify a number, you will find a `0` in the response like in the above example.
 
 
 #### Subscribe to change notification
@@ -532,7 +439,7 @@ l 2 0 ["___","___",8]
  ```
 
 The first ```___``` is the action variable which you have set to ```save``` with your command. This triggers the save of the menu and when the command is done, it is set back to ```___``` by the `TparamSaveMenu` component. The second ```___``` means no error occurred and the third value is the number of bytes that have been saved to the non-volatile memory, in this case 8 (2x1 byte for the ledSwitch/blinkSwitch, 2x2 bytes for on/offTime, and 2 bytes for internal management). Read more about [Parameter Saving](#parameter-save) in the Documentation.
- 
+
 ## Documentation
 
 As always, when time is a limiting factor, you keep things like documentation and unit testing short in order to be productive. However, the best library is useless without proper documentation. We do our best in the following chapters to address the most important things. Regarding unit tests, there are a few for critical functionalities, and we hope to find some developers with experience in this field to help us do a better job.
@@ -553,11 +460,10 @@ Another example which is more focused on producing data would be a readout of th
 class Tadc : public TmenuHandle{
     Ttimer timer;
     public:
-        sdds_struct(
-            sdds_var(Tuint16,value,sdds::opt::readonly)
-            sdds_var(Tuint8,pin,sdds::opt::saveval)
-            sdds_var(Tuint16,readInterval,sdds::opt::saveval,100)
-        )
+        sdds_var(Tuint16,value,sdds::opt::readonly)
+        sdds_var(Tuint8,pin,sdds::opt::saveval)
+        sdds_var(Tuint16,readInterval,sdds::opt::saveval,100)
+
         Tadc(){
           on(pin){
 			//check pin to be a valid pin...
@@ -590,14 +496,12 @@ This is an example of a component on the local machine being a client and reacti
 
 ### Declaring Variables
 
-In SDDS, variables are declared using `sdds_var(dtype, name[, option, defaultValue])` inside a `sdds_struct(...)` block inside a class derived from `TmenuHandle`, i.e.
+In SDDS, variables are declared using `sdds_var(dtype, name[, option, defaultValue])` inside a class derived from `TmenuHandle`, i.e.
 ```C++
 class TuserStruct : public TmenuHandle{
-    sdds_struct(
-        sdds_var(Tuint8,cnt);
-        sdds_var(Tfloat32,someValue);
+    sdds_var(Tuint8,cnt);
+    sdds_var(Tfloat32,someValue);
         //...
-    )
 };
 ```
 You will always group variables that belong together in such a structure and add some functionality to form a component. The macro `sdds_var` has four parameters, while the last two are optional.
@@ -625,9 +529,8 @@ void incByRef(Tuint8& _val){
 
 class TuserStruct : public TmenuHandle{
     public:
-        sdds_struct(
-            sdds_var(Tuint8,cnt);
-        )
+        sdds_var(Tuint8,cnt);
+
         TuserStruct(){
             on(cnt){
                 debug::log(cnt.to_string().c_str());
@@ -654,26 +557,26 @@ They receive the variable `_val` by value (a copy of it). The main difference be
 The third function `void incByRef(Tuint8& _val)`, as expected, receives a reference to the variable and thus modifying the value has the same effect as it would outside of the function.
 
 
-### Calling Funtions with SDDS Enums
+### Calling Functions with SDDS Enums
 
 The usage of enums as function arguments is basically the same. But there is more to say. Again, consider the following code. Note the line:
 
-`_enum = _enum == TonOff::e::off ? TonOff::e::on : TonOff::e::off;`
+`_enum = _enum == TonOff::off ? TonOff::on : TonOff::off;`
 
 This line is just toggling the enum's value if you are not familiar with this C++ syntax.
 ```C++
 sdds_enum(on,off) TonOff;
 
 void changeEnumByVal(TonOff _enum){
-    _enum = _enum == TonOff::e::off ? TonOff::e::on : TonOff::e::off;
+    _enum = _enum == TonOff::off ? TonOff::on : TonOff::off;
 }
 
 void changeEnumByValMoreEfficient(TonOff::dtype _enum){
-    _enum = _enum == TonOff::e::off ? TonOff::e::on : TonOff::e::off;
+    _enum = _enum == TonOff::off ? TonOff::on : TonOff::off;
 }
 
 void changeEnumByRef(TonOff& _enum){
-    _enum = _enum == TonOff::e::off ? TonOff::e::on : TonOff::e::off;
+    _enum = _enum == TonOff::off ? TonOff::on : TonOff::off;
 }
 
 void passEnumConstAndLog(TonOff::dtype _enum){
@@ -682,16 +585,15 @@ void passEnumConstAndLog(TonOff::dtype _enum){
 
 class TuserStruct : public TmenuHandle{
     public:
-        sdds_struct(
-            sdds_var(TonOff,mySwitch)
-        )
+        sdds_var(TonOff,mySwitch)
+
         TuserStruct(){
             on(mySwitch){
                 debug::log(mySwitch.c_str());
             };
 
             //this will log "on"
-            mySwitch = TonOff::e::on;
+            mySwitch = TonOff::on;
 
             //won't lof something
             changeEnumByVal(mySwitch);
@@ -701,7 +603,7 @@ class TuserStruct : public TmenuHandle{
             changeEnumByRef(mySwitch);
 
             //this will log "off" again
-            passEnumConstAndLog(TonOff::e::off);
+            passEnumConstAndLog(TonOff::off);
         }
 } userStruct;
 ```
@@ -774,15 +676,16 @@ SDDS provides primitive types as well as composed types and enums.
 #### Primitives
 We support the usual primitive data types as displayed in the following table. The TypeID field is what you see as the type fields in the response of the ```T``` command.
 
-| Type      | TypeID/hex  | TypeID/dec  | Min         | Max         |
-| -         | :-:         | :-:         | -----------:| -----------:|
-| Tuint8    | 0x01        | 1           | 0           | 255         |
-| Tuint16   | 0x02        | 2           | 0           | 65535       |
-| Tuint32   | 0x04        | 4           | 0           | 4294967295  |
-| Tint8     | 0x11        | 17          | -128        | 127         |
-| Tint16    | 0x12        | 18          |-32768       | 32767       |
-| Tint32    | 0x14        | 20          |-2147483648  | 2147483647  |
-| Ffloat32  | 0x24        | 36          |             |             |
+| Type      | TypeID/hex  | TypeID/dec  | Min           | Max           |
+| -         | :-:         | :-:         | -----------:  | -----------:  |
+| Tuint8    | 0x01        | 1           | 0             | 255           |
+| Tuint16   | 0x02        | 2           | 0             | 65535         |
+| Tuint32   | 0x04        | 4           | 0             | 4294967295    |
+| Tint8     | 0x11        | 17          | -128          | 127           |
+| Tint16    | 0x12        | 18          |-32768         | 32767         |
+| Tint32    | 0x14        | 20          |-2147483648    | 2147483647    |
+| Ffloat32  | 0x24        | 36          | -3.40282e+38  | 3.40282e+38   |
+| Ffloat64  | 0x28        | 40          | -1.79769e+308 | 1.79769e+308  |
 
 
 #### Other Types
@@ -822,18 +725,19 @@ If you don't know about enums, it is basically an integer type that has a more r
 ```C++
 sdds_enum(on,off) TonOffState;
 ...
-sdds_struct(
+class TmyComponent : public TmenuHandle{
   sdds_var(TonOffState,mySwitch)
-)
+};
 ```
 this declaration is the equivalent to C++ builtin `class enum` like
 ```C++
-enum class TonOffState1 {on,off};
-struct{
-  TonOffState1 mySwitch;
+enum class TonOffState {on,off};
+...
+class TmyComponent{
+  TonOffState mySwitch;
 };
 ```
-However, it is much more powerful because of the capability to translate the numeric value back into its string representation, which is impossible in native C++. Read more about the usage of enums [here](#calling-functions-with-sdds-enums). The only thing to take further note of here is that you have to use `TonOffState::e::on/off` instead of just `TonOffState::on/off` for a regular C++ class enum.
+However, it is much more powerful because of the capability to translate the numeric value back into its string representation, which is impossible in native C++. Read more about the usage of enums [here](#calling-functions-with-sdds-enums).
 
 #### Structs
 Structs are a collection of primitive values bundled together. Structs can be nested to form the [tree](#the-data-structure). You can also derive a struct from a base struct.
@@ -841,24 +745,18 @@ Structs are a collection of primitive values bundled together. Structs can be ne
 ```C++
 //declare a struct
 class TmyStruct : public TmenuHandle{
-    sdds_struct(
-        sdds_var(Tuint8,cnt);
-        sdds_var(Tuint32,max);
-    )
+    sdds_var(Tuint8,cnt);
+    sdds_var(Tuint32,max);
 };
 
 //nest within another struct
 class TrootStruct : public TmenuHandle{
-    sdds_struct(
-        sdds_var(TmyStruct,myStruct);
-    )
+    sdds_var(TmyStruct,myStruct);
 };
 
 //derive from TmyStruct and add a time variable
 class TderivedStruct : public TmyStruct{
-    sdds_struct(
-        sdds_var(Ttime,time);
-    )
+    sdds_var(Ttime,time);
 };
 ```
 
@@ -913,7 +811,7 @@ Find a list of all available commands in the following table.
 | Type            | Func | Port | Data           | Example |
 |-----------------|------|------|----------------|---------|
 | Type request    | T    |  %d+ | Path           | T 11 led |
-| Type answer     | t    |  %d+ | JSON           | T 11 [{"type": 1, "opt": 0, "value":1},...] |
+| Type answer     | t    |  %d+ | JSON           | T 11 {"d":[[1,0,"value"],...} |
 | Link request    | L    |  %d+ | Path           | L 33 led |
 | Link answer     | l    |  %d+ | First \| JSON  | l 33 0 [1,1.4,"stringVal",...] |
 | Unlink request  | U    |  %d+ | -              | U 3 |
@@ -997,7 +895,7 @@ In the interrupt handler, we just signal our global interrupt-safe event. On the
   ...
   attachInterrupt(digitalPinToInterrupt(BTN_PIN),pinChangeISR,CHANGE);
   on(evISR){
-      btn = digitalRead(BTN_PIN) ? TbtnState::e::up : TbtnState::e::down;
+      btn = digitalRead(BTN_PIN) ? TbtnState::up : TbtnState::down;
   };
 ```
 
@@ -1012,18 +910,17 @@ class TuserStruct : public TmenuHandle{
     const int BTN_PIN1 = 22;
     const int BTN_PIN2 = 23;
     public:
-        sdds_struct(
-            sdds_var(TbtnState,btn1)
-            sdds_var(TbtnState,btn2)
-        )
+        sdds_var(TbtnState,btn1)
+        sdds_var(TbtnState,btn2)
+
         TuserStruct(){
           pinMode(BTN_PIN1,INPUT);
           attachInterrupt(digitalPinToInterrupt(BTN_PIN1),pinChangeISR,CHANGE);
           pinMode(BTN_PIN2,INPUT);
           attachInterrupt(digitalPinToInterrupt(BTN_PIN2),pinChangeISR,CHANGE);
           on(evISR){
-              btn1 = digitalRead(BTN_PIN1) ? TbtnState::e::up : TbtnState::e::down;
-              btn2 = digitalRead(BTN_PIN2) ? TbtnState::e::up : TbtnState::e::down;
+              btn1 = digitalRead(BTN_PIN1) ? TbtnState::up : TbtnState::down;
+              btn2 = digitalRead(BTN_PIN2) ? TbtnState::up : TbtnState::down;
           };
 
 } userStruct;
@@ -1037,53 +934,188 @@ Let's finally check if we followed the guidelines mentioned in the interrupt int
 * We do the actual work outside of the interrupt.
 
 
+## Supported platforms
+
+
+The library is intended to be highly scalable, i.e., capable of running with minimal RAM and/or ROM, as well as on more powerful platforms like the ESP32 or different TEENSY boards. It's also intended to be independent of Arduino. Essentially, it's possible to use it within Espressif IDF or STM32Cube. So far, the library has been tested on the following boards using the Arduino platform:
+
+- Teensy 3.2
+- ESP32
+  - ESP-WROOM-32
+  - WEMOS LOLIN32 Lite
+- ESP8266
+  - LOLIN D1 mini
+  - LOLIN D1 mini lite
+- Arduino
+  - UNO [*](#reacting-to-state-changes-on-avr)
+
+We would appreciate feedback to further extend this list.
+
+For STM32Cube, we have tested on the following boards:
+- NUCLEO C031C6
+- NUCLEO-G474RE
+- Custom boards with STM32 MCUs
+
+As the IDE, we have used the [STM32CubeIDE](https://www.st.com/en/development-tools/stm32cubeide.html). So far, we cannot provide ready-to-use examples for STM32, because we have only used it with the vbusSpike, and there is currently no implementation for the serialSpike.
+
+Nevertheless, we want to give a rough example:
+
+First of all, it's important to create a C++ project and not a C project, which is the default in STM32CubeIDE. Choosing C++ in the new project's wizard is not enough. By default, this creates a `main.c`. In order to make use of the C++ language, you have to manually add a `.cpp` file. There are some good examples on the internet on how to do this. After creating the project, you have to specify a compiler flag `STM32_CUBE`. In the STM32CubeIDE, you can add this flag under **Project Properties -> C/C++ General -> Path and Symbols -> Symbols**. Add `STM32_CUBE` without a value. This adds `-DSTM32_CUBE` to the compiler arguments, which we use to enable conditional compilation. The IDE does a good job creating the boilerplate code for a new project. With some minor adjustments, this should look almost like an Arduino project. A typical `main.cpp` would look like this:
+
+
+```C++
+#include "main.h"
+#include "uTypedef.h"
+#include "uMultask.h"
+
+class TuserStruct : public TmenuHandle{
+	...
+	// your code
+};
+
+TuserStruct userStruct;
+//add some spikes
+
+void setup(){
+
+}
+
+void loop(){
+	TtaskHandler::handleEvents();
+}
+
+int main(){
+	HAL_Init();
+	SystemClock_Config();
+
+	setup();
+	while (true)
+	{
+		loop();
+	}
+}
+
+```
+
+
+## Changes in the library
+
+The library is under constant development. Most of the time, this will not affect user code. Changes that affect user code will be listed here in chronologically descending order. We divide these into breaking and non-breaking changes. There's nothing more annoying than breaking changes in libraries, and we do our best to keep this list empty.
+
+### Breaking changes
+
+Changes that will break user code will be listed here.
+
+### Non-breaking changes
+
+#### 2025/08: Enums – `e` prefix no longer required
+
+Previously, accessing internal enumerations required the `e` scope qualifier. For example, the following code was necessary:
+
+```C++
+...
+  sdds_enum(OFF,ON) TonOffState;
+  //...
+  ledSwitch = TonOffState::ON;
+  if (ledSwitch == TonOffState::ON) {//...};
+```
+
+Now, a more convenient and familiar C++-style syntax is supported:
+
+```C++
+...
+  sdds_enum(OFF,ON) TonOffState;
+  //...
+  ledSwitch = TonOffState::ON;
+  if (ledSwitch == TonOffState::ON) {//...};
+```
+
+Old code using `TonOffState::e::...` still works and remains fully compatible.
+
+
+#### 2025/07: More efficient repsonse to T command
+
+The format of the T command was updated to reduce unnecessary overhead.
+In the old version, every item included redundant keys ("type", "opt", "name") and duplicated enum definitions for each field.
+The new format eliminates this duplication, resulting in a more compact and efficient structure. Also, the "value" field has been removed, since retrieving the initial values for every item is not necessary.
+
+Old Format:
+
+```t 0 [{"type":66,"opt":0,"name":"led","value":[{"type":49,"opt":0,"name":"ledSwitch","value":"OFF","enums":["OFF","ON"]},{"type":49,"opt":0,"name":"blinkSwitch","value":"OFF","enums":["OFF","ON"]},{"type":2,"opt":128,"name":"onTime","value":500},{"type":2,"opt":128,"name":"offTime","value":500}```
+
+New Format:
+
+```t 0 {"e":{"0":["OFF","ON"]},"d":[[66,0,"led",[[49,128,"ledSwitch",0],[49,128,"blinkSwitch",0],[2,128,"onTime"],[2,128,"offTime"]]]]}```
+
+
+#### 2025/01: sdds_struct not needed anymore
+
+From now on, it's no longer necessary to wrap your variables in `sdds_struct`. For example, in the following code from the LED example, you can remove the commented-out lines.
+
+```C++
+class Tled : public TmenuHandle {
+  public:
+    //sdds_struct(
+        sdds_var(TonOffState, ledSwitch, sdds::opt::saveval)
+        sdds_var(TonOffState, blinkSwitch, sdds::opt::saveval)
+        sdds_var(Tuint16, onTime, sdds::opt::saveval, 500)  
+        sdds_var(Tuint16, offTime, sdds::opt::saveval, 500)
+    //)
+};
+```
+
+**Note:** There is no need to remove the lines. Old code will still work.
+
 ## Known issues
 ### Boards with AVR CPU's
 
-At the moment, we do not fully support AVR CPUs because of AVR-GCC's inability to capture variables in lambda functions. We will work on this issue, but at the moment when using AVRs you need to change the syntax slightly. Nevertheless, the syntax for AVR at least works for all platforms. Perhaps we can solve this issue somewhen on our own using some type-traits magic.
+At present, our full support for AVR CPUs is limited due to certain constraints:
+
+- AVR-GCC's inability to capture variables in lambda functions
+- Other missing features in the AVR-GCC compiler
+
+We strongly advise using newer board models that fully support modern C++ standards. These boards offer better compatibility with our library and provide access to a wider range of features. Despite these limitations, it is still possible to compile code using our library for AVR-based boards. However, users should be aware that:
+
+- Some advanced features may not be available
+- Certain coding patterns might need to be adapted
+- Performance optimizations could be limited
+
+For the best experience and full functionality, consider upgrading to a more recent microcontroller platform that aligns with current C++ standards.
 
 ### Reacting to state changes on AVR
 At the moment we have to adjust the syntax for boards with AVR CPU's when reacting to state changes from
 
 ```C++
 ...
-Tled(){
-  ...
-  on(ledSwitch){
-    if (ledSwitch == TonOffState::dtype::ON) digitalWrite(LED_BUILTIN,1);
-    else digitalWrite(LED_BUILTIN,0);
-  };
-}
+class Tled : public TmenuHandle{
+  public:
+    Tled(){
+      on(ledSwitch){
+        if (ledSwitch == TonOffState::ON) digitalWrite(LED_BUILTIN,1);
+        else digitalWrite(LED_BUILTIN,0);
+      };
+    }
+};
 ```
 to
 ```C++
 ...
-Tled(){
-  ...
-  on(ledSwitch){
-    sdds_self(Tled);
-    if (self->ledSwitch == TonOffState::dtype::ON) digitalWrite(LED_BUILTIN,1);
-    else digitalWrite(LED_BUILTIN,0);
-  };
+class Tled : public TmenuHandle{
+  public:
+    void onLedSwitch(){
+      if (ledSwitch == TonOffState::ON) digitalWrite(LED_BUILTIN,1);
+      else digitalWrite(LED_BUILTIN,0);
+    }
+
+    Tled(){
+      on(ledSwitch){ sdds_self(Tled)->onLedSwitch(); };
+	}
 }
 ```
 
-Unfortunately we have to use `sdds_self(classname)` to retrieve a reference to the current object where classname is the name of your component i.e. Tled. The retrieved reference is implicitly called `self`. Therefore in the following code whenever you want to access data from the current object you need to use `self->variableToAccess` instead of just the variable name i.e. `ledSwitch` vs. `self->ledSwitch`. This has to be done in each `on(var){...}` block.
+The most straightforward way to refactor the code is to move the logic you'd typically write in the `on` event handler into a separate method within the class, such as `onLedSwitch`. You can then call this function from the event handler using `sdds_self(Tled)->onLedSwitch()`.
 
-There is an alternative syntax that you might find a bit nicer:
-
-```C++
-...
-Tled(){
-  #define ref(var) sdds_ref(Tled)->var
-  ...
-  on(ledSwitch){
-    if (ref(ledSwitch) == TonOffState::dtype::ON) digitalWrite(LED_BUILTIN,1);
-    else digitalWrite(LED_BUILTIN,0);
-  };
-}
-```
-Here you define a macro `ref` and use it around all variables you access. This is a bit shorter and you have the classname i.e. `Tled` just in one place. Feel free to choose what alternative you like more.
+We need to use `sdds_self(ClassName)` to obtain a reference to the current object. Here, ClassName is the name of your component, e.g., Tled. The retrieved reference is implicitly called self.
 
 The only good news about it is, that both of the AVR syntaxes will work on all platforms. So if you want to write a component to be used on multiple platforms, you can't go wrong with one of the AVR syntaxes. However you can always start with our regular syntax and if there's somewhen a need to run it on an AVR, you can refactor you code, because it has no impact on the usage of the component. Perhaps until than we have a solution for this and there's no need for the refactoring anymore.
 
