@@ -58,6 +58,9 @@ namespace multask{
 				struct{
 					dtypes::uint32 uint32;
 				};
+				struct{
+					void* ptr;
+				};
 			} args;
 			#if MULTASK_DEBUG
 			const char* Fname;
