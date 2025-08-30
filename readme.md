@@ -119,7 +119,7 @@ The topic addressed by this document is fairly abstract. That's why we provide a
 3. Adjust the time the LED is on/off when blinking.
 4. Save settings to non-volatile memory to be available again after restarting the board.
 
-We use the serial console to trigger/control features. On ESP-based boards, it's possible to use the smartphone as well.
+We will use our [SDDS-Minimal-Browser](https://github.com/mLamneck/SDDS_minimalBrowser) to trigger/control features.
     
 ## Coding the example
 If you'd like to have a look at the final implementation, jump to the [Testing the Example](#testing-the-example) section right away.
@@ -276,9 +276,10 @@ It's time to finally play around and have fun...
 ### Build and Upload the Code
 If you are using Arduino IDE, you can just open the example.
 
+```File->Examples->SDDS->Led```
+
 If you choose to test with PlatformIO, you can download the full example project [here](/examples/platformIO/led/). Also make sure to install an extension for the serial monitor as explained in the [installation](#platformio) chapter.
 
-```File->Examples->SDDS->Led```
 ### Full Example Code
 You can also copy and paste the following complete example.
 
@@ -391,8 +392,6 @@ We want to point out here that the following section is not how it's supposed to
 #### Request the type description
 3. Send the command ```T```.
     * The response will look like the following. It's a full description of the data structure you have declared within your code, including types, options and possible values for enums. This information can be used by software to build a generic user interface like showcased with the [SDDS-Minimal-Browser](https://github.com/mLamneck/SDDS_minimalBrowser). For now, let's continue to explore the fundamentals in the serial monitor.
-     
-       ```t 0 [{"type":66,"opt":0,"name":"led","value":[{"type":49,"opt":0,"name":"ledSwitch","value":"OFF","enums":["OFF","ON"]},...```
 
 	   ```t 0 {"e":{"0":["OFF","ON"],"1":["___","save","load"],"2":["___","crc","invStrLen","outOfMem","invVers"]},"d":[[66,0,"led",[[49,128,"ledSwitch",0],[49,128,"blinkSwitch",0],[2,128,"onTime"],[2,128,"offTime"]]],[66,0,"params",[[49,0,"action",1],[49,0,"error",2],[2,0,"size"],[4,0,"time"]]]]}``` 
     
@@ -1045,7 +1044,7 @@ Old Format:
 
 New Format:
 
-```t 0 {"e":{"0":["OFF","ON"]},"d":[[66,0,"led",[[49,128,"ledSwitch",0],[49,128,"blinkSwitch",0],[2,128,"onTime"],[2,128,"offTime"]]]]}```
+```t 0 {"e":{"0":["OFF","ON"]},"d":{[[66,0,"led",[[49,128,"ledSwitch",0],[49,128,"blinkSwitch",0],[2,128,"onTime"],[2,128,"offTime"]]]]}```
 
 
 #### 2025/01: sdds_struct not needed anymore
@@ -1117,7 +1116,7 @@ The most straightforward way to refactor the code is to move the logic you'd typ
 
 We need to use `sdds_self(ClassName)` to obtain a reference to the current object. Here, ClassName is the name of your component, e.g., Tled. The retrieved reference is implicitly called self.
 
-The only good news about it is, that both of the AVR syntaxes will work on all platforms. So if you want to write a component to be used on multiple platforms, you can't go wrong with one of the AVR syntaxes. However you can always start with our regular syntax and if there's somewhen a need to run it on an AVR, you can refactor you code, because it has no impact on the usage of the component. Perhaps until than we have a solution for this and there's no need for the refactoring anymore.
+The only good news about it is, that the AVR syntax will work on all platforms. So if you want to write a component to be used on multiple platforms, you can't go wrong with the AVR syntax. However you can always start with our regular syntax and if there's somewhen a need to run it on an AVR, you can refactor you code, because it has no impact on the usage of the component. Perhaps until than we have a solution for this and there's no need for the refactoring anymore.
 
 The full LED [example code](examples/avr/led/led.ino) for AVR's is available in the examples folder of the library.
 
@@ -1150,7 +1149,7 @@ just to name a few.
 
 ## Build SDDS Client application
 
-Most importantly, we need to develop client applications to make use of the power unleashed by this library. We've already created the web-based minimal GUI for ESP boards. The repository can be found [here](https://github.com/mLamneck/SDDS_minimalBrowser). It should be possible to use the core of this  project located in the `system` folder to build a React app on top, for example.
+Most importantly, we need to develop client applications to make use of the power unleashed by this library. We've already created the web-based minimal GUI. The repository can be found [here](https://github.com/mLamneck/SDDS_minimalBrowser). It should be possible to use the core of this project located in the `system` folder to build a React app on top, for example.
 
 We can also consider QT-based applications. Python is also a good choice. Feel free to contribute with a software based on your favorite language.
 
