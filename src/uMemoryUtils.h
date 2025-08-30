@@ -6,6 +6,21 @@
 namespace sdds{
 	namespace memUtils{
 
+		void swap_endianness(void* _buf, int _nBytes){
+			uint8_t* p = reinterpret_cast<uint8_t*>(_buf);
+			for (int i=0; i<_nBytes/2; i++){
+				uint8_t temp = p[_nBytes-i-1];
+				p[_nBytes-i-1] = p[i];
+				p[i] = temp;
+			}
+		}
+
+		template <typename T>
+		void swap_endianness(T& value){
+			swap_endianness(&value,sizeof(T));
+		}
+
+
 		/**
 		 * @class TbufferStream
 		 * @brief A simple buffer-based stream for reading and writing data.
@@ -29,6 +44,7 @@ namespace sdds{
 				void setWritePos(int _val) { FwritePos = _val; }
 				int readPos() { return FreadPos; }
 				void setReadPos(int _val) { FreadPos = _val; }
+				void setAvailableForRead(int _available){ FbytesAvailableForRead = _available; }
 
 				void init(dtypes::uint8* _buffer, int _size, int _availableForRead = 0){
 					Fbuffer = static_cast<uint8*>(_buffer);
@@ -91,6 +107,19 @@ namespace sdds{
 					if (bytesAvailableForRead() < (int)sizeof(T)) return false;
 					memcpy(&_value,&Fbuffer[FreadPos], sizeof(T));
 					FreadPos += sizeof(T);
+					return true;
+				}
+
+				template<typename T>
+				bool writeVal_be(T _value){
+					swap_endianness(&_value,sizeof(T));
+					return writeVal(_value);
+				}
+
+				template<typename T>
+				bool readVal_be(T& _value) {
+					if (!readVal(_value)) return false;
+					swap_endianness(_value);
 					return true;
 				}
 
