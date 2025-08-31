@@ -21,6 +21,35 @@
 
 namespace mhal{
 
+	namespace uart{
+		constexpr static uint32_t TRANSLATE_DW(uart::DATAWIDTH DW, uart::PARITY P){
+			if (P == uart::NONE){
+				if (DW == uart::DW7) return LL_USART_DATAWIDTH_7B;
+				if (DW == uart::DW8) return LL_USART_DATAWIDTH_8B;
+				if (DW == uart::DW9) return LL_USART_DATAWIDTH_9B;
+			} else{
+				if (DW == uart::DW7) return LL_USART_DATAWIDTH_8B;
+				if (DW == uart::DW8) return LL_USART_DATAWIDTH_9B;
+			}
+			return 0;
+		}
+
+		constexpr static uint32_t TRANSLATE_PARITY(uart::PARITY P){
+			if (P == uart::EVEN) return LL_USART_PARITY_EVEN;
+			if (P == uart::ODD) return LL_USART_PARITY_ODD;
+			if (P == uart::NONE) return LL_USART_PARITY_NONE;
+			return 0;
+		}
+
+		constexpr static uint32_t TRANSLATE_SB(uart::STOPBITS SB){
+			if (SB == SB05) return LL_USART_STOPBITS_0_5;
+			if (SB == SB1) return LL_USART_STOPBITS_1;
+			if (SB == SB15) return LL_USART_STOPBITS_1_5;
+			if (SB == SB2) return LL_USART_STOPBITS_2;
+			return 0;
+		}
+	};
+
 	template<uintptr_t UART_BASE_ADDR, class RX_PIN, class TX_PIN>
 	class Tuart{
 			constexpr static USART_TypeDef* pUart(){ return (USART_TypeDef*)UART_BASE_ADDR; }
@@ -36,35 +65,13 @@ namespace mhal{
 			constexpr static uint32_t ERR_MASK = (USART_ISR_ORE | USART_ISR_FE | USART_ISR_NE | USART_ISR_PE);
 
 		public:
-			typedef decltype(LL_USART_InitTypeDef::DataWidth) TdwRaw;
-			enum DATAWIDTH : TdwRaw{
-				DW7=LL_USART_DATAWIDTH_7B,
-				DW8=LL_USART_DATAWIDTH_8B,
-				DW9=LL_USART_DATAWIDTH_9B
-			};
-
-			typedef decltype(LL_USART_InitTypeDef::StopBits) TstopBitsRaw;
-			enum STOPBITS : TstopBitsRaw{
-				SB05=LL_USART_STOPBITS_0_5,
-				SB1=LL_USART_STOPBITS_1,
-				SB15=LL_USART_STOPBITS_1_5,
-				SB2=LL_USART_STOPBITS_2
-			};
-
-			typedef decltype(LL_USART_InitTypeDef::Parity) TparityRaw;
-			enum PARITY : TstopBitsRaw{
-				EVEN = LL_USART_PARITY_EVEN,
-				ODD = LL_USART_PARITY_ODD,
-				NONE = LL_USART_PARITY_NONE
-			};
-
 			constexpr static void init(
 				uint32_t _baud = 115200*8,
-				DATAWIDTH _dw = DW8,
-				PARITY _par = NONE,
-				STOPBITS _sb = SB1
+				uart::DATAWIDTH _dw = uart::DW8,
+				uart::PARITY _par = uart::NONE,
+				uart::STOPBITS _sb = uart::SB1
 			){
-				_init(_baud,static_cast<TdwRaw>(_dw),static_cast<TparityRaw>(_par),static_cast<TstopBitsRaw>(_sb));
+				_init(_baud,uart::TRANSLATE_DW(_dw, _par),uart::TRANSLATE_PARITY(_par),uart::TRANSLATE_SB(_sb));
 			}
 
 		private:

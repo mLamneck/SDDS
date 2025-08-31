@@ -10,6 +10,14 @@
 
 #include "uPlatform.h"
 
+namespace mhal{
+	namespace uart{
+		enum DATAWIDTH {DW7,DW8,DW9};
+		enum STOPBITS{SB05,SB1,SB15,SB2};
+		enum PARITY{EVEN,ODD,NONE};
+	}
+}
+
 #if defined(STM32_CUBE)
 	#include "STM32/uUart.h"
 #elif defined(SDDS_ON_ARDUINO)
@@ -19,10 +27,6 @@
 		template<uintptr_t UART_BASE_ADDR, class RX_PIN, class TX_PIN>
 		class Tuart{
 			public:
-				enum DATAWIDTH {DW7,DW8,DW9};
-				enum STOPBITS{SB05,SB1,SB15,SB2};
-				enum PARITY{EVEN,ODD,NONE};
-
 				constexpr static void rto_setRxTimeout(dtypes::uint32 _bits) {}
 				constexpr static void rto_enableRxTimeout() {}
 				constexpr static void rto_disableRxTimeout() {}

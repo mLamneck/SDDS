@@ -199,6 +199,58 @@ namespace sdds{
 				}
 		}; //TbufferStream
 
+
+		/**
+		 * TringBuffer<T,SIZE>
+		 */
+		template<typename T, size_t SIZE>
+		class TringBuffer {
+			public:
+				TringBuffer() : Fhead(0), Ftail(0) {}
+
+				size_t readable() const {
+					if (Fhead >= Ftail)
+						return Fhead - Ftail;
+					else
+						return SIZE - (Ftail - Fhead);
+				}
+
+				size_t writeable() const {
+				    return (SIZE - 1) - readable();
+				}
+
+				bool isEmpty() const {
+					return Fhead == Ftail;
+				}
+
+				bool isFull() const {
+					size_t nextHead = (Fhead + 1 < SIZE) ? Fhead + 1 : 0;
+					return nextHead == Ftail;
+				}
+
+				T read() {
+					if (isEmpty())
+						return 0;
+					T val = buffer[Ftail];
+					Ftail = (Ftail + 1 < SIZE) ? Ftail + 1 : 0;
+					return val;
+				}
+
+				bool write(T value) {
+					size_t nextHead = (Fhead + 1 < SIZE) ? Fhead + 1 : 0;
+					if (nextHead == Ftail)
+						return false;
+					buffer[Fhead] = value;
+					Fhead = nextHead;
+					return true;
+				}
+
+				private:
+					T buffer[SIZE];
+					volatile size_t Fhead;
+					volatile size_t Ftail;
+		}; //TringBuffer
+
 	} //namespace memUtils
 } //namespace sdds
 
