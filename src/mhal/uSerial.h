@@ -25,10 +25,15 @@ namespace mhal{
 			TtxIdleEvent* FtxIdle = nullptr;
 			char FendSeq;
 			bool FcheckForEndSeq = false;
+			bool FautomaticDriverEnable = false;
 			TringBuffer<uint8_t,64> FrxBuffer;
 			TringBuffer<uint8_t,64> FtxBuffer;
 
 		public:
+			void setAutomaticDriverEnable(bool _val){
+				FautomaticDriverEnable = _val;
+			}
+
 			void installRxEvent(TrxEvent* _ev){
 				FrxEvent = _ev;
 			}
@@ -46,8 +51,8 @@ namespace mhal{
 				FcheckForEndSeq = false;
 			}
 
-			virtual size_t write(const dtypes::uint8* _buffer, int _len){
-				return 0;
+			virtual size_t write(const dtypes::uint8* _buffer, int _len) {
+				return _len;
 			}
 
 			size_t write(const char* _buffer){
@@ -95,16 +100,16 @@ namespace mhal{
 
 #if MARKI_DEBUG_PLATFORM
 namespace mhal{
-	template <class __UART>
+	template <class __UART, class _EN_PIN=TgpioPinInactive<0,0>>
 	class Tserial : public mhal::TserialBase, public __UART{
-		static Tserial<__UART>* Finstance;
+		static Tserial<__UART,_EN_PIN>* Finstance;
 		public:
 			static void irq_handler(){  }
 			template<typename... Args>
 			void begin(Args&&... args){}
 	};
-	template<class __UART>
-	Tserial<__UART>* Tserial<__UART>::Finstance = nullptr;
+	template<class __UART, class _EN_PIN>
+	Tserial<__UART,_EN_PIN>* Tserial<__UART,_EN_PIN>::Finstance = nullptr;
 }
 #endif
 

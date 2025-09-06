@@ -143,6 +143,43 @@ class TstringRef{
             return true;
         }
 
+        bool parseHexValue(dtypes::uint32& _out) {
+            if (!hasNext()) return false;
+
+            dtypes::uint32 val = 0;
+            const char* pstart = Frun;
+            do {
+                char ch = curr();
+                dtypes::uint8 c;
+
+                if (ch >= '0' && ch <= '9') {
+                    c = ch - '0';
+                } else if (ch >= 'a' && ch <= 'f') {
+                    c = 10 + (ch - 'a');
+                } else if (ch >= 'A' && ch <= 'F') {
+                    c = 10 + (ch - 'A');
+                } else {
+                    break;
+                }
+
+                val = (val << 4) | c;
+                next();
+            } while (hasNext());
+
+            if (Frun == pstart) return false;
+            _out = val;
+            return true;
+        }
+
+        template <typename T>
+        bool parseHexValue(T& _out) {
+            dtypes::uint32 val;
+            if (!parseHexValue(val)) return false;
+            if ( val > (1ULL << (sizeof(T)*8)) - 1 ) return false; // Overflow check
+            _out = static_cast<T>(val);
+            return true;
+        }
+
         inline bool operator==(const char* _str){
             return string_cmp(*this,_str);
         }

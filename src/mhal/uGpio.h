@@ -14,7 +14,6 @@ namespace mhal{
 
 	enum class PIN_MODE {input,output,it_rising_falling};
 	template<uintptr_t GPIO_BASE_ADDR, uint32_t _GPIO_PIN>
-
 	class TgpioPinInactive {
 		public:
 			constexpr static void init(PIN_MODE _mode = PIN_MODE::output){ }

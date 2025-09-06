@@ -15,6 +15,20 @@ namespace sdds{
 			}
 		}
 
+		/* not used yet...
+		void swap_words(void* _buf, int _nBytes){
+			uint8_t* p = reinterpret_cast<uint8_t*>(_buf);
+			for (int i=0; i<=_nBytes-4; i+=2){
+				uint8_t tempL = p[i];
+				uint8_t tempH = p[i+1];
+				p[i] = p[i+2];
+				p[i+1] = p[i+3];
+				p[i+2] = tempL;
+				p[i+3] = tempH;
+			}
+		}
+		*/
+
 		template <typename T>
 		void swap_endianness(T& value){
 			swap_endianness(&value,sizeof(T));

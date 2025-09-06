@@ -179,6 +179,7 @@ namespace mhal{
 			constexpr static void isr_tc_disable(){ LL_USART_DisableIT_TC(pUart()); }
 			constexpr static auto isr_tc_enabled(){ return LL_USART_IsEnabledIT_TC(pUart()); }
 			constexpr static auto isr_tc_flagSet(){ return LL_USART_IsActiveFlag_TC(pUart()); }
+			constexpr static auto isr_tc_clearFlag(){ return LL_USART_ClearFlag_TC(pUart()); }
 
 			//Enable/Disable RX Not Empty and RX FIFO Not Empty Interrupt
 			constexpr static void isr_rxne_enable() { LL_USART_EnableIT_RXNE_RXFNE(pUart()); }
