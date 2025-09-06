@@ -28,7 +28,51 @@ void TtaskHandler::setTaskPriority(Tthread* _thread, multask::Tpriority _priorit
 		if (_priority < _thread->Fpriority){
 			while (_thread->FtaskQ.hasElements()){
 				auto ev = _thread->FtaskQ.pop();
-				signalEvent(ev);
+				/**
+				 * Background:
+				 * So far, we use `signalEvent(ev)` to enqueue an event in the process queue —
+				 * regardless of whether it is a time event or a regular process event.
+				 * Since an expired time event can be delivered immediately, this behavior
+				 * initially seems reasonable.
+				 *
+				 * Problem:
+				 * In a scenario with only one resource and multiple competing events, we usually
+				 * rely on task priority to filter out asynchronous events. However, if those
+				 * events are time events, the following issue occurs:
+				 * - The first time event acquires the resource, reschedules itself for the next
+				 *   access, and raises the task priority.
+				 * - Other events are pushed into the task’s private queue.
+				 * - Once the resource is released, the task lowers its priority and queued events
+				 *   are transferred to the process queue.
+				 * - Since time events are handled before process events, the first event can run
+				 *   again immediately, starving other events.
+				 *
+				 * Solution:
+				 * Instead of moving events from the task queue into the process queue, we transfer
+				 * them into the timer queue and set their delivery time to "now".
+				 * This creates a round-robin effect:
+				 * - The lower-priority event is last in the task queue.
+				 * - After transfer to the timer queue, it becomes the next one delivered.
+				 * - Events are thus handled in the correct order.
+				 *
+				 * Benefit:
+				 * This approach is more efficient because transferring events back requires no
+				 * priority check — only a simple `push_first` operation.
+				 *
+				 * Limitation:
+				 * There may be cases where events are not delivered in strict priority order:
+				 * - An event coming from the task queue is reinserted without re-checking priority.
+				 * - After the task lowers its priority, process events with lower priority may be
+				 *   executed before higher-priority ones.
+				 *
+				 * Possible fix:
+				 * When transferring an event to the task queue, store its origin so that a priority
+				 * check can be performed when moving it back.
+				 *
+				 * signalEvent(ev);
+				 */
+				ev->FdeliveryTime = sysTime();
+				FtimerQ.push_first(ev);
 			}
 		}
 	}
@@ -71,6 +115,14 @@ void TtaskHandler::setTimeEvent(Tevent* _ev, const TtickCount _relTime){
 	#endif
 	it.insert(_ev);
 }
+
+void TtaskHandler::unlinkTimeEvent(Tevent* _ev){
+	if (!_ev->linked()) return;
+	if (FtimerQ.remove(_ev)) return;
+	if (FprocQ.remove(_ev)) return;
+	if (_ev->Fowner)
+		_ev->Fowner->FtaskQ.remove(_ev);
+};
 
 void TtaskHandler::reclaimEvent(Tevent* _ev){
 	if (FprocQ.remove(_ev)) return;

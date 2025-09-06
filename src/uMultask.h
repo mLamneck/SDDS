@@ -203,15 +203,10 @@ TtaskHandler
 
 			void setTaskPriority(Tthread* _thread, multask::Tpriority _priority, bool _transferEvents = true);
 
-			void unlinkTimeEvent(Tevent* _ev){
-				if (!_ev->linked()) return;
-				if (FtimerQ.remove(_ev)) return;
-				if (FprocQ.remove(_ev)) return;
-			};
-
 			void signalEvent(Tevent* _ev);
 			void signalEventISR(Tevent* _ev);
 			void setTimeEvent(Tevent* _ev, const TtickCount _relTime);
+			void unlinkTimeEvent(Tevent* _ev);
 			void reclaimEvent(Tevent* _ev);
 
 			void dispatchEvent(Tevent* _ev, bool _eventFromIsr);
