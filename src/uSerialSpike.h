@@ -4,14 +4,18 @@
 #include "uPlainCommHandler.h"
 
 class TserialStream : public Tstream{
+	dtypes::uint32 Fbaud;
+	void init() override { 
+		if (Serial)
+			Serial.begin(Fbaud); 
+	}
 	void write(const char* _str) override { Serial.print(_str); }
 	void write(char _char) override { Serial.print(_char); }
 	//void write(int _int) override { Serial.print(_int); }
 	void flush() override { Serial.println(""); }
 	public:
-		TserialStream(int _baud){
-			if (!Serial)
-				Serial.begin(_baud);
+		TserialStream(dtypes::uint32 _baud){
+			Fbaud = _baud;
 		}
 };
 

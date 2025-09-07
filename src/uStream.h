@@ -5,6 +5,7 @@ typedef dtypes::string TstringStreamBuffer;
 
 class Tstream{
     public:
+		virtual void init(){};
         virtual void write(const char* _str) = 0;
         virtual void write(char _char) = 0;
         virtual void write(const dtypes::string &_str){ write(_str.c_str()); }

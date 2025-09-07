@@ -24,7 +24,14 @@ namespace crc8{
 	#endif
 
 	inline void calc(Tcrc& _crc, uint8_t _input){
+		// Of course avr-gcc is perfectly fine with me indexing into PROGMEM like it's RAM.
+		// Why would a compiler possibly warn me that I'm dereferencing nonsense?
+		// Thanks avr-gcc, truly the definition of "technically correct, the worst kind of correct."
+#if SDDS_ON_AVR
+		_crc = pgm_read_byte(&tab[_crc ^ _input]);
+#else
 		_crc = tab[_crc ^ _input];
+#endif
 	}
 
 	inline void calc(Tcrc& _crc, const void* _in, uint8_t _inLen){

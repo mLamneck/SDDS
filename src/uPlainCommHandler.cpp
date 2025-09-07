@@ -201,6 +201,7 @@ void TbasicPlainCommHandler::execute(Tevent* _ev){
 		Fstream->flush();
 	}
 	else{
+		Fstream->init();
 		Fstream->write("B 0");
 		Fstream->flush();
 	}
