@@ -278,7 +278,7 @@ If you are using Arduino IDE, you can just open the example.
 
 ```File->Examples->SDDS->Led```
 
-If you choose to test with PlatformIO, you can download the full example project [here](/examples/platformIO/led/). Also make sure to install an extension for the serial monitor as explained in the [installation](#platformio) chapter.
+If you choose to test with PlatformIO, you can download the full example project [here](/examples/platformIO/led/).
 
 ### Full Example Code
 You can also copy and paste the following complete example.
@@ -386,9 +386,18 @@ If you want to go more in depth on how this works behind the scenes, you can con
 
 We want to point out here that the following section is not how it's supposed to be used. It still makes sense to check out the following instructions to get an idea of how spikes work under the hood. So let's walk through...
 
+If you choose to use [PlatformIO](http://platformio.org), make sure to install an extension for the serial monitor as explained in the [installation](#platformio) chapter.
+
 1. Build and upload the code to your board.
 2. Open the Serial Monitor (default baudrate 115200).
-   
+3. Choose LF as line ending
+
+The settings should look like the following.
+
+<p align="center">
+  <img src="assets/platformio_serialExtension.png">
+</p>
+
 #### Request the type description
 3. Send the command ```T```.
     * The response will look like the following. It's a full description of the data structure you have declared within your code, including types, options and possible values for enums. This information can be used by software to build a generic user interface like showcased with the [SDDS-Minimal-Browser](https://github.com/mLamneck/SDDS_minimalBrowser). For now, let's continue to explore the fundamentals in the serial monitor.
