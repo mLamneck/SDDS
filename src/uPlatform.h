@@ -121,6 +121,10 @@ namespace dtypes {
 		_code\
 		portEXIT_CRITICAL(&__sdds_mux);
 #elif defined(ESP8266)
+	#define __sdds_isr_critical(_code)\
+		uint32_t savedInterruptState = xt_rsil(15);\
+		_code\
+		xt_wsr_ps(savedInterruptState);
 #endif
 
 
