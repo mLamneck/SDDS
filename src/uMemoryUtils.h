@@ -6,7 +6,7 @@
 namespace sdds{
 	namespace memUtils{
 
-		void swap_endianness(void* _buf, int _nBytes){
+		inline void swap_endianness(void* _buf, int _nBytes){
 			uint8_t* p = reinterpret_cast<uint8_t*>(_buf);
 			for (int i=0; i<_nBytes/2; i++){
 				uint8_t temp = p[_nBytes-i-1];
@@ -243,8 +243,9 @@ namespace sdds{
 				}
 
 				T read() {
+					T temp;
 					if (isEmpty())
-						return 0;
+						return temp;
 					T val = buffer[Ftail];
 					Ftail = (Ftail + 1 < SIZE) ? Ftail + 1 : 0;
 					return val;
