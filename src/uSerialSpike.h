@@ -5,10 +5,7 @@
 
 class TserialStream : public Tstream{
 	dtypes::uint32 Fbaud;
-	void init() override { 
-		if (Serial)
-			Serial.begin(Fbaud); 
-	}
+	void init() override { Serial.begin(Fbaud); }
 	void write(const char* _str) override { Serial.print(_str); }
 	void write(char _char) override { Serial.print(_char); }
 	//void write(int _int) override { Serial.print(_int); }

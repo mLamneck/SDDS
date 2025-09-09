@@ -179,6 +179,12 @@ void TbasicPlainCommHandler::handleMessage(TstringRef& msg){
 	}
 }
 
+void TbasicPlainCommHandler::init(){
+	Fstream->init();
+	Fstream->write("B 0");
+	Fstream->flush();
+};
+
 void TbasicPlainCommHandler::execute(Tevent* _ev){ 
 	if (!isTaskEvent(_ev)){
 		TobjectEvent* oe= TobjectEvent::retrieve(_ev);
@@ -201,8 +207,6 @@ void TbasicPlainCommHandler::execute(Tevent* _ev){
 		Fstream->flush();
 	}
 	else{
-		Fstream->init();
-		Fstream->write("B 0");
-		Fstream->flush();
+		init();
 	}
 }

@@ -76,6 +76,8 @@ class TbasicPlainCommHandler : public Tthread{
 
 			void handleReadWrite(TstringRef& msg);
 
+			virtual void init();
+
 		public:
 			void setStream(Tstream* _stream){ Fstream = _stream?_stream:&FdummyStream; }
 			Terror lastError() { return FlastError; };
