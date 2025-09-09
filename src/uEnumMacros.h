@@ -12,12 +12,8 @@ namespace sdds{
 		 * enough for all applications but if we need more somewhen we can
 		 * easily specify a compiler flag to make this bigger.
 		 */
-		typedef dtypes::uint8 TenumId;
-
-		inline TenumId& TenumClassBase_counter() {
-			static TenumId counter = 0;
-			return counter;
-		}
+		using TenumId = dtypes::uint8;
+		static TenumId g_TenumClassBase_counter;
 
 		/**
 		 * @brief Baseclass used in sdds_enumClass to reduce code produce by macro magic
@@ -27,6 +23,8 @@ namespace sdds{
 		 */
 		template <class Tinfo>
 		class TenumClaseBase{
+			private:
+				static const TenumId ID;
 			public:
 				typedef uint8_t enumOrdType;
 
@@ -37,10 +35,7 @@ namespace sdds{
 				typename Tinfo::enum_type Fvalue;  
 
 				operator e() const{ return Fvalue; }
-				static TenumId id(){
-					static TenumId ID = TenumClassBase_counter()++;
-					return ID;
-				}
+				static TenumId id();
 
 				static const enumOrdType toInt(e _v){return static_cast<enumOrdType>(_v);}
 				static const e toEnum(const int _ord){
@@ -80,6 +75,12 @@ namespace sdds{
 				[[deprecated("use toInt() instead")]]
 				static const enumOrdType ord(e _v){return static_cast<enumOrdType>(_v);}
 		};
+
+		template <class Tinfo>
+		TenumId TenumClaseBase<Tinfo>::id() { return ID; }
+
+		template <class Tinfo>
+		const TenumId TenumClaseBase<Tinfo>::ID = g_TenumClassBase_counter++;
 	}
 }
 
