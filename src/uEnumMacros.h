@@ -12,8 +12,12 @@ namespace sdds{
 		 * enough for all applications but if we need more somewhen we can
 		 * easily specify a compiler flag to make this bigger.
 		 */
-		using TenumId = dtypes::uint8;
-		static TenumId g_TenumClassBase_counter;
+		typedef dtypes::uint8 TenumId;
+		extern volatile TenumId g_TenumClassBase_counter;
+
+		inline volatile TenumId& TenumClassBase_counter() {
+			return g_TenumClassBase_counter;
+		}
 
 		/**
 		 * @brief Baseclass used in sdds_enumClass to reduce code produce by macro magic
@@ -78,9 +82,9 @@ namespace sdds{
 
 		template <class Tinfo>
 		TenumId TenumClaseBase<Tinfo>::id() { return ID; }
-
+		
 		template <class Tinfo>
-		const TenumId TenumClaseBase<Tinfo>::ID = g_TenumClassBase_counter++;
+		const TenumId TenumClaseBase<Tinfo>::ID = TenumClassBase_counter()++;
 	}
 }
 
@@ -108,3 +112,4 @@ namespace sdds{
 	};
 
 #endif // UENUMMACROS_h
+
