@@ -24,6 +24,9 @@ namespace mhal{
 			size_t write(const dtypes::uint8* _buffer, int _len) override{
 				if (_len <= 0) return 0;
 
+				if (FautomaticDriverEnable)
+					_EN_PIN::high();
+
 				int written = 0;
 
 			    if (__UART::tdr_empty()) {
