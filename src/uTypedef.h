@@ -1,8 +1,16 @@
 /************************************************************************************
 uTypeDef.h
-toDo:
-    - find an alternative for pValue() method to provide access to Fvalue for 
-      streaming access;
+  - Compiler Flags:
+    __SDDS_UTYPEDEF_COMPILE_STRCONV:
+      implement the following virtual methods for string conversions. Setting in to false
+      will reduce flash footprint significant.
+
+        virtual bool setValue(const char* _str) = 0;
+        virtual TrawString to_string() { return ""; };
+    SDDS_ON_AVR:
+      AVR-GCC needs special treatment here and there
+    iSDDS_COMPILE_FLOAT64:
+      enable to implement double data type
 *************************************************************************************/
 
 #ifndef UTYPEDEF_H
@@ -69,7 +77,7 @@ class TmenuHandle;
 class Tdescr;
 
 //callback for ons
-#ifdef __AVR__
+#ifdef SDDS_ON_AVR
     //for AVR-gcc std::function is not available
     //we have to store a pure funcion ptr instead
     typedef void (*Tcallback)(void*);
@@ -187,6 +195,10 @@ namespace sdds{
 
         STRING  = 0x81
     };
+
+    inline bool isTypeEqual(const dtypes::int32 _t1, const Ttype _t2){
+        return _t1 == static_cast<dtypes::int32>(_t2);
+    }
 }
 
 
@@ -210,7 +222,9 @@ class TcallbackWrapper : public TlinkedListElement{
             return this;
         }
 
-        void emit(){
+        //emit cannot be used in QT:
+        //void emit(){
+        void notify(){
             if (Fcallback){
                 Fcallback(Fctx);
             }
@@ -220,9 +234,9 @@ typedef TlinkedListIterator<TcallbackWrapper> TcallbackIterator;
 
 class Tcallbacks : public TlinkedList<TcallbackWrapper>{
     public:
-        inline void emit(){
+        inline void notify(){
             for (auto it = iterator(); it.hasCurrent();){
-                it.current()->emit();
+                it.current()->notify();
 				it.jumpToNext();
             }
         }
@@ -315,10 +329,7 @@ class Tdescr : public TlinkedListElement{
 			static_assert(std::is_base_of<Tdescr, T>::value, "T must be derived from Tdescr");
 			return static_cast<T*>(this);
 		}
-*/
-        inline bool hasChilds() {
-            if (!isStruct()) return false;
-        }
+*/        
 
 #if __SDDS_UTYPEDEF_COMPILE_STRCONV
 
@@ -635,8 +646,13 @@ class Tfloat32 : public TdescrTemplate<dtypes::float32,sdds::Ttype::FLOAT32>{
 		void operator=(dtype _v){ __setValue(_v); }
 		template<typename T>
 		void operator=(T _val){__setValue(_val); }
-
-		static dtype nan() { return 0.0f/0.0f; }
+        static dtype nan() {
+#if SDDS_ON_QT
+            return std::numeric_limits<dtype>::quiet_NaN();
+#else
+            return 0.0f / 0.0f;
+#endif
+        }
 		static bool isNan(dtype _val) { return (_val != _val); }
 		bool isNan(){ return Fvalue!=Fvalue; }
 };
@@ -887,7 +903,7 @@ public:
 			__setValue(_str);
 			return true;
 		};
-		TrawString to_string(){ return Fvalue; }
+		TrawString to_string() override { return Fvalue; }
 #endif
 	protected:
 		constexpr sdds::opt::Ttype __modifyOption(const sdds::opt::Ttype _opt) { return _opt | sdds::opt::showString; }
@@ -971,8 +987,9 @@ class TmenuHandle : public Tstruct{
 	friend class TobjectEvent;
     public:
         typedef TlinkedListIterator<Tdescr> Titerator;
-    private:
+    protected:
         TlinkedList<Tdescr> FmenuItems;
+    private:
         TobjectEventList FobjectEvents;
         void push_back(Tdescr* d){FmenuItems.push_back(d);}
 		
@@ -1036,6 +1053,10 @@ class TmenuHandle : public Tstruct{
 			Tdescr* descr;
 			find(_name,descr);
 			return descr;
+        }
+
+        int indexOf(Tdescr* _item){
+            return FmenuItems.indexOf(_item);
         }
 
 		Tdescr* get(int _idx){
@@ -1112,7 +1133,7 @@ Ttimer
 template <class eventType>
 class TcallbackEvent: public eventType{
     Tcallbacks Fcallbacks;
-    void execute() override{ Fcallbacks.emit(); }
+    void execute() override{ Fcallbacks.notify(); }
     public:
         TcallbackEvent(): eventType() {}
         Tcallbacks* callbacks(){ return &Fcallbacks; }

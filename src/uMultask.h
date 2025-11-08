@@ -2,6 +2,7 @@
 #define UMULTASK_H
 
 #define MULTASK_DEBUG false
+#define SDDS_MULTASK_SOFTCLOCK 0
 
 #include "uPlatform.h"
 #include "uLinkedList.h"

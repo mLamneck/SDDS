@@ -156,7 +156,7 @@ void TtaskHandler::dispatchEvent(Tevent* _ev, bool _eventFromIsr){
 }
 
 void TtaskHandler::calcTime(){
-    #if MARKI_DEBUG_PLATFORM == 1
+    #if SDDS_MULTASK_SOFTCLOCK
     #else
         FsysTime = sdds::sysTime::tickCount();
     #endif
@@ -217,9 +217,9 @@ bool TtaskHandler::_handleEvent(){
 };
 
 void TtaskHandler::_handleEvents(){
-	while ( _handleEvent()){};
-
-	#if MARKI_DEBUG_PLATFORM == 1
+#if !SDDS_MULTASK_SOFTCLOCK
+    while ( _handleEvent()){};
+#else
 	while (_handleEvent()){};
 	auto ev = FtimerQ.first();
 	if (ev){
@@ -234,7 +234,7 @@ void TtaskHandler::_handleEvents(){
 			FsysTime += actualWaitTime;
 		}
 	}
-	#endif
+#endif
 }
 
 
