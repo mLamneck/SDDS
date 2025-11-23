@@ -2,7 +2,9 @@
 #define UMULTASK_H
 
 #define MULTASK_DEBUG false
+#ifndef SDDS_MULTASK_SOFTCLOCK
 #define SDDS_MULTASK_SOFTCLOCK 0
+#endif
 
 #include "uPlatform.h"
 #include "uLinkedList.h"
@@ -41,9 +43,9 @@ namespace multask{
 			TtickCount FdeliveryTime;
 			multask::Tpriority Fpriority = 0;
 		public:
-			virtual void beforeDispatch(){};
-			virtual void execute(){};
-			virtual void afterDispatch(){};
+			virtual void beforeDispatch(){}
+			virtual void execute(){}
+			virtual void afterDispatch(){}
 		public:
 			union{
 				struct{
@@ -220,6 +222,7 @@ TtaskHandler
 			TstopWatch FswBusy;
 			static dtypes::uint32 FbusyTicks;
 		public:
+
 			static dtypes::uint32 readBusyTicks(){
 				auto temp = FbusyTicks;
 				FbusyTicks = 0;
@@ -246,7 +249,7 @@ TtaskHandler
 		public:
 			Tthread();
 			Tthread(const char* _name);
-			bool isTaskEvent(Tevent* _ev) { return (this==_ev); };
+			bool isTaskEvent(Tevent* _ev) { return (this==_ev); }
 			Tevent* getTaskEvent() { return this; }
 			void setPriority(multask::Tpriority _priority, bool _transferEvents = true);
 			multask::Tpriority priority() { return Fpriority; }

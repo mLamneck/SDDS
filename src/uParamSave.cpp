@@ -206,15 +206,11 @@ namespace sdds{
 				if (descr->isStruct()){
 					TmenuHandle* mh = static_cast<Tstruct*>(descr)->value();
 					if (!mh) continue;
-					signalMenuEventsAfterLoad(mh);				
+					signalMenuEventsAfterLoad(mh);
 				}
 
-				for (auto it = s->iterator(); it.hasCurrent();){
-					auto descr = it.current();
-					it.jumpToNext();
-					if (!descr->shouldBeSaved()) continue;
+				if (descr->shouldBeSaved())
 					descr->signalEvents();
-				}
 			}
 		}
 

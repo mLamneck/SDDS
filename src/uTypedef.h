@@ -27,6 +27,9 @@ uTypeDef.h
 #ifndef __SDDS_UTYPEDEF_COMPILE_STRCONV
 	#define __SDDS_UTYPEDEF_COMPILE_STRCONV 1
 #endif
+#ifndef __SDDS_UTYPEDEF_VIRTUAL_DESTRUCTOR
+	#define __SDDS_UTYPEDEF_VIRTUAL_DESTRUCTOR 0
+#endif
 
 // Dear AVR-GCC, thanks for keeping C++ interesting:
 // every line of portable code becomes a new adventure here.
@@ -60,7 +63,7 @@ macro expansion
 */
 #define __sdds_namedOn(_name,_var) \
     static TcallbackWrapper _name(this);\
-    TcallbackWrapper* __SDDS__TOKENPASTE(_name,_local) = _var.callbacks()->addCbw(_name);\
+    TcallbackWrapper* __SDDS__TOKENPASTE(_name,_local) = _var.callbacks()->addCbw(_name,this);\
     __sdds_storeCallback(__SDDS__TOKENPASTE(_name,_local))
 
 #define on(_var) __sdds_namedOn(SDDS_UNIQUE_NAME(__on_var),_var)
@@ -241,19 +244,20 @@ class Tcallbacks : public TlinkedList<TcallbackWrapper>{
             }
         }
 
-        TcallbackWrapper* addCbw(TcallbackWrapper* _cbw){
+        TcallbackWrapper* addCbw(TcallbackWrapper* _cbw, void* _ctx = nullptr){
             /*
                 here we have to check if the given callback wrapper is already in use,
                 and if so we have to dynamically allocate one. This happens if a sdds_struct
                 is instantiated multiple times
             */
-            if (_cbw->linked()){
-                _cbw = new TcallbackWrapper(_cbw->ctx());
+            if (_cbw->ctx() != _ctx){
+                _cbw = new TcallbackWrapper(_ctx);
             }
             push_back(_cbw);
             return _cbw;
         }
 
+        TcallbackWrapper* addCbw(TcallbackWrapper& _cbw, void* _ctx){ return addCbw(&_cbw,_ctx); }
         TcallbackWrapper* addCbw(TcallbackWrapper& _cbw){ return addCbw(&_cbw); }
 };
 
@@ -274,6 +278,10 @@ class Tdescr : public TlinkedListElement{
 		constexpr sdds::opt::Ttype __modifyOption(const sdds::opt::Ttype _opt) { return _opt; }
 
     public:
+#if __SDDS_UTYPEDEF_VIRTUAL_DESTRUCTOR
+        virtual ~Tdescr(){}
+#endif
+
 		struct Tmeta{
 			sdds::Ttype type;
 			sdds::Toption option;

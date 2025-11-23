@@ -1,6 +1,8 @@
 #ifndef USTREAM_H
 #define USTREAM_H
 
+#include "uPlatform.h"
+
 typedef dtypes::string TstringStreamBuffer;
 
 class Tstream{
