@@ -17,7 +17,9 @@ namespace mhal{
 		public:
 			using TserialBase::write;
 
-			Tserial<__UART,_EN_PIN>(){
+			//not valid anymore for C++20 and makes no sense on the other hand....
+			//Tserial<__UART,_EN_PIN>(){
+			Tserial(){
 				Finstance = this;
 			}
 
