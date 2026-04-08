@@ -16,7 +16,8 @@ namespace mhal{
 	class TtimerBase{
 	public:
 		constexpr static void setCounter(uint32_t _value){ };
-		static int getArr() {return 8000; };
+		static int getArr(int _freq = 0) {return 8000; };
+		static void deinit() {};
 	};
 
 	template<class _Ttimer, class _TgpioPin, uint32_t _CH>
@@ -24,9 +25,15 @@ namespace mhal{
 	public:
 		using TIMER = _Ttimer;
 		typedef _TgpioPin GPIO_PIN;
+		static bool Fenabled;
 		constexpr static void setCompareChannel(uint32_t _value){ };
-		static void init() {};
+		static void init(int _freq = 0) { Fenabled = true; };
+		static void deinit() { Fenabled = false; };
+		static bool isEnabled() { return Fenabled; }
 	};
+
+	template<class _Ttimer, class _TgpioPin, uint32_t _CH>
+	bool TpwmChannelBase<_Ttimer,_TgpioPin,_CH>::Fenabled = false;
 
 }
 
