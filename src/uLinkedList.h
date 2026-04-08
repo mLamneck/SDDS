@@ -67,6 +67,16 @@ class _TlinkedList : public _TlinkedListElement{
 
         int  indexOf(T* _element);
         bool hasElements() { return first() != nullptr; }
+        
+        dtypes::uint32 count(){
+            auto curr = first();
+            dtypes::uint32 c = 0;
+            while (curr){
+                curr = curr->next();
+                c++;
+            }
+            return c;
+        }
 };
 
 
