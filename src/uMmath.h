@@ -37,9 +37,31 @@ namespace mmath{
 	template <typename T>
 	inline constexpr T max(const T& a, const T& b) { return (a > b) ? a : b; }
 	
+	inline dtypes::float32 abs(const dtypes::float32 _value){
+		return fabsf(_value); 
+	}
+
+	inline dtypes::int32 abs(const dtypes::int8 _value){
+		return _value >= 0 ? _value : -_value;
+	}
+
+	inline dtypes::int32 abs(const dtypes::int16 _value){
+		return _value >= 0 ? _value : -_value;
+	}
+
+	// Warning: abs(INT32_MIN) is undefined behavior (overflow)
+	inline dtypes::int32 abs(const dtypes::int32 _value){
+		return _value >= 0 ? _value : -_value;
+	}
+
+	inline dtypes::int32 abs(dtypes::uint8)  = delete;
+	inline dtypes::int32 abs(dtypes::uint16) = delete;
+	inline dtypes::int32 abs(dtypes::uint32) = delete;
+	
 	inline dtypes::float32 ln(dtypes::float32 _val){
 		return logf(_val);
 	}
+	
 
 	template <typename T>
 	T pow(T _base, T _exp){
