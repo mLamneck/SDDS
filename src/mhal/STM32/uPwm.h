@@ -103,6 +103,49 @@ constexpr static uint32_t __mhal_LL_TIM_CHANNEL() {
 			}
 		}
 
+		constexpr static void disableClock(uintptr_t TIMER_BASE_ADDR) {
+			switch (TIMER_BASE_ADDR) {
+			case TIM1_BASE:
+				LL_APB2_GRP1_DisableClock(LL_APB2_GRP1_PERIPH_TIM1);
+				break;
+			case TIM2_BASE:
+				LL_APB1_GRP1_DisableClock(LL_APB1_GRP1_PERIPH_TIM2);
+				break;
+			case TIM3_BASE:
+				LL_APB1_GRP1_DisableClock(LL_APB1_GRP1_PERIPH_TIM3);
+				break;
+			case TIM4_BASE:
+				LL_APB1_GRP1_DisableClock(LL_APB1_GRP1_PERIPH_TIM4);
+				break;
+			case TIM5_BASE:
+				LL_APB1_GRP1_DisableClock(LL_APB1_GRP1_PERIPH_TIM5);
+				break;
+			case TIM6_BASE:
+				LL_APB1_GRP1_DisableClock(LL_APB1_GRP1_PERIPH_TIM6);
+				break;
+			case TIM7_BASE:
+				LL_APB1_GRP1_DisableClock(LL_APB1_GRP1_PERIPH_TIM7);
+				break;
+			case TIM8_BASE:
+				LL_APB2_GRP1_DisableClock(LL_APB2_GRP1_PERIPH_TIM8);
+				break;
+			case TIM15_BASE:
+				LL_APB2_GRP1_DisableClock(LL_APB2_GRP1_PERIPH_TIM15);
+				break;
+			case TIM16_BASE:
+				LL_APB2_GRP1_DisableClock(LL_APB2_GRP1_PERIPH_TIM16);
+				break;
+			case TIM17_BASE:
+				LL_APB2_GRP1_DisableClock(LL_APB2_GRP1_PERIPH_TIM17);
+				break;
+			case TIM20_BASE:
+				LL_APB2_GRP1_DisableClock(LL_APB2_GRP1_PERIPH_TIM20);
+				break;
+			default:
+				break;
+			}
+		}
+
 		constexpr static bool isClockEnabled(uintptr_t TIMER_BASE_ADDR) {
 			switch (TIMER_BASE_ADDR) {
 			case TIM1_BASE:
@@ -144,16 +187,18 @@ class Ttimer : public TtimerBase<TIM_BASE_ADDR>{
 
 		constexpr static void setCounter(uint32_t _value){ LL_TIM_SetCounter(TIM(),_value); };
 		constexpr static void enableClock(){ TtimerClockManager::enableClock(TIM_BASE_ADDR); }
+		constexpr static void disableClock(){ TtimerClockManager::disableClock(TIM_BASE_ADDR); }
 		constexpr static bool isClockEnabled(){ return TtimerClockManager::isClockEnabled(TIM_BASE_ADDR); }
 		constexpr static void enableCounter() { LL_TIM_EnableCounter(TIM()); }
 
-		static uint32_t getArr(){
-			uint32_t arr = HAL_RCC_GetSysClockFreq()*1.0f/FREQ+0.5f;
+		static uint32_t getArr(dtypes::uint32 _freq = 0){
+			dtypes::uint32 freq = _freq == 0 ? FREQ : _freq;
+			uint32_t arr = HAL_RCC_GetSysClockFreq()*1.0f/freq+0.5f;
 			if (USE_DITHERING) arr = arr*16;
 			return arr;
 		}
 
-		constexpr static void init(){
+		constexpr static void init(dtypes::uint32 _freq = 0){
 			if (isClockEnabled()) return;
 
 			enableClock();
@@ -163,11 +208,20 @@ class Ttimer : public TtimerBase<TIM_BASE_ADDR>{
 				LL_TIM_EnableDithering(TIM());
 			TIM_InitStruct.Prescaler = 0;
 			TIM_InitStruct.CounterMode = LL_TIM_COUNTERMODE_UP;
-			TIM_InitStruct.Autoreload = getArr();
+			TIM_InitStruct.Autoreload = getArr(_freq);
 			TIM_InitStruct.ClockDivision = LL_TIM_CLOCKDIVISION_DIV1;
 			LL_TIM_Init(TIM(), &TIM_InitStruct);
 			LL_TIM_EnableARRPreload(TIM());
 			LL_TIM_SetClockSource(TIM(), LL_TIM_CLOCKSOURCE_INTERNAL);
+		}
+
+		constexpr static void deinit(){
+		    LL_TIM_DisableCounter(TIM());
+		    if (USE_DITHERING)
+		        LL_TIM_DisableDithering(TIM());
+		    LL_TIM_DisableARRPreload(TIM());
+			LL_TIM_DeInit(TIM());
+		    disableClock();
 		}
 };
 
@@ -200,8 +254,13 @@ public:
 		}
 	}
 
-	constexpr static void init(){
-		_Ttimer::init();
+	constexpr static bool isEnabled(){
+		return LL_TIM_CC_IsEnabledChannel(TIM(),__mhal_LL_TIM_CHANNEL<_CH>());
+
+	}
+
+	constexpr static void init(dtypes::uint32 _freq = 0){
+		_Ttimer::init(_freq);
 
 		/*****************************************
 		 * configure compare channel and pwm
@@ -241,6 +300,12 @@ public:
 
 		enableChannel();
 		_Ttimer::enableCounter();
+
+	}
+
+	constexpr static void deinit(){
+		LL_TIM_CC_DisableChannel(TIM(), __mhal_LL_TIM_CHANNEL<_CH>());
+		_GPIO_PIN::init();
 	}
 
 };
