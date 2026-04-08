@@ -214,7 +214,33 @@ namespace sdds{
 		}; //TbufferStream
 
 
-		/**
+        /**
+		 * Tstack<T,SIZE>
+		 */
+        template<typename T, size_t SIZE>
+        class Tstack {
+            T Fbuffer[SIZE];
+            volatile size_t FitemCount = 0;
+        public:
+
+            bool push(const T value){
+                if (FitemCount >= SIZE) return false;
+                Fbuffer[FitemCount++] = value;
+                return true;
+            }
+
+            bool pop(T& result){
+                if (FitemCount <= 0) return false;
+                result = Fbuffer[--FitemCount];
+                return true;
+            }
+
+            void clear(){
+                FitemCount = 0;
+            }
+        };
+
+        /**
 		 * TringBuffer<T,SIZE>
 		 */
 		template<typename T, size_t SIZE>
@@ -243,12 +269,17 @@ namespace sdds{
 				}
 
 				T read() {
-					T temp;
+					//T temp;
 					if (isEmpty())
-						return temp;
+						//return temp;
+						return T{};
 					T val = buffer[Ftail];
 					Ftail = (Ftail + 1 < SIZE) ? Ftail + 1 : 0;
 					return val;
+				}
+
+				T peek() {
+					return buffer[Ftail];
 				}
 
 				bool write(T value) {
