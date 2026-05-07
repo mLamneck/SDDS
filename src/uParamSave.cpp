@@ -293,6 +293,7 @@ TparamSaveMenu::TparamSaveMenu(){
 				dtypes::uint32 locTime = sdds::sysTime::tickCount();
 				ps.load(root,&s);
 				self->time = sdds::sysTime::tickCount()-locTime;
+				sdds::systemEvents().afterParamLoad.signal();
 			}else if(action==TenLoadSave::e::save){
 				dtypes::uint32 locTime = sdds::sysTime::tickCount();
 				ps.save(root,&s);

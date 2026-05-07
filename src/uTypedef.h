@@ -1347,7 +1347,13 @@ class TbinLocator{
                 than init webserver
 */
 namespace sdds{
-    Ttimer& setup();
+	class TsystemEvents{
+		public:
+			TcallbackEvent<Tevent> afterParamLoad;
+	};
+
+	Ttimer& setup();
+	TsystemEvents& systemEvents();
 }
 
 #endif

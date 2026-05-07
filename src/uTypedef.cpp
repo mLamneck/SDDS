@@ -117,4 +117,10 @@ namespace sdds{
         }
         return *__setup;
     }
+
+    TsystemEvents& systemEvents(){
+    	static TsystemEvents s;
+    	return s;
+    }
+
 }
