@@ -134,7 +134,7 @@ namespace dtypes {
  * used for development on windows machines
 *************************************************************************************/
 
-#if defined(__MINGW64__) || defined(WIN32) || SDDS_ON_QT     //__MINGW64__ works in VS_Code, WIN32 in codeBlocks
+#if defined(__MINGW64__) || defined(WIN32) || SDDS_ON_QT || defined(__linux__)     //__MINGW64__ works in VS_Code, WIN32 in codeBlocks
     #include <stdint.h>                         //uint8_t, ...
 #if (!SDDS_ON_QT)
     #include <sys/time.h>
