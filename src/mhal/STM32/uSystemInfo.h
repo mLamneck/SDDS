@@ -50,13 +50,18 @@ namespace mhal{
 			    if (__HAL_RCC_GET_FLAG(RCC_FLAG_PORRST))
 			        jlkjlkjlk;
 			#endif
-			    if (__HAL_RCC_GET_FLAG(RCC_FLAG_PINRST))
+			    if (__HAL_RCC_GET_FLAG(RCC_FLAG_PINRST)){
+				    if (__HAL_RCC_GET_FLAG(RCC_FLAG_BORRST))
+				        return TenBootReason::e::POWER;
 			        return TenBootReason::e::EPIN;
+			    }
+			    //maybe not set alone in case of brown out. Check EPIN as well
 			    if (__HAL_RCC_GET_FLAG(RCC_FLAG_BORRST))
 			        return TenBootReason::e::BOR;
 			    else
 			        return TenBootReason::e::___;
 			}
+
 	};
 
 }
