@@ -191,33 +191,36 @@ class Ttimer : public TtimerBase<TIM_BASE_ADDR>{
 		constexpr static bool isClockEnabled(){ return TtimerClockManager::isClockEnabled(TIM_BASE_ADDR); }
 		constexpr static void enableCounter() { LL_TIM_EnableCounter(TIM()); }
 
-		static uint32_t getArr(dtypes::uint32 _freq = 0){
-			dtypes::uint32 freq = _freq == 0 ? FREQ : _freq;
-			uint32_t arr = HAL_RCC_GetSysClockFreq()*1.0f/freq+0.5f;
-			if (USE_DITHERING) arr = arr*16;
-			return arr;
-		}
+		static bool dith_enabled(){ return LL_TIM_IsEnabledDithering(TIM()); }
 
-		constexpr static void init(dtypes::uint32 _freq = 0){
-			if (isClockEnabled()) return;
+		static uint32_t getArr(){ return LL_TIM_GetAutoReload(TIM()); }
+
+		constexpr static bool init(dtypes::float32 _freq = 0.0f){
+			if (isClockEnabled())
+				return true;
+
+			TtimerValues tv;
+			if (!tv.calc(HAL_RCC_GetSysClockFreq(), _freq >= 0.01 ? _freq : FREQ, 16))
+				return false;
 
 			enableClock();
 
 			LL_TIM_InitTypeDef TIM_InitStruct = {0};
-			if (USE_DITHERING)
+			if (tv.useDithering())
 				LL_TIM_EnableDithering(TIM());
-			TIM_InitStruct.Prescaler = 0;
+			TIM_InitStruct.Prescaler = tv.prescaler-1;
 			TIM_InitStruct.CounterMode = LL_TIM_COUNTERMODE_UP;
-			TIM_InitStruct.Autoreload = getArr(_freq);
+			TIM_InitStruct.Autoreload = tv.arr;
 			TIM_InitStruct.ClockDivision = LL_TIM_CLOCKDIVISION_DIV1;
 			LL_TIM_Init(TIM(), &TIM_InitStruct);
 			LL_TIM_EnableARRPreload(TIM());
 			LL_TIM_SetClockSource(TIM(), LL_TIM_CLOCKSOURCE_INTERNAL);
+			return true;
 		}
 
 		constexpr static void deinit(){
 		    LL_TIM_DisableCounter(TIM());
-		    if (USE_DITHERING)
+		    if (dith_enabled())
 		        LL_TIM_DisableDithering(TIM());
 		    LL_TIM_DisableARRPreload(TIM());
 			LL_TIM_DeInit(TIM());
@@ -259,8 +262,9 @@ public:
 
 	}
 
-	constexpr static void init(dtypes::uint32 _freq = 0){
-		_Ttimer::init(_freq);
+	constexpr static bool init(dtypes::float32 _freq = 0.0f){
+		if (!_Ttimer::init(_freq))
+			return false;
 
 		/*****************************************
 		 * configure compare channel and pwm
@@ -300,7 +304,7 @@ public:
 
 		enableChannel();
 		_Ttimer::enableCounter();
-
+		return true;
 	}
 
 	constexpr static void deinit(){
