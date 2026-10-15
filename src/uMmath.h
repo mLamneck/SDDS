@@ -31,6 +31,15 @@
 #endif
 
 namespace mmath{
+	inline constexpr dtypes::float32 ceil(dtypes::float32 x){
+		constexpr dtypes::float32 LIMIT = 8388608.0f;   // 2^23
+		if (x >= LIMIT || x <= -LIMIT)
+			return x;
+		dtypes::int32 i = static_cast<dtypes::int32>(x);
+		dtypes::float32 t = static_cast<dtypes::float32>(i);
+		return (t < x) ? t + 1.0f : t;
+	}
+
 	template <typename T>
 	inline constexpr T min(const T& a, const T& b) { return (a < b) ? a : b; }
 
